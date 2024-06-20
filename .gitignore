@@ -1,4 +1,8 @@
 myenv/
+pytorch_cluster/
+pytorch_scatter/
+pytorch_sparse/
+pytorch_spline_conv/
 /data
 /manuscript
 /papers
