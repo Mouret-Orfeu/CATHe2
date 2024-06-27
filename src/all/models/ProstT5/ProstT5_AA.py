@@ -15,7 +15,7 @@ df_train = pd.read_csv('./data/CATHe\ Dataset/csv/Train.csv')
 # Extract Super Families (SF column) 
 y_train = df_train['SF'].tolist()
 # Extract AA Sequences
-AA_sequence_train = df_train['Sequence'].tolist()
+AA_sequences_train = df_train['Sequence'].tolist()
 
 
 # val
@@ -24,7 +24,7 @@ df_val = pd.read_csv('./data/CATHe\ Dataset/csv/Val.csv')
 # Extract Super Families (SF column)
 y_val = df_val['SF'].tolist()
 # Extract AA Sequences
-AA_sequence_val = df_val['Sequence'].tolist()
+AA_sequences_val = df_val['Sequence'].tolist()
 
 
 # test
@@ -33,9 +33,9 @@ df_test = pd.read_csv('./data/CATHe\ Dataset/csv/Test.csv')
 # Extract Super Families (SF column)
 y_test = df_test['SF'].tolist()
 # Extract AA Sequences
-AA_sequence_test = df_test['Sequence'].tolist()
+AA_sequences_test = df_test['Sequence'].tolist()
 
-AA_sequence_lists = [AA_sequence_train, AA_sequence_val, AA_sequence_test]
+AA_sequence_lists = [AA_sequences_train, AA_sequences_val, AA_sequences_test]
 
 # AA Sequence embedding ############################################################################
 
