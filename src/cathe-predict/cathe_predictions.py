@@ -22,15 +22,19 @@ else:
 cmd = 'mkdir Embeddings'
 os.system(cmd)
 
+# fasta to csv conversion
 cmd = 'python3 fasta_to_ds.py'
 os.system(cmd)
 
+# embeddings computation
 cmd = 'python3 predict_embed.py'
 os.system(cmd)
 
+# embeddings concatenation in the same csv
 cmd = 'python3 append_embed.py'
 os.system(cmd)
 
+# model predictions computation 
 cmd = 'python3 make_predictions.py'
 os.system(cmd)
 
