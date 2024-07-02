@@ -4,6 +4,7 @@ pytorch_scatter/
 pytorch_sparse/
 pytorch_spline_conv/
 /data
+tensorrt.so
 /manuscript
 /papers
 /src/all/data
