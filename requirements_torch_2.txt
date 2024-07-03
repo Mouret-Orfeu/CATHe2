@@ -19,9 +19,9 @@ bio
 bio-embeddings-allennlp
 bio-embeddings-bepler==0.0.1
 #bio-embeddings-CPCProt
-bio-embeddings-esm==0.2.1
+#bio-embeddings-esm==0.2.1
 #bio-embeddings-plus
-bio-embeddings-tape-proteins==0.5
+#bio-embeddings-tape-proteins==0.5
 biopython<2.0,>=1.79
 #biovec
 bleach==3.1.5
@@ -313,7 +313,7 @@ torch-geometric==1.5.0
 #torch-scatter==2.1.2
 #torch-sparse==0.6.18
 #torch-spline-conv==1.2.2
-torchvision==0.10.1
+#torchvision==0.10.1
 tornado
 tqdm<5.0.0,>=4.64.0
 traitlets

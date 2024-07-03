@@ -50,12 +50,13 @@ if gpus:
 
 # dataset import
 # train 
-ds_train = pd.read_csv('Y_Train_SF.csv')
+ds_train = pd.read_csv('./data/CATHe Dataset/annotations/Y_Train_SF.csv')
 y_train = list(ds_train["SF"])
 
-filename = 'SF_Train_ProtT5.npz'
+filename = './data/CATHe Dataset/embeddings/SF_Train_ProtT5.npz'
 X_train = np.load(filename)['arr_0']
-filename = 'Other_Train_US.npz'
+# filename = './data/CATHe Dataset/embeddings/Other Class/Other_Train_US.npz'
+filename = './data/CATHe Dataset/embeddings/Other Class/Other_Train.npz'
 X_train_other = np.load(filename)['arr_0']
 
 X_train = np.concatenate((X_train, X_train_other), axis=0)
@@ -64,13 +65,14 @@ for i in range(len(X_train_other)):
     y_train.append('other')
 
 # val
-ds_val = pd.read_csv('Y_Val_SF.csv')
+ds_val = pd.read_csv('./data/CATHe Dataset/annotations/Y_Val_SF.csv')
 y_val = list(ds_val["SF"])
 
-filename = 'SF_Val_ProtT5.npz'
+filename = './data/CATHe Dataset/embeddings/SF_Val_ProtT5.npz'
 X_val = np.load(filename)['arr_0']
 
-filename = 'Other_Val_US.npz'
+# filename = './data/CATHe Dataset/embeddings/Other Class/Other_Val_US.npz'
+filename = './data/CATHe Dataset/embeddings/Other Class/Other_Val.npz'
 X_val_other = np.load(filename)['arr_0']
 
 X_val = np.concatenate((X_val, X_val_other), axis=0)
@@ -79,13 +81,14 @@ for i in range(len(X_val_other)):
     y_val.append('other')
 
 # test
-ds_test = pd.read_csv('Y_Test_SF.csv')
+ds_test = pd.read_csv('./data/CATHe Dataset/annotations/Y_Test_SF.csv')
 y_test = list(ds_test["SF"])
 
-filename = 'SF_Test_ProtT5.npz'
+filename = './data/CATHe Dataset/embeddings/SF_Test_ProtT5.npz'
 X_test = np.load(filename)['arr_0']
 
-filename = 'Other_Test_US.npz'
+# filename = './data/CATHe Dataset/embeddings/Other Class/Other_Test_US.npz'
+filename = './data/CATHe Dataset/embeddings/Other Class/Other_Test.npz'
 X_test_other = np.load(filename)['arr_0']
 
 X_test = np.concatenate((X_test, X_test_other), axis=0)
@@ -155,15 +158,15 @@ def create_model():
     x = BatchNormalization()(x)
     x = Dropout(0.5)(x)
     
-    x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
-    x = LeakyReLU(alpha = 0.05)(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.5)(x) 
+    # x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
+    # x = LeakyReLU(alpha = 0.05)(x)
+    # x = BatchNormalization()(x)
+    # x = Dropout(0.5)(x) 
     
-    x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
-    x = LeakyReLU(alpha = 0.05)(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.5)(x) 
+    # x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
+    # x = LeakyReLU(alpha = 0.05)(x)
+    # x = BatchNormalization()(x)
+    # x = Dropout(0.5)(x) 
     
     out = Dense(num_classes, activation = 'softmax', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
     classifier = Model(input_, out)
@@ -191,7 +194,9 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    history = model.fit_generator(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    # history = model.fit_generator(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+
     model = load_model('saved_models/ann_t5_m1.h5')
 
     print("Validation")
@@ -401,5 +406,35 @@ F1 Score:  0.00054492457427147
 Acc Score:  0.08311021865238732
 MCC:  0.022393191155585926
 Bal Acc:  0.0014463794762714455
+
+'''
+
+'''
+First run (Orfeu tests):
+nb layer = 1
+bs = 128
+epochs = 200
+input size = 1024
+
+Validation
+F1 Score:  0.8376208701803203
+Acc Score 0.8618679877604546
+
+Regular Testing
+F1 Score:  0.6916966902686269
+Acc Score:  0.8452346254736228
+MCC:  0.8445510425864564
+Bal Acc:  0.7137585454807984
+
+Bootstrapping Results
+Accuracy:  0.8454102302535705 0.004245773538633677
+F1-Score:  0.701729238128407 0.006865777279383606
+MCC:  0.8447279805700859 0.004261423964467635
+Bal Acc:  0.7380713713481866 0.006310194353462971
+
+
+Classification Report Validation
+
+OSError: Cannot save file into a non-existent directory: 'results'
 
 '''

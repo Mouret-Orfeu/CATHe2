@@ -1,154 +1,95 @@
+# Part of the code from https://github.com/tymor22/tm-vec/blob/master/ipynb/repo_EMBED.ipynb
+
+import numpy as np
 import pandas as pd
-
-
-# Part of the code from https://huggingface.co/Rostlab/ProstT5
-
-from transformers import T5Tokenizer, T5EncoderModel
 import torch
+from torch.utils.data import Dataset
+from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
+from tm_vec.tm_vec_utils import featurize_prottrans, embed_tm_vec, encode
+from transformers import T5EncoderModel, T5Tokenizer
+import gc
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Set device
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-# dataset import #################################################################################
-
-# train 
-
-df_train = pd.read_csv('./data/CATHe\ Dataset/csv/Train.csv')
-# Extract Super Families (SF column) 
+# Dataset import
+# Train
+df_train = pd.read_csv('./data/CATHe Dataset/csv/Train.csv')
 y_train = df_train['SF'].tolist()
-# Extract AA Sequences
 AA_sequences_train = df_train['Sequence'].tolist()
 
-
-# val
-
-df_val = pd.read_csv('./data/CATHe\ Dataset/csv/Val.csv')
-# Extract Super Families (SF column)
+# Val
+df_val = pd.read_csv('./data/CATHe Dataset/csv/Val.csv')
 y_val = df_val['SF'].tolist()
-# Extract AA Sequences
 AA_sequences_val = df_val['Sequence'].tolist()
 
-
-# test
-
-df_test = pd.read_csv('./data/CATHe\ Dataset/csv/Test.csv')
-# Extract Super Families (SF column)
+# Test
+df_test = pd.read_csv('./data/CATHe Dataset/csv/Test.csv')
 y_test = df_test['SF'].tolist()
-# Extract AA Sequences
 AA_sequences_test = df_test['Sequence'].tolist()
 
-AA_sequence_lists = [AA_sequences_train, AA_sequences_val, AA_sequences_test]
+# AA Sequence dictionary
+AA_sequences_dict = {
+    "train": AA_sequences_train,
+    "val": AA_sequences_val,
+    "test": AA_sequences_test
+}
 
-# AA Sequence embedding ############################################################################
+data_types = ['train', 'val', 'test']
 
-# Load the tokenizer
-tokenizer = T5Tokenizer.from_pretrained('Rostlab/ProstT5', do_lower_case=False).to(device)
+# Load the ProtTrans model and tokenizer
+tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False)
+model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_uniref50")
+gc.collect()
 
-# Load the model
-model = T5EncoderModel.from_pretrained("Rostlab/ProstT5").to(device)
+model = model.to(device)
+model = model.eval()
 
-# only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
-model.full() if device=='cpu' else model.half()
+# TM-Vec model paths
+tm_vec_model_cpnt = "path to last.ckpt"
+tm_vec_model_config = "path to params.json"
 
-
-
-# replace all rare/ambiguous amino acids by X (3Di sequences does not have those) and introduce white-space between all sequences (AAs and 3Di)
-cleaned_AA_sequence_lists = []
-for AA_sequence_list in AA_sequence_lists:
-    cleaned_AA_sequence_list = [" ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in AA_sequence_list]
-    cleaned_AA_sequence_lists.append(cleaned_AA_sequence_list)
-
-
-# add pre-fixes accordingly (this already expects 3Di-sequences to be lower-case)
-# if you go from AAs to 3Di (or if you want to embed AAs), you need to prepend "<AA2fold>"
-# if you go from 3Di to AAs (or if you want to embed 3Di), you need to prepend "<fold2AA>"
-embed_prepared_cleaned_AA_sequence_lists = [ [ "<AA2fold>" + " " + s if s.isupper() else "<fold2AA>" + " " + s
-                      for s in sequence_list
-                    ] for sequence_list in cleaned_AA_sequence_lists
-                ]
-
+# Load the TM-Vec model
+tm_vec_model_config = trans_basic_block_Config.from_json(tm_vec_model_config)
+model_deep = trans_basic_block.load_from_checkpoint(tm_vec_model_cpnt, config=tm_vec_model_config)
+model_deep = model_deep.to(device)
+model_deep = model_deep.eval()
 
 # Find the maximum length of sequences across all AA Sequence lists
-max_length = max([len(sequence) for sublist in embed_prepared_cleaned_AA_sequence_lists for sequence in sublist])
-
-# Calculate per-protein embeddings for the training dataset
-def get_per_protein_embeddings(embedding_repr, input_ids):
-    embeddings = []
-    for i in range(embedding_repr.last_hidden_state.shape[0]):
-        # Extract embeddings excluding special tokens
-        mask = (input_ids[i] != tokenizer.pad_token_id) & (input_ids[i] != tokenizer.cls_token_id) & (input_ids[i] != tokenizer.sep_token_id)
-        emb = embedding_repr.last_hidden_state[i, mask[1:]]  # Skip the first token (special token)
-        per_protein_embedding = emb.mean(dim=0)
-        embeddings.append(per_protein_embedding.cpu().numpy())
-    return embeddings
-
-
-# Helper function to process batches
-def process_batches(sequence_list, batch_size, max_length, tokenizer, model):
-    all_embeddings = []
-    for i in range(0, len(sequence_list), batch_size):
-        batch_sequences = sequence_list[i:i+batch_size]
-        ids_batch = tokenizer.batch_encode_plus(batch_sequences, add_special_tokens=True, padding="max_length", max_length=max_length, return_tensors='pt').to(device)
-        
-        with torch.no_grad():
-            embedding_repr_batch = model(
-                ids_batch.input_ids, 
-                attention_mask=ids_batch.attention_mask
-            )
-        
-        batch_embeddings = get_per_protein_embeddings(embedding_repr_batch, ids_batch.input_ids)
-        all_embeddings.extend(batch_embeddings)
-    return all_embeddings
+max_length = max([len(sequence) for sublist in AA_sequences_dict.values() for sequence in sublist])
 
 # Process each data type in batches
 batch_size = 1000
-data_types = ['train', 'val', 'test']
 embeddings = {}
 
-for i, data_type in enumerate(data_types):
-    embeddings[data_type] = process_batches(embed_prepared_cleaned_AA_sequence_lists[i], batch_size, max_length, tokenizer, model)
+# Loop through the datasets
+for data_type in data_types:
+    # Loop through the sequences and embed them in batches
+    i = 0
+    batch_sequences_emdeddings = []
+    while i < len(AA_sequences_dict[data_type]):
+        batch_sequences = AA_sequences_dict[data_type][i:i + batch_size]
+        embedded_sequence = encode(batch_sequences, model_deep, model, tokenizer, device)
+        
+        # Append the embedded sequences to the list
+        batch_sequences_emdeddings.extend(embedded_sequence)
+        i += batch_size
+
+    embeddings[data_type] = batch_sequences_emdeddings
+
+# Optionally, you can also clear the cache at the end of the process
+torch.cuda.empty_cache()
 
 # Access embeddings
 train_embeddings = embeddings['train']
 val_embeddings = embeddings['val']
 test_embeddings = embeddings['test']
 
-# # tokenize sequences and pad up to the longest sequence in the batch
-# ids_train = tokenizer.batch_encode_plus(embed_prepared_cleaned_AA_sequence_lists[0], add_special_tokens=True, padding="max_length", max_length=max_length, return_tensors='pt').to(device)
-# ids_val = tokenizer.batch_encode_plus(embed_prepared_cleaned_AA_sequence_lists[1], add_special_tokens=True, padding="max_length", max_length=max_length, return_tensors='pt').to(device)
-# ids_test = tokenizer.batch_encode_plus(embed_prepared_cleaned_AA_sequence_lists[2], add_special_tokens=True, padding="max_length",max_length=max_length, return_tensors='pt').to(device)
 
-
-# # generate embeddings
-# with torch.no_grad():
-#     embedding_repr_train = model(
-#               ids_train.input_ids, 
-#               attention_mask=ids_train.attention_mask
-#               )
-#     embedding_repr_val = model(
-#                 ids_val.input_ids, 
-#                 attention_mask=ids_val.attention_mask
-#                 )
-#     embedding_repr_test = model(
-#                 ids_test.input_ids, 
-#                 attention_mask=ids_test.attention_mask
-#                 )   
-              
-
-# # extract residue embeddings for the first ([0,:]) sequence in the batch and remove padded & special tokens, incl. prefix ([0,1:8]) 
-# emb_0 = embedding_repr_train.last_hidden_state[0,1:8] # shape (7 x 1024)
-# # same for the second ([1,:]) sequence but taking into account different sequence lengths ([1,:6])
-# emb_1 = embedding_repr_train.last_hidden_state[1,1:6] # shape (5 x 1024)
-
-# # if you want to derive a single representation (per-protein embedding) for the whole protein
-# emb_0_per_protein = emb_0.mean(dim=0) # shape (1024)
-
-
-
-
-# Extract per-protein embeddings for the training, validation, and test datasets
-# train_embeddings = get_per_protein_embeddings(embedding_repr_train, ids_train.input_ids)
-# val_embeddings = get_per_protein_embeddings(embedding_repr_val, ids_val.input_ids)
-# test_embeddings = get_per_protein_embeddings(embedding_repr_test, ids_test.input_ids)
-
+# Training preparation ############################################################################
 
 # y process
 y_tot = []
@@ -203,6 +144,8 @@ def bm_generator(X_t, y_t, batch_size):
         y_batch = np.asarray(y_batch)
 
         yield X_batch, y_batch
+
+# Training and evaluation ################################################################################
 
 # batch size
 bs = 128

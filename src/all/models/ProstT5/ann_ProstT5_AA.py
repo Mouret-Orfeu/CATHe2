@@ -149,6 +149,7 @@ test_embeddings = embeddings['test']
 # val_embeddings = get_per_protein_embeddings(embedding_repr_val, ids_val.input_ids)
 # test_embeddings = get_per_protein_embeddings(embedding_repr_test, ids_test.input_ids)
 
+# Training preparation ############################################################################
 
 # y process
 y_tot = []
@@ -203,6 +204,8 @@ def bm_generator(X_t, y_t, batch_size):
         y_batch = np.asarray(y_batch)
 
         yield X_batch, y_batch
+
+# Training and evaluation ################################################################################
 
 # batch size
 bs = 128

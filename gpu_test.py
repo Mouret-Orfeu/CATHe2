@@ -2,7 +2,11 @@ import tensorflow as tf
 from tensorflow.python.client import device_lib
 
 # import tensorrt as trt
-# print(trt.__version__)
+# print("TensorRT version: ",trt.__version__)
+
+import tensorflow as tf
+print("cuDNN version:", tf.sysconfig.get_build_info()['cudnn_version'])
+
 
 # Function to get GPU device details
 def get_device_name():
