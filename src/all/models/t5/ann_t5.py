@@ -411,7 +411,7 @@ Bal Acc:  0.0014463794762714455
 
 '''
 First run (Orfeu tests):
-nb layer = 1
+nb layer (dens - leakyRelu - Batch normal - dropout)= 1
 bs = 128
 epochs = 200
 input size = 1024
