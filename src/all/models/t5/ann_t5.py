@@ -452,3 +452,42 @@ Classification Report Validation
 OSError: Cannot save file into a non-existent directory: 'results'
 
 '''
+
+
+'''
+last run
+
+
+loss: 0.9525 - accuracy: 0.8504 - val_loss: 1.0115 - val_accuracy: 0.8491 - lr: 1.0000e-06
+Validation
+
+F1 Score:  0.8460129945200751
+Acc Score 0.8687163048229637
+
+Regular Testing
+
+F1 Score:  0.7116407744775418
+Acc Score:  0.8513552900029147
+MCC:  0.850710887711986
+Bal Acc:  0.7330387153448567
+
+Bootstrapping Results
+
+Accuracy:  0.8515558146313028 0.004198531256747538
+F1-Score:  0.7187172246628645 0.006942070682355846
+MCC:  0.8509127445874228 0.004213220917025692
+Bal Acc:  0.754958316621048 0.0062739259981693055
+215/215 [==============================] - 0s 551us/step
+Classification Report Validation
+
+error
+
+Confusion Matrix
+[[148   0   0 ...   0   0   2]
+ [  0   2   0 ...   0   0   0]
+ [  0   0   0 ...   0   0   1]
+ ...
+ [  0   0   0 ...   1   0   0]
+ [  0   0   0 ...   0   1   0]
+ [  2   0   0 ...   0   0  14]]
+'''
