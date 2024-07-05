@@ -45,7 +45,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # functions #####################################################################################
 
-def sort_embeddings(input_npz_path, output_npz_path, name):
+def sort_and_save_embeddings(input_npz_path, output_npz_path, name):
     """
     Sort embeddings from an NPZ file by index and save the sorted embeddings to a new NPZ file.
 
@@ -68,11 +68,8 @@ def sort_embeddings(input_npz_path, output_npz_path, name):
     # Create a list of embeddings in the sorted order
     sorted_embeddings = [embeddings_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
 
-    # Convert the list to a dictionary with string keys to save as NPZ
-    sorted_embeddings_dict = {str(key): value for key, value in tqdm(zip(sorted_keys, sorted_embeddings), desc="Creating sorted dictionary")}
-
     # Save the sorted embeddings
-    np.savez(output_npz_path, **sorted_embeddings_dict)
+    np.savez(output_npz_path, sorted_embeddings)
 
 # dataset import #################################################################################
 
@@ -84,7 +81,10 @@ y_train = df_train['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_train = df_train['Sequence'].tolist()
 
-sort_embeddings("./data/CATHe Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Train_ProstT5.npz", "Train")
+sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Train_ProstT5.npz", "Train")
+
+filename = './data/CATHe Dataset/embeddings/Train_ProstT5.npz'
+X_train = np.load(filename)['arr_0']
 
 # val
 
@@ -94,7 +94,10 @@ y_val = df_val['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_val = df_val['Sequence'].tolist()
 
-sort_embeddings("./data/CATHe Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Val_ProstT5.npz", "Val")
+sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Val_ProstT5.npz", "Val")
+
+filename = './data/CATHe Dataset/embeddings/Val_ProstT5.npz'
+X_val = np.load(filename)['arr_0']
 
 # test
 
@@ -106,8 +109,10 @@ y_test = df_test['SF'].tolist()
 
 # AA_sequence_lists = [AA_sequences_train, AA_sequences_val, AA_sequences_test]
 
-sort_embeddings("./data/CATHe Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Test_ProstT5.npz", "Test")
+sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Test_ProstT5.npz", "Test")
 
+filename = './data/CATHe Dataset/embeddings/Test_ProstT5.npz'
+X_test = np.load(filename)['arr_0']
 
 # AA Sequence embedding ############################################################################
 

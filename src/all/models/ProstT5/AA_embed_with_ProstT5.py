@@ -126,15 +126,12 @@ def get_embeddings(seq_path, emb_path, model_dir, per_protein, half_precision, i
 
     # Create a list of embeddings in the sorted order
     sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
-
-    # Convert the list to a dictionary with string keys to save as NPZ
-    sorted_embeddings_dict = {str(key): value for key, value in tqdm(zip(sorted_keys, sorted_embeddings), desc="Creating sorted dictionary")}
     
-    np.savez(emb_path, **sorted_embeddings_dict)
+    np.savez(emb_path, sorted_embeddings)
 
     print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings_dict)))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings_dict), avg_length))
+    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
     return True
 
 
