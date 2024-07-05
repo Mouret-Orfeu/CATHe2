@@ -15,6 +15,12 @@ import torch
 from transformers import T5Tokenizer, T5EncoderModel
 import re
 from tqdm import tqdm
+import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, confusion_matrix
+
 
 # GPU config for Vamsi's Laptop
 from tensorflow.compat.v1 import ConfigProto
@@ -248,7 +254,7 @@ def bm_generator(X_t, y_t, batch_size):
 # Training and evaluation ################################################################################
 
 # batch size
-bs = 512
+bs = 4096
 
 # Keras NN Model
 def create_model():
@@ -286,7 +292,7 @@ with tf.device('/gpu:0'):
     model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
     # callbacks
-    mcp_save = keras.callbacks.ModelCheckpoint('saved_models/ann_t5_m1.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
+    mcp_save = keras.callbacks.ModelCheckpoint('saved_models/ann_ProstT5.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
     early_stop = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=30)
     callbacks_list = [reduce_lr, mcp_save, early_stop]
@@ -295,8 +301,8 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    history = model.fit_generator(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    model = load_model('saved_models/ann_t5_m1.h5')
+    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    # model = load_model('saved_models/ann_ProstT5.h5')
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -338,16 +344,102 @@ with tf.device('/gpu:0'):
     print("MCC: ", np.mean(mcc_arr), np.std(mcc_arr))
     print("Bal Acc: ", np.mean(bal_arr), np.std(bal_arr))
 
-
-
 with tf.device('/gpu:0'):
     y_pred = model.predict(X_test)
     print("Classification Report Validation")
-    cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict = True)
+    cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True)
     df = pd.DataFrame(cr).transpose()
-    df.to_csv('results/CR_ANN_T5_m1.csv')
+    df.to_csv('results/CR_ANN_ProstT5.csv')
+    
     print("Confusion Matrix")
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
     print(matrix)
+    
+    # Plot the confusion matrix 
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.show()
+
     print("F1 Score")
-    print(f1_score(y_test, y_pred.argmax(axis=1), average = 'macro'))
+    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro'))
+
+'''
+First run 
+
+Validation
+
+F1 Score:  0.8719911573504435
+Acc Score 0.893458500968559
+
+Regular Testing
+
+F1 Score:  0.7327831765545498
+Acc Score:  0.8814064362336115
+MCC:  0.8809294222903166
+Bal Acc:  0.7538498659351749
+
+Bootstrapping Results
+
+Accuracy:  0.8811777413587604 0.003946529607170833
+F1-Score:  0.7395372295597611 0.006702172687649625
+MCC:  0.8806987518101628 0.003958227328046929
+Bal Acc:  0.773875020634396 0.005738367438081772
+
+Classification Report Validation
+
+Confusion Matrix
+[[150   0   0 ...   0   0   0]
+ [  0   2   0 ...   0   0   0]
+ [  0   0   0 ...   0   0   0]
+ ...
+ [  0   0   0 ...   0   0   0]
+ [  0   0   0 ...   0   1   0]
+ [  0   0   0 ...   0   0   1]]
+
+F1 Score
+0.7327831765545498
+'''
+
+
+'''
+nb run
+
+loss: 0.8994 - accuracy: 0.8618 - val_loss: 0.7553 - val_accuracy: 0.8966 - lr: 1.0000e-09
+
+Validation
+
+F1 Score:  0.8748210676936903
+Acc Score 0.8959916554909849
+
+Regular Testing
+
+F1 Score:  0.7380297220339255
+Acc Score:  0.8849821215733016
+MCC:  0.8845170908939579
+Bal Acc:  0.7593515749390974
+
+
+Bootstrapping Results
+
+Accuracy:  0.8848127234803337 0.0038629465624301436
+F1-Score:  0.7447440598337535 0.006770882677865061
+MCC:  0.8843460764902418 0.0038749005383619597
+Bal Acc:  0.779480736580121 0.005810461838427936
+
+Classification Report Validation
+
+error
+
+Confusion Matrix
+[[151   0   0 ...   0   0   0]
+ [  0   2   0 ...   0   0   0]
+ [  0   0   0 ...   0   0   0]
+ ...
+ [  0   0   0 ...   0   0   0]
+ [  0   0   0 ...   0   1   0]
+ [  0   0   0 ...   0   0   1]]
+
+'''

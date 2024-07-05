@@ -23,6 +23,11 @@ from tensorflow.keras import backend as K
 from tensorflow import keras
 from sklearn.model_selection import KFold
 from sklearn.utils import resample
+import seaborn as sns
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, confusion_matrix
 
 # GPU config for Vamsi's Laptop
 from tensorflow.compat.v1 import ConfigProto
@@ -147,7 +152,7 @@ def bm_generator(X_t, y_t, batch_size):
         yield X_batch, y_batch
 
 # batch size
-bs = 128
+bs = 2048
 
 # Keras NN Model
 def create_model():
@@ -197,7 +202,7 @@ with tf.device('/gpu:0'):
     # history = model.fit_generator(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
     history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
 
-    model = load_model('saved_models/ann_t5_m1.h5')
+    # model = load_model('saved_models/ann_t5_m1.h5')
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -250,6 +255,15 @@ with tf.device('/gpu:0'):
     print("Confusion Matrix")
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
     print(matrix)
+
+    # Plot the confusion matrix 
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.show()
+
     print("F1 Score")
     print(f1_score(y_test, y_pred.argmax(axis=1), average = 'macro'))
 
