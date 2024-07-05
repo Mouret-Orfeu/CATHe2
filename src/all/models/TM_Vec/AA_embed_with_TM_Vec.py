@@ -1,3 +1,5 @@
+# run with python ./src/all/models/TM_Vec/AA_embed_with_TM_Vec.py --input ./data/to/some_sequences.csv --output /path/to/some_embeddings.npz
+
 import argparse
 import time
 from pathlib import Path
@@ -18,11 +20,15 @@ else:
     device = torch.device('cpu')
 print("Using device: {}".format(device))
 
-def get_T5_model(model_dir):
-    print("Loading T5 from: {}".format(model_dir))
-    model = T5EncoderModel.from_pretrained(model_dir).to(device)
+def load_T5_model():
+    vocab = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False )
+    model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_uniref50")
+    gc.collect()
+    
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
     model = model.eval()
-    vocab = T5Tokenizer.from_pretrained(model_dir, do_lower_case=False)
+    
     return model, vocab
 
 def read_csv(seq_path):
@@ -35,21 +41,29 @@ def read_csv(seq_path):
     return sequences
 
 # Function to extract ProtTrans embedding for a sequence
-def featurize_prottrans(sequences, model, tokenizer, device):
+def featurize_prottrans(sequences, model, tokenizer, device, seq_idx, seq_length):
     sequences = [(" ".join(sequences[i])) for i in range(len(sequences))]
     sequences = [re.sub(r"[UZOB]", "X", sequence) for sequence in sequences]
     ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding=True)
     input_ids = torch.tensor(ids['input_ids']).to(device)
     attention_mask = torch.tensor(ids['attention_mask']).to(device)
 
-    with torch.no_grad():
-        embedding = model(input_ids=input_ids, attention_mask=attention_mask)
+    try:
+        with torch.no_grad():
+            embedding = model(input_ids=input_ids, attention_mask=attention_mask)
 
+    except RuntimeError:
+                print("RuntimeError during embedding for seq idx {} (L={})".format(seq_idx, seq_length))
+    
+    
     embedding = embedding.last_hidden_state.cpu().numpy()
 
     features = []
     for seq_num in range(len(sequences)):
         seq_len = (attention_mask[seq_num] == 1).sum()
+
+        #test if seq_len==seq_length and rename "seq_length" it is equal
+
         seq_emd = embedding[seq_num][:seq_len - 1]
         features.append(seq_emd)
 
@@ -65,26 +79,23 @@ def embed_tm_vec(prottrans_embedding, model_deep, device):
 
     return (tm_vec_embedding.cpu().detach().numpy())
 
-def encode(sequences, model_deep, model, tokenizer, device):
+def encode(sequences, model_deep, model, tokenizer, device, seq_idx, seq_length):
     embed_all_sequences = []
     for i in tqdm(range(len(sequences)), desc="Encoding sequences"):
-        protrans_sequence = featurize_prottrans([sequences[i]], model, tokenizer, device)
+        protrans_sequence = featurize_prottrans([sequences[i]], model, tokenizer, device, seq_idx, seq_length)
         embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
         embed_all_sequences.append(embedded_sequence)
     return np.concatenate(embed_all_sequences, axis=0)
 
-def get_embeddings(seq_path, emb_path, model_dir, per_protein, half_precision,
-                   max_residues=4000, max_seq_len=3263, max_batch=100):
+def get_embeddings(seq_path, emb_path, per_protein,
+                   max_residues=100000, max_seq_len=3263, max_batch=1000):
 
     emb_dict = dict()
 
     # Read in CSV
     sequences = read_csv(seq_path)
     
-    model, vocab = get_T5_model(model_dir)
-    if half_precision:
-        model = model.half()
-        print("Using model in half-precision!")
+    model, vocab = load_T5_model()
 
     # TM-Vec model paths
     tm_vec_model_cpnt = "./src/all/models/TM_Vec/TM_Vec_config/last.ckpt"
@@ -111,13 +122,12 @@ def get_embeddings(seq_path, emb_path, model_dir, per_protein, half_precision,
 
     batch = []
     for seq_idx, seq in enumerate(tqdm(sequences, desc="Embedding sequences"), 1):
-        seq = seq.replace('U', 'X').replace('Z', 'X').replace('O', 'X').replace('B', 'X')
         seq_len = len(seq)
         batch.append(seq)
 
         n_res_batch = sum([len(s) for s in batch]) + seq_len
         if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(sequences) or seq_len > max_seq_len:
-            embedded_batch = encode(batch, model_deep, model, vocab, device)
+            embedded_batch = encode(batch, model_deep, model, vocab, device, seq_idx, seq_len)
             for i, seq in enumerate(batch):
                 emb_dict[seq_idx - len(batch) + i] = embedded_batch[i]
             batch = []
@@ -130,15 +140,12 @@ def get_embeddings(seq_path, emb_path, model_dir, per_protein, half_precision,
 
     # Create a list of embeddings in the sorted order
     sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
-
-    # Convert the list to a dictionary with string keys to save as NPZ
-    sorted_embeddings_dict = {str(key): value for key, value in tqdm(zip(sorted_keys, sorted_embeddings), desc="Creating sorted dictionary")}
     
-    np.savez(emb_path, **sorted_embeddings_dict)
+    np.savez(emb_path, sorted_embeddings)
 
     print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings_dict)))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings_dict), avg_length))
+    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
     return True
 
 def create_arg_parser():
@@ -148,7 +155,7 @@ def create_arg_parser():
     parser = argparse.ArgumentParser(description=(
             'embed.py creates ProstT5-Encoder embeddings for a given text ' +
             ' file containing sequence(s) in CSV-format.' +
-            'Example: python embed.py --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz --half 1 --per_protein 1'))
+            'Example: python ./src/all/models/TM_Vec/AA_embed_with_TM_Vec.py --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz'))
     
     # Required positional argument
     parser.add_argument('-i', '--input', required=True, type=str,
@@ -157,20 +164,6 @@ def create_arg_parser():
     # Optional positional argument
     parser.add_argument('-o', '--output', required=True, type=str, 
                         help='A path for saving the created embeddings as NPZ file.')
-
-    # Required positional argument
-    parser.add_argument('--model', required=False, type=str,
-                        default="Rostlab/ProstT5",
-                        help='Either a path to a directory holding the checkpoint for a pre-trained model or a huggingface repository link.')
-
-    # Optional argument
-    parser.add_argument('--per_protein', type=int, 
-                        default=0,
-                        help="Whether to return per-residue embeddings (0: default) or the mean-pooled per-protein representation (1).")
-        
-    parser.add_argument('--half', type=int, 
-                        default=0,
-                        help="Whether to use half_precision or not. Default: 0 (full-precision)")
     
     return parser
 

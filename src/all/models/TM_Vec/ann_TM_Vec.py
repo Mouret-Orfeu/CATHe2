@@ -69,71 +69,80 @@ def encode(sequences, model_deep, model, tokenizer, device):
 # Train
 df_train = pd.read_csv('./data/CATHe Dataset/csv/Train.csv')
 y_train = df_train['SF'].tolist()
-AA_sequences_train = df_train['Sequence'].tolist()
+# AA_sequences_train = df_train['Sequence'].tolist()
+
+filename = './data/CATHe Dataset/embeddings/Train_TM_Vec.npz'
+X_train = np.load(filename)['arr_0']
 
 # Val
 df_val = pd.read_csv('./data/CATHe Dataset/csv/Val.csv')
 y_val = df_val['SF'].tolist()
-AA_sequences_val = df_val['Sequence'].tolist()
+# AA_sequences_val = df_val['Sequence'].tolist()
+
+filename = './data/CATHe Dataset/embeddings/Val_TM_vec.npz'
+X_val = np.load(filename)['arr_0']
 
 # Test
 df_test = pd.read_csv('./data/CATHe Dataset/csv/Test.csv')
 y_test = df_test['SF'].tolist()
-AA_sequences_test = df_test['Sequence'].tolist()
 
-# AA Sequence dictionary
-AA_sequences_dict = {
-    "train": AA_sequences_train,
-    "val": AA_sequences_val,
-    "test": AA_sequences_test
-}
+filename = './data/CATHe Dataset/embeddings/Test_TM_Vec.npz'
+X_test = np.load(filename)['arr_0']
+# AA_sequences_test = df_test['Sequence'].tolist()
 
-data_types = ['train', 'val', 'test']
+# # AA Sequence dictionary
+# AA_sequences_dict = {
+#     "train": AA_sequences_train,
+#     "val": AA_sequences_val,
+#     "test": AA_sequences_test
+# }
 
-# Load the ProtTrans model and tokenizer
-tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False)
-model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_uniref50")
-gc.collect()
+# data_types = ['train', 'val', 'test']
 
-model = model.to(device)
-model = model.eval()
+# # Load the ProtTrans model and tokenizer
+# tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False)
+# model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_uniref50")
+# gc.collect()
 
-# TM-Vec model paths
-tm_vec_model_cpnt = "./src/all/models/TM_Vec/TM_Vec_config/last.ckpt"
-tm_vec_model_config = "./src/all/models/TM_Vec/TM_Vec_config/params.json"
+# model = model.to(device)
+# model = model.eval()
 
-# Load the TM-Vec model
-tm_vec_model_config = trans_basic_block_Config.from_json(tm_vec_model_config)
-model_deep = trans_basic_block.load_from_checkpoint(tm_vec_model_cpnt, config=tm_vec_model_config)
-model_deep = model_deep.to(device)
-model_deep = model_deep.eval()
+# # TM-Vec model paths
+# tm_vec_model_cpnt = "./src/all/models/TM_Vec/TM_Vec_config/last.ckpt"
+# tm_vec_model_config = "./src/all/models/TM_Vec/TM_Vec_config/params.json"
 
-# Process each data type in batches
-batch_size = 1000
-embeddings = {}
+# # Load the TM-Vec model
+# tm_vec_model_config = trans_basic_block_Config.from_json(tm_vec_model_config)
+# model_deep = trans_basic_block.load_from_checkpoint(tm_vec_model_cpnt, config=tm_vec_model_config)
+# model_deep = model_deep.to(device)
+# model_deep = model_deep.eval()
 
-# Loop through the datasets
-for data_type in data_types:
-    # Loop through the sequences and embed them in batches
-    i = 0
-    batch_sequences_emdeddings = []
-    while i < len(AA_sequences_dict[data_type]):
-        batch_sequences = AA_sequences_dict[data_type][i:i + batch_size]
-        embedded_sequence = encode(batch_sequences, model_deep, model, tokenizer, device)
+# # Process each data type in batches
+# batch_size = 1000
+# embeddings = {}
+
+# # Loop through the datasets
+# for data_type in data_types:
+#     # Loop through the sequences and embed them in batches
+#     i = 0
+#     batch_sequences_emdeddings = []
+#     while i < len(AA_sequences_dict[data_type]):
+#         batch_sequences = AA_sequences_dict[data_type][i:i + batch_size]
+#         embedded_sequence = encode(batch_sequences, model_deep, model, tokenizer, device)
         
-        # Append the embedded sequences to the list
-        batch_sequences_emdeddings.extend(embedded_sequence)
-        i += batch_size
+#         # Append the embedded sequences to the list
+#         batch_sequences_emdeddings.extend(embedded_sequence)
+#         i += batch_size
 
-    embeddings[data_type] = batch_sequences_emdeddings
+#     embeddings[data_type] = batch_sequences_emdeddings
 
-# Optionally, you can also clear the cache at the end of the process
-torch.cuda.empty_cache()
+# # Optionally, you can also clear the cache at the end of the process
+# torch.cuda.empty_cache()
 
-# Access embeddings
-train_embeddings = embeddings['train']
-val_embeddings = embeddings['val']
-test_embeddings = embeddings['test']
+# # Access embeddings
+# train_embeddings = embeddings['train']
+# val_embeddings = embeddings['val']
+# test_embeddings = embeddings['test']
 
 
 # Training preparation ############################################################################

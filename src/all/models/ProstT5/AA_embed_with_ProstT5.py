@@ -48,8 +48,8 @@ def read_csv(seq_path):
     return sequences
 
 
-def get_embeddings(seq_path, emb_path, model_dir, per_protein, half_precision, is_3Di,
-                   max_residues=4000, max_seq_len=3263, max_batch=100):
+def get_embeddings(seq_path, emb_path, model_dir, half_precision,
+                   max_residues=100000, max_seq_len=3263, max_batch=1000):
     
     emb_dict = dict()
 
@@ -112,8 +112,8 @@ def get_embeddings(seq_path, emb_path, model_dir, per_protein, half_precision, i
                 # account for prefix in offset
                 emb = embedding_repr.last_hidden_state[batch_idx, 1:s_len+1]
                 
-                if per_protein:
-                    emb = emb.mean(dim=0)
+                
+                emb = emb.mean(dim=0)
                 emb_dict[identifier] = emb.detach().cpu().numpy().squeeze()
                 if len(emb_dict) == 1:
                     print("Example: embedded protein {} with length {} to emb. of shape: {}".format(identifier, s_len, emb.shape))
@@ -142,7 +142,7 @@ def create_arg_parser():
     parser = argparse.ArgumentParser(description=(
             'embed.py creates ProstT5-Encoder embeddings for a given text ' +
             ' file containing sequence(s) in CSV-format.' +
-            'Example: python embed.py --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz --half 1 --is_3Di 0 --per_protein 1'))
+            'Example: python embed.py --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz --half 1'))
     
     # Required positional argument
     parser.add_argument('-i', '--input', required=True, type=str,
@@ -157,18 +157,10 @@ def create_arg_parser():
                         default="Rostlab/ProstT5",
                         help='Either a path to a directory holding the checkpoint for a pre-trained model or a huggingface repository link.')
 
-    # Optional argument
-    parser.add_argument('--per_protein', type=int, 
-                        default=0,
-                        help="Whether to return per-residue embeddings (0: default) or the mean-pooled per-protein representation (1).")
         
     parser.add_argument('--half', type=int, 
                         default=0,
                         help="Whether to use half_precision or not. Default: 0 (full-precision)")
-    
-    parser.add_argument('--is_3Di', type=int, 
-                        default=0,
-                        help="Whether to create embeddings for 3Di or AA file. Default: 0 (generate AA-embeddings)")
     
     return parser
 
