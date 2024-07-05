@@ -5,6 +5,7 @@ import numpy as np
 from sklearn import preprocessing
 import math
 import tensorflow as tf
+from tensorflow import keras  
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import optimizers, regularizers
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU
@@ -81,7 +82,7 @@ y_train = df_train['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_train = df_train['Sequence'].tolist()
 
-sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Train_ProstT5.npz", "Train")
+# sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Train_ProstT5.npz", "Train")
 
 filename = './data/CATHe Dataset/embeddings/Train_ProstT5.npz'
 X_train = np.load(filename)['arr_0']
@@ -94,7 +95,7 @@ y_val = df_val['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_val = df_val['Sequence'].tolist()
 
-sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Val_ProstT5.npz", "Val")
+# sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Val_ProstT5.npz", "Val")
 
 filename = './data/CATHe Dataset/embeddings/Val_ProstT5.npz'
 X_val = np.load(filename)['arr_0']
@@ -109,7 +110,7 @@ y_test = df_test['SF'].tolist()
 
 # AA_sequence_lists = [AA_sequences_train, AA_sequences_val, AA_sequences_test]
 
-sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Test_ProstT5.npz", "Test")
+# sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Test_ProstT5.npz", "Test")
 
 filename = './data/CATHe Dataset/embeddings/Test_ProstT5.npz'
 X_test = np.load(filename)['arr_0']
