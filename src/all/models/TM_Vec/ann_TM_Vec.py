@@ -1,4 +1,5 @@
 # Part of the code from https://github.com/tymor22/tm-vec/blob/master/ipynb/repo_EMBED.ipynb
+# Part of the code from https://github.com/tymor22/tm-vec/blob/master/tm_vec/tm_vec_utils.py
 
 import numpy as np
 import pandas as pd
@@ -11,11 +12,60 @@ import gc
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re
 
 # Set device
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-# Dataset import
+# Fonctions ####################################################################################
+
+#Function to extract ProtTrans embedding for a sequence
+def featurize_prottrans(sequences, model, tokenizer, device):
+
+    sequences = [(" ".join(sequences[i])) for i in range(len(sequences))]
+    sequences = [re.sub(r"[UZOB]", "X", sequence) for sequence in sequences]
+    ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding=True)
+    input_ids = torch.tensor(ids['input_ids']).to(device)
+    attention_mask = torch.tensor(ids['attention_mask']).to(device)
+
+    with torch.no_grad():
+        embedding = model(input_ids=input_ids, attention_mask=attention_mask)
+
+    embedding = embedding.last_hidden_state.cpu().numpy()
+
+    features = []
+    for seq_num in range(len(sequences)):
+        seq_len = (attention_mask[seq_num] == 1).sum()
+        seq_emd = embedding[seq_num][:seq_len - 1]
+        features.append(seq_emd)
+
+    prottrans_embedding = torch.tensor(features[0])
+    prottrans_embedding = torch.unsqueeze(prottrans_embedding, 0).to(device)
+
+    return (prottrans_embedding)
+
+
+
+#Embed a protein using tm_vec (takes as input a prottrans embedding)
+def embed_tm_vec(prottrans_embedding, model_deep, device):
+    padding = torch.zeros(prottrans_embedding.shape[0:2]).type(torch.BoolTensor).to(device)
+    tm_vec_embedding = model_deep(prottrans_embedding, src_mask=None, src_key_padding_mask=padding)
+
+    return(tm_vec_embedding.cpu().detach().numpy())
+
+def encode(sequences, model_deep, model, tokenizer, device):
+    i = 0
+    embed_all_sequences=[]
+    while i < len(sequences):
+        protrans_sequence = featurize_prottrans(sequences[i:i+1], model, tokenizer, device)
+        embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
+        embed_all_sequences.append(embedded_sequence)
+        i = i + 1
+    return np.concatenate(embed_all_sequences, axis=0)
+
+# Dataset import ###################################################################################
+
+
 # Train
 df_train = pd.read_csv('./data/CATHe Dataset/csv/Train.csv')
 y_train = df_train['SF'].tolist()
@@ -49,17 +99,14 @@ model = model.to(device)
 model = model.eval()
 
 # TM-Vec model paths
-tm_vec_model_cpnt = "path to last.ckpt"
-tm_vec_model_config = "path to params.json"
+tm_vec_model_cpnt = "./src/all/models/TM_Vec/TM_Vec_config/last.ckpt"
+tm_vec_model_config = "./src/all/models/TM_Vec/TM_Vec_config/params.json"
 
 # Load the TM-Vec model
 tm_vec_model_config = trans_basic_block_Config.from_json(tm_vec_model_config)
 model_deep = trans_basic_block.load_from_checkpoint(tm_vec_model_cpnt, config=tm_vec_model_config)
 model_deep = model_deep.to(device)
 model_deep = model_deep.eval()
-
-# Find the maximum length of sequences across all AA Sequence lists
-max_length = max([len(sequence) for sublist in AA_sequences_dict.values() for sequence in sublist])
 
 # Process each data type in batches
 batch_size = 1000
