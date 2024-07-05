@@ -82,12 +82,20 @@ def embed_tm_vec(prottrans_embedding, model_deep, device):
 def encode(sequences, model_deep, model, tokenizer, device, seq_idx, seq_length):
     embed_all_sequences = []
     for i in tqdm(range(len(sequences)), desc="Encoding sequences"):
-        protrans_sequence = featurize_prottrans([sequences[i]], model, tokenizer, device, seq_idx, seq_length)
-        embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
-        embed_all_sequences.append(embedded_sequence)
+        try:
+            protrans_sequence = featurize_prottrans([sequences[i]], model, tokenizer, device, seq_idx, seq_length)
+            if protrans_sequence is None:
+                continue
+            embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
+            embed_all_sequences.append(embedded_sequence)
+
+        except RuntimeError:
+            print(f"RuntimeError during encoding for sequence {i}, skipping to the next sequence.")
+            continue
+        
     return np.concatenate(embed_all_sequences, axis=0)
 
-def get_embeddings(seq_path, emb_path, per_protein,
+def get_embeddings(seq_path, emb_path,
                    max_residues=100000, max_seq_len=3263, max_batch=1000):
 
     emb_dict = dict()
@@ -180,10 +188,7 @@ def main():
 
     get_embeddings(
         seq_path,
-        emb_path,
-        model_dir,
-        per_protein=per_protein,
-        half_precision=half_precision
+        emb_path
     )
 
 if __name__ == '__main__':
