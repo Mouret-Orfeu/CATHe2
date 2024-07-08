@@ -21,8 +21,9 @@ else:
 print("Using device: {}".format(device))
 
 def load_T5_model():
-    vocab = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case=False )
-    model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_uniref50")
+    print("loading model")
+    vocab = T5Tokenizer.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50", do_lower_case=False )
+    model = T5EncoderModel.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50")
     gc.collect()
     
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -81,7 +82,7 @@ def embed_tm_vec(prottrans_embedding, model_deep, device):
 
 def encode(sequences, model_deep, model, tokenizer, device, seq_idx, seq_length):
     embed_all_sequences = []
-    for i in tqdm(range(len(sequences)), desc="Encoding sequences"):
+    for i in tqdm(range(len(sequences)), desc="Batch encoding"):
         try:
             protrans_sequence = featurize_prottrans([sequences[i]], model, tokenizer, device, seq_idx, seq_length)
             if protrans_sequence is None:
@@ -106,8 +107,8 @@ def get_embeddings(seq_path, emb_path,
     model, vocab = load_T5_model()
 
     # TM-Vec model paths
-    tm_vec_model_cpnt = "./src/all/models/TM_Vec/TM_Vec_config/last.ckpt"
-    tm_vec_model_config = "./src/all/models/TM_Vec/TM_Vec_config/params.json"
+    tm_vec_model_cpnt = "./data/Dataset/weights/TM_Vec/tm_vec_cath_model.ckpt"
+    tm_vec_model_config = "./data/Dataset/weights/TM_Vec/tm_vec_cath_model_params.json"
 
     # Load the TM-Vec model
     tm_vec_model_config = trans_basic_block_Config.from_json(tm_vec_model_config)
@@ -161,7 +162,7 @@ def create_arg_parser():
 
     # Instantiate the parser
     parser = argparse.ArgumentParser(description=(
-            'embed.py creates ProstT5-Encoder embeddings for a given text ' +
+            'AA_embed_with_TM_Vec creates TM_Vec-Encoder embeddings for a given text ' +
             ' file containing sequence(s) in CSV-format.' +
             'Example: python ./src/all/models/TM_Vec/AA_embed_with_TM_Vec.py --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz'))
     
@@ -181,10 +182,6 @@ def main():
     
     seq_path = Path(args.input)  # path to input CSV
     emb_path = Path(args.output)  # path where embeddings should be stored
-    model_dir = args.model  # path/repo_link to checkpoint
-
-    per_protein = False if int(args.per_protein) == 0 else True
-    half_precision = False if int(args.half) == 0 else True
 
     get_embeddings(
         seq_path,

@@ -67,26 +67,26 @@ def encode(sequences, model_deep, model, tokenizer, device):
 
 
 # Train
-df_train = pd.read_csv('./data/CATHe Dataset/csv/Train.csv')
+df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
 y_train = df_train['SF'].tolist()
 # AA_sequences_train = df_train['Sequence'].tolist()
 
-filename = './data/CATHe Dataset/embeddings/Train_TM_Vec.npz'
+filename = './data/Dataset/embeddings/Train_TM_Vec.npz'
 X_train = np.load(filename)['arr_0']
 
 # Val
-df_val = pd.read_csv('./data/CATHe Dataset/csv/Val.csv')
+df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
 y_val = df_val['SF'].tolist()
 # AA_sequences_val = df_val['Sequence'].tolist()
 
-filename = './data/CATHe Dataset/embeddings/Val_TM_vec.npz'
+filename = './data/Dataset/embeddings/Val_TM_vec.npz'
 X_val = np.load(filename)['arr_0']
 
 # Test
-df_test = pd.read_csv('./data/CATHe Dataset/csv/Test.csv')
+df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
 y_test = df_test['SF'].tolist()
 
-filename = './data/CATHe Dataset/embeddings/Test_TM_Vec.npz'
+filename = './data/Dataset/embeddings/Test_TM_Vec.npz'
 X_test = np.load(filename)['arr_0']
 # AA_sequences_test = df_test['Sequence'].tolist()
 

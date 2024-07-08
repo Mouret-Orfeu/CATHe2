@@ -82,33 +82,33 @@ def sort_and_save_embeddings(input_npz_path, output_npz_path, name):
 
 # train 
 
-df_train = pd.read_csv('./data/CATHe Dataset/csv/Train.csv')
+df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
 # Extract Super Families (SF column) 
 y_train = df_train['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_train = df_train['Sequence'].tolist()
 
-# sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Train_ProstT5.npz", "Train")
+# sort_and_save_embeddings("./data/Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Train_ProstT5.npz", "Train")
 
-filename = './data/CATHe Dataset/embeddings/Train_ProstT5.npz'
+filename = './data/Dataset/embeddings/Train_ProstT5.npz'
 X_train = np.load(filename)['arr_0']
 
 # val
 
-df_val = pd.read_csv('./data/CATHe Dataset/csv/Val.csv')
+df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
 # Extract Super Families (SF column)
 y_val = df_val['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_val = df_val['Sequence'].tolist()
 
-# sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Val_ProstT5.npz", "Val")
+# sort_and_save_embeddings("./data/Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Val_ProstT5.npz", "Val")
 
-filename = './data/CATHe Dataset/embeddings/Val_ProstT5.npz'
+filename = './data/Dataset/embeddings/Val_ProstT5.npz'
 X_val = np.load(filename)['arr_0']
 
 # test
 
-df_test = pd.read_csv('./data/CATHe Dataset/csv/Test.csv')
+df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
 # Extract Super Families (SF column)
 y_test = df_test['SF'].tolist()
 # # Extract AA Sequences
@@ -116,86 +116,10 @@ y_test = df_test['SF'].tolist()
 
 # AA_sequence_lists = [AA_sequences_train, AA_sequences_val, AA_sequences_test]
 
-# sort_and_save_embeddings("./data/CATHe Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/CATHe Dataset/embeddings/Test_ProstT5.npz", "Test")
+# sort_and_save_embeddings("./data/Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Test_ProstT5.npz", "Test")
 
-filename = './data/CATHe Dataset/embeddings/Test_ProstT5.npz'
+filename = './data/Dataset/embeddings/Test_ProstT5.npz'
 X_test = np.load(filename)['arr_0']
-
-# AA Sequence embedding ############################################################################
-
-# # Load the tokenizer
-# tokenizer = T5Tokenizer.from_pretrained('Rostlab/ProstT5', do_lower_case=False)
-
-# # Load the model
-# model = T5EncoderModel.from_pretrained("Rostlab/ProstT5").to(device)
-
-# # only GPUs support half-precision currently; if you want to run on CPU use full-precision (not recommended, much slower)
-# model.full() if device=='cpu' else model.half()
-
-
-
-# # replace all rare/ambiguous amino acids by X (3Di sequences does not have those) and introduce white-space between all sequences (AAs and 3Di)
-# cleaned_AA_sequence_lists = []
-# for AA_sequence_list in AA_sequence_lists:
-#     cleaned_AA_sequence_list = [" ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in AA_sequence_list]
-#     cleaned_AA_sequence_lists.append(cleaned_AA_sequence_list)
-
-
-# # add pre-fixes accordingly (this already expects 3Di-sequences to be lower-case)
-# # if you go from AAs to 3Di (or if you want to embed AAs), you need to prepend "<AA2fold>"
-# # if you go from 3Di to AAs (or if you want to embed 3Di), you need to prepend "<fold2AA>"
-# embed_prepared_cleaned_AA_sequence_lists = [ [ "<AA2fold>" + " " + s if s.isupper() else "<fold2AA>" + " " + s
-#                       for s in sequence_list
-#                     ] for sequence_list in cleaned_AA_sequence_lists
-#                 ]
-
-
-# # Find the maximum length of sequences across all AA Sequence lists
-# max_length = max([len(sequence) for sublist in embed_prepared_cleaned_AA_sequence_lists for sequence in sublist])
-
-# # Calculate per-protein embeddings for the training dataset
-# def get_per_protein_embeddings(embedding_repr, input_ids):
-#     embeddings = []
-#     for i in range(embedding_repr.last_hidden_state.shape[0]):
-#         # Extract embeddings excluding special tokens
-#         mask = (input_ids[i] != tokenizer.pad_token_id) & (input_ids[i] != tokenizer.cls_token_id) & (input_ids[i] != tokenizer.sep_token_id)
-#         emb = embedding_repr.last_hidden_state[i, mask]  # Use mask directly without slicing
-#         per_protein_embedding = emb.mean(dim=0)
-#         embeddings.append(per_protein_embedding.cpu().numpy())
-#     return embeddings
-
-# from tqdm import tqdm
-
-# # Helper function to process batches
-# def process_batches(sequence_list, batch_size, max_length, tokenizer, model):
-#     all_embeddings = []
-#     for i in tqdm(range(0, len(sequence_list), batch_size), desc="Processing batches"):
-#         batch_sequences = sequence_list[i:i+batch_size]
-#         ids_batch = tokenizer.batch_encode_plus(batch_sequences, add_special_tokens=True, padding="max_length", max_length=max_length, return_tensors='pt').to(device)
-        
-#         with torch.no_grad():
-#             embedding_repr_batch = model(
-#                 ids_batch.input_ids, 
-#                 attention_mask=ids_batch.attention_mask
-#             )
-        
-#         batch_embeddings = get_per_protein_embeddings(embedding_repr_batch, ids_batch.input_ids)
-#         all_embeddings.extend(batch_embeddings)
-#     return all_embeddings
-
-
-# # Process each data type in batches
-# batch_size = 4
-# data_types = ['train', 'val', 'test']
-# embeddings = {}
-
-# for i, data_type in enumerate(data_types):
-#     embeddings[data_type] = process_batches(embed_prepared_cleaned_AA_sequence_lists[i], batch_size, max_length, tokenizer, model)
-
-# # Access embeddings
-# X_train = embeddings['train']
-# X_val = embeddings['val']
-# X_test = embeddings['test']
 
 
 # Training preparation ############################################################################
@@ -301,8 +225,8 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    # model = load_model('saved_models/ann_ProstT5.h5')
+    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    model = load_model('saved_models/ann_ProstT5.h5')
 
     print("Validation")
     y_pred_val = model.predict(X_val)

@@ -55,13 +55,13 @@ if gpus:
 
 # dataset import
 # train 
-ds_train = pd.read_csv('./data/CATHe Dataset/annotations/Y_Train_SF.csv')
+ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
 y_train = list(ds_train["SF"])
 
-filename = './data/CATHe Dataset/embeddings/SF_Train_ProtT5.npz'
+filename = './data/Dataset/embeddings/SF_Train_ProtT5.npz'
 X_train = np.load(filename)['arr_0']
-# filename = './data/CATHe Dataset/embeddings/Other Class/Other_Train_US.npz'
-filename = './data/CATHe Dataset/embeddings/Other Class/Other_Train.npz'
+# filename = './data/Dataset/embeddings/Other Class/Other_Train_US.npz'
+filename = './data/Dataset/embeddings/Other Class/Other_Train.npz'
 X_train_other = np.load(filename)['arr_0']
 
 X_train = np.concatenate((X_train, X_train_other), axis=0)
@@ -70,14 +70,14 @@ for i in range(len(X_train_other)):
     y_train.append('other')
 
 # val
-ds_val = pd.read_csv('./data/CATHe Dataset/annotations/Y_Val_SF.csv')
+ds_val = pd.read_csv('./data/Dataset/annotations/Y_Val_SF.csv')
 y_val = list(ds_val["SF"])
 
-filename = './data/CATHe Dataset/embeddings/SF_Val_ProtT5.npz'
+filename = './data/Dataset/embeddings/SF_Val_ProtT5.npz'
 X_val = np.load(filename)['arr_0']
 
-# filename = './data/CATHe Dataset/embeddings/Other Class/Other_Val_US.npz'
-filename = './data/CATHe Dataset/embeddings/Other Class/Other_Val.npz'
+# filename = './data/Dataset/embeddings/Other Class/Other_Val_US.npz'
+filename = './data/Dataset/embeddings/Other Class/Other_Val.npz'
 X_val_other = np.load(filename)['arr_0']
 
 X_val = np.concatenate((X_val, X_val_other), axis=0)
@@ -86,14 +86,14 @@ for i in range(len(X_val_other)):
     y_val.append('other')
 
 # test
-ds_test = pd.read_csv('./data/CATHe Dataset/annotations/Y_Test_SF.csv')
+ds_test = pd.read_csv('./data/Dataset/annotations/Y_Test_SF.csv')
 y_test = list(ds_test["SF"])
 
-filename = './data/CATHe Dataset/embeddings/SF_Test_ProtT5.npz'
+filename = './data/Dataset/embeddings/SF_Test_ProtT5.npz'
 X_test = np.load(filename)['arr_0']
 
-# filename = './data/CATHe Dataset/embeddings/Other Class/Other_Test_US.npz'
-filename = './data/CATHe Dataset/embeddings/Other Class/Other_Test.npz'
+# filename = './data/Dataset/embeddings/Other Class/Other_Test_US.npz'
+filename = './data/Dataset/embeddings/Other Class/Other_Test.npz'
 X_test_other = np.load(filename)['arr_0']
 
 X_test = np.concatenate((X_test, X_test_other), axis=0)
@@ -199,10 +199,9 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    # history = model.fit_generator(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
 
-    # model = load_model('saved_models/ann_t5_m1.h5')
+    model = load_model('saved_models/ann_t5_m1.h5')
 
     print("Validation")
     y_pred_val = model.predict(X_val)

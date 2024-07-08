@@ -140,9 +140,9 @@ def create_arg_parser():
 
     # Instantiate the parser
     parser = argparse.ArgumentParser(description=(
-            'embed.py creates ProstT5-Encoder embeddings for a given text ' +
+            'AA_embed_with_ProstT5.py creates ProstT5-Encoder embeddings for a given text ' +
             ' file containing sequence(s) in CSV-format.' +
-            'Example: python embed.py --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz --half 1'))
+            'Example: python ./src/all/models/ProstT5/AA_embed_with_ProstT5 --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz --half 1'))
     
     # Required positional argument
     parser.add_argument('-i', '--input', required=True, type=str,
