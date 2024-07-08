@@ -1,14 +1,7 @@
 # -*- coding: utf-8 -*-
-# code in large part from https://github.com/mheinzinger/ProstT5/blob/main/scripts/embed.py
+# part of the code from 
+# run with ```python ./src/all/models/ProstT5/AA_embed_with_ESM2.py --input ./data/CATHe\ Dataset/csv/Test.csv --output ./data/CATHe\ Dataset/embeddings/Test_ESM2.npz --model large```
 
-# run with ```python ./src/all/models/ProstT5/AA_embed_with_ProstT5.py --input ./data/CATHe\ Dataset/csv/Test.csv --output ./data/CATHe\ Dataset/embeddings/Test_ProstT5.npz --model Rostlab/ProstT5 --half 1 --is_3Di 0```
-
-
-"""
-Created on Fri Jun 16 14:27:44 2023
-
-@author: mheinzinger
-"""
 
 import argparse
 import time
@@ -16,7 +9,7 @@ from pathlib import Path
 import torch
 import numpy as np
 import pandas as pd
-from transformers import T5EncoderModel, T5Tokenizer
+from transformers import AutoModel, AutoTokenizer
 from tqdm import tqdm
 
 if torch.cuda.is_available():
@@ -28,11 +21,16 @@ else:
 print("Using device: {}".format(device))
 
 
-def get_T5_model(model_dir):
-    print("Loading T5 from: {}".format(model_dir))
-    model = T5EncoderModel.from_pretrained(model_dir).to(device)
-    model = model.eval()
-    tokenizer = T5Tokenizer.from_pretrained(model_dir, do_lower_case=False)
+def get_ESM2_model():
+    """
+    Load the ESM2 model and tokenizer from Hugging Face.
+    """
+    print("Loading ESM2 model")
+    model_name = "facebook/esm2_t33_650M_UR50D"
+    model = AutoModel.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = model.to(device)
+    model.eval()
     return model, tokenizer
 
 
@@ -43,28 +41,24 @@ def read_csv(seq_path):
     '''
     sequences = {}
     df = pd.read_csv(seq_path)
+
     for index, row in df.iterrows():
-        sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings
+        sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings 
+    
     return sequences
 
 
-def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
+def get_embeddings(seq_path, emb_path,
                    max_residues=100000, max_seq_len=3263, max_batch=1000):
     
     emb_dict = dict()
 
     # Read in CSV
     seq_dict = read_csv(seq_path)
-    prefix = "<fold2AA>" if is_3Di else "<AA2fold>"
     
-    model, tokenizer = get_T5_model(model_dir)
-    if half_precision:
-        model = model.half()
-        print("Using model in half-precision!")
+    model, tokenizer = get_ESM2_model()
+    
 
-    print('########################################')
-    print(f"Input is 3Di: {is_3Di}")
-    print('Example sequence: {}\n{}'.format(next(iter(seq_dict.keys())), next(iter(seq_dict.values()))))
     print('########################################')
     print('Total number of sequences: {}'.format(len(seq_dict)))
 
@@ -82,7 +76,6 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
         # replace non-standard AAs
         seq = seq.replace('U', 'X').replace('Z', 'X').replace('O', 'X').replace('B', 'X')
         seq_len = len(seq)
-        seq = prefix + ' ' + ' '.join(list(seq))
         batch.append((pdb_id, seq, seq_len))
 
         # count residues in current batch and add the last sequence length to
@@ -95,6 +88,7 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
             token_encoding = tokenizer.batch_encode_plus(seqs, 
                                                      add_special_tokens=True, 
                                                      padding="longest", 
+                                                     is_split_into_words=True,
                                                      return_tensors='pt'
                                                      ).to(device)
             try:
@@ -140,9 +134,9 @@ def create_arg_parser():
 
     # Instantiate the parser
     parser = argparse.ArgumentParser(description=(
-            'AA_embed_with_ProstT5.py creates ProstT5-Encoder embeddings for a given text ' +
+            'AA_embed_with_Ankh.py creates Ankh-Encoder embeddings for a given text ' +
             ' file containing sequence(s) in CSV-format.' +
-            'Example: python ./src/all/models/ProstT5/AA_embed_with_ProstT5 --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz --half 1'))
+            'Example: python ./src/all/models/ProstT5/AA_embed_with_ESM2 --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz'))
     
     # Required positional argument
     parser.add_argument('-i', '--input', required=True, type=str,
@@ -152,19 +146,7 @@ def create_arg_parser():
     parser.add_argument('-o', '--output', required=True, type=str, 
                         help='A path for saving the created embeddings as NPZ file.')
 
-    # Required positional argument
-    parser.add_argument('--model', required=False, type=str,
-                        default="Rostlab/ProstT5",
-                        help='Either a path to a directory holding the checkpoint for a pre-trained model or a huggingface repository link.')
 
-        
-    parser.add_argument('--half', type=int, 
-                        default=0,
-                        help="Whether to use half_precision or not. Default: 0 (full-precision)")
-    
-    parser.add_argument('--is_3Di', type=int,
-                        default=0,
-                        help=" 1 if you want to embed 3Di, 0 is you want to embed AA sequences, Default: 0")
     
     return parser
 
@@ -174,17 +156,11 @@ def main():
     
     seq_path = Path(args.input)  # path to input CSV
     emb_path = Path(args.output)  # path where embeddings should be stored
-    model_dir = args.model  # path/repo_link to checkpoint
 
-    half_precision = False if int(args.half) == 0 else True
-    is_3Di = False if int(args.is_3Di) == 0 else True
 
     get_embeddings(
         seq_path,
-        emb_path,
-        model_dir,
-        half_precision=half_precision,
-        is_3Di=is_3Di
+        emb_path
     )
 
 

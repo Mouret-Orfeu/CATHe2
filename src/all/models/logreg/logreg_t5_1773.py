@@ -1,5 +1,5 @@
 '''
-Logistic Regression Model trained on the t5 embeddings
+Logistic Regression Model trained on the ProtT5 embeddings
 '''
 
 # libraries

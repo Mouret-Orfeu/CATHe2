@@ -45,7 +45,7 @@ def read_csv(seq_path):
 def featurize_prottrans(sequences, model, tokenizer, device, seq_idx, seq_length):
     sequences = [(" ".join(sequences[i])) for i in range(len(sequences))]
     sequences = [re.sub(r"[UZOB]", "X", sequence) for sequence in sequences]
-    ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding=True)
+    ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding="longest",)
     input_ids = torch.tensor(ids['input_ids']).to(device)
     attention_mask = torch.tensor(ids['attention_mask']).to(device)
 
