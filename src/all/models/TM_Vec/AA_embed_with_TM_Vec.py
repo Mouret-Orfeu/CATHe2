@@ -35,65 +35,53 @@ def load_T5_model():
 def read_csv(seq_path):
     '''
         Reads in CSV file containing sequences.
-        Returns a list of sequences.
+        Returns a dictionary of sequences with IDs as keys.
     '''
+    sequences = {}
     df = pd.read_csv(seq_path)
-    sequences = df['Sequence'].tolist()
+    for index, row in df.iterrows():
+        sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings
     return sequences
 
 # Function to extract ProtTrans embedding for a sequence
-def featurize_prottrans(sequences, model, tokenizer, device, seq_idx, seq_length):
-    sequences = [(" ".join(sequences[i])) for i in range(len(sequences))]
+def featurize_prottrans(sequences, model, tokenizer, device):
+    sequences = [(" ".join(seq)) for seq in sequences]
     sequences = [re.sub(r"[UZOB]", "X", sequence) for sequence in sequences]
     ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding="longest",)
     input_ids = torch.tensor(ids['input_ids']).to(device)
     attention_mask = torch.tensor(ids['attention_mask']).to(device)
 
-    try:
-        with torch.no_grad():
-            embedding = model(input_ids=input_ids, attention_mask=attention_mask)
-
-    except RuntimeError:
-                print("RuntimeError during embedding for seq idx {} (L={})".format(seq_idx, seq_length))
-    
+    with torch.no_grad():
+        embedding = model(input_ids=input_ids, attention_mask=attention_mask)
     
     embedding = embedding.last_hidden_state.cpu().numpy()
 
     features = []
     for seq_num in range(len(sequences)):
         seq_len = (attention_mask[seq_num] == 1).sum()
-
-        #test if seq_len==seq_length and rename "seq_length" it is equal
-
         seq_emd = embedding[seq_num][:seq_len - 1]
         features.append(seq_emd)
 
     prottrans_embedding = torch.tensor(features[0])
     prottrans_embedding = torch.unsqueeze(prottrans_embedding, 0).to(device)
 
-    return (prottrans_embedding)
+    return prottrans_embedding
 
 # Embed a protein using tm_vec (takes as input a prottrans embedding)
 def embed_tm_vec(prottrans_embedding, model_deep, device):
     padding = torch.zeros(prottrans_embedding.shape[0:2]).type(torch.BoolTensor).to(device)
     tm_vec_embedding = model_deep(prottrans_embedding, src_mask=None, src_key_padding_mask=padding)
 
-    return (tm_vec_embedding.cpu().detach().numpy())
+    return tm_vec_embedding.cpu().detach().numpy()
 
-def encode(sequences, model_deep, model, tokenizer, device, seq_idx, seq_length):
+def encode(sequences, model_deep, model, tokenizer, device):
     embed_all_sequences = []
-    for i in tqdm(range(len(sequences)), desc="Batch encoding"):
-        try:
-            protrans_sequence = featurize_prottrans([sequences[i]], model, tokenizer, device, seq_idx, seq_length)
-            if protrans_sequence is None:
-                continue
-            embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
-            embed_all_sequences.append(embedded_sequence)
-
-        except RuntimeError:
-            print(f"RuntimeError during encoding for sequence {i}, skipping to the next sequence.")
+    for seq in tqdm(sequences, desc="Batch encoding"):
+        protrans_sequence = featurize_prottrans([seq], model, tokenizer, device)
+        if protrans_sequence is None:
             continue
-        
+        embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
+        embed_all_sequences.append(embedded_sequence)
     return np.concatenate(embed_all_sequences, axis=0)
 
 def get_embeddings(seq_path, emb_path,
@@ -102,7 +90,9 @@ def get_embeddings(seq_path, emb_path,
     emb_dict = dict()
 
     # Read in CSV
-    sequences = read_csv(seq_path)
+    sequences_dict = read_csv(seq_path)
+    sequences = list(sequences_dict.values())
+    sequence_keys = list(sequences_dict.keys())
     
     model, vocab = load_T5_model()
 
@@ -122,7 +112,7 @@ def get_embeddings(seq_path, emb_path,
     avg_length = sum([len(seq) for seq in sequences]) / len(sequences)
     n_long = sum([1 for seq in sequences if len(seq) > max_seq_len])
     # sort sequences by length to trigger OOM at the beginning
-    sequences = sorted(sequences, key=lambda x: len(x), reverse=True)
+    sequences = sorted(zip(sequence_keys, sequences), key=lambda x: len(x[1]), reverse=True)
     
     print("Average sequence length: {}".format(avg_length))
     print("Number of sequences >{}: {}".format(max_seq_len, n_long))
@@ -130,31 +120,31 @@ def get_embeddings(seq_path, emb_path,
     start = time.time()
 
     batch = []
-    for seq_idx, seq in enumerate(tqdm(sequences, desc="Embedding sequences"), 1):
+    batch_keys = []
+    for seq_idx, (seq_key, seq) in enumerate(tqdm(sequences, desc="Embedding sequences"), 1):
         seq_len = len(seq)
         batch.append(seq)
+        batch_keys.append(seq_key)
 
         n_res_batch = sum([len(s) for s in batch]) + seq_len
         if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(sequences) or seq_len > max_seq_len:
-            embedded_batch = encode(batch, model_deep, model, vocab, device, seq_idx, seq_len)
-            for i, seq in enumerate(batch):
-                emb_dict[seq_idx - len(batch) + i] = embedded_batch[i]
+            embedded_batch = encode(batch, model_deep, model, vocab, device)
+            for i, seq_key in enumerate(batch_keys):
+                emb_dict[seq_key] = embedded_batch[i]
             batch = []
+            batch_keys = []
 
     end = time.time()
 
-    # sort created embedding dict
-    # Sort the keys in ascending order
-    sorted_keys = sorted(emb_dict.keys())
+    # Sort the dictionary by keys in ascending order before saving
+    sorted_emb_dict = dict(sorted(emb_dict.items()))
 
-    # Create a list of embeddings in the sorted order
-    sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
-    
-    np.savez(emb_path, sorted_embeddings)
+    # Save embeddings as a dictionary
+    np.savez(emb_path, **sorted_emb_dict)
 
     print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
+    print('Total number of embeddings: {}'.format(len(sorted_emb_dict)))
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_emb_dict), avg_length))
     return True
 
 def create_arg_parser():

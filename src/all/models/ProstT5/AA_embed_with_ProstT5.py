@@ -29,7 +29,7 @@ print("Using device: {}".format(device))
 
 
 def get_T5_model(model_dir):
-    print("Loading T5 from: {}".format(model_dir))
+    print("Loading ProsT5 from: {}".format(model_dir))
     model = T5EncoderModel.from_pretrained(model_dir).to(device)
     model = model.eval()
     tokenizer = T5Tokenizer.from_pretrained(model_dir, do_lower_case=False)
@@ -120,18 +120,18 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
 
     end = time.time()
 
-    # sort created embedding dict
-    # Sort the keys in ascending order
-    sorted_keys = sorted(emb_dict.keys())
+    # # sort created embedding dict
+    # # Sort the keys in ascending order
+    # sorted_keys = sorted(emb_dict.keys())
 
-    # Create a list of embeddings in the sorted order
-    sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
+    # # Create a list of embeddings in the sorted order
+    # sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
     
-    np.savez(emb_path, sorted_embeddings)
+    np.savez(emb_path, **emb_dict)
 
     print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
+    print('Total number of embeddings: {}'.format(len(emb_dict)))
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(emb_dict), avg_length))
     return True
 
 

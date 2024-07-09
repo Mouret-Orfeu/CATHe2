@@ -42,22 +42,26 @@ def replace_non_standard_aa(seq):
     """
     return seq.replace('U', 'X').replace('Z', 'X').replace('O', 'X').replace('B', 'X')
 
-def compute_embeddings(sequences, model, tokenizer, batch_size=32):
+def compute_embeddings(sequences_dict, model, tokenizer, batch_size=32):
     """
     Compute embeddings for the given sequences using the ESM2 model in batches.
     """
     embeddings = {}
-    for i in tqdm(range(0, len(sequences), batch_size), desc="Computing embeddings"):
-        batch_sequences = [replace_non_standard_aa(seq) for seq in sequences[i:i+batch_size]]
+    sequence_ids = list(sequences_dict.keys())
+    sequence_values = list(sequences_dict.values())
+    
+    for i in tqdm(range(0, len(sequence_values), batch_size), desc="Computing embeddings"):
+        batch_ids = sequence_ids[i:i+batch_size]
+        batch_sequences = [replace_non_standard_aa(seq) for seq in sequence_values[i:i+batch_size]]
         inputs = tokenizer(batch_sequences, return_tensors='pt', padding="longest", truncation=True).to(device)
         with torch.no_grad():
             outputs = model(**inputs)
         
-        for batch_idx, seq in enumerate(batch_sequences):
+        for batch_idx, seq_id in enumerate(batch_ids):
             s_len = (inputs['attention_mask'][batch_idx] == 1).sum().item()
             emb = outputs.last_hidden_state[batch_idx, 1:s_len+1]  # Exclude padding and special tokens
             emb = emb.mean(dim=0)  # Average pooling
-            embeddings[seq] = emb.detach().cpu().numpy().squeeze()
+            embeddings[seq_id] = emb.detach().cpu().numpy().squeeze()
 
     return embeddings
 
@@ -65,12 +69,12 @@ def save_embeddings(embeddings, output_path):
     """
     Save the computed embeddings to an NPZ file.
     """
-    np.savez(output_path, embeddings=embeddings)
+    np.savez(output_path, **embeddings)
 
 def get_embeddings(seq_path, emb_path, batch_size=32):
     sequences = read_csv(seq_path)
     model, tokenizer = get_ESM2_model()
-    embeddings = compute_embeddings(list(sequences.values()), model, tokenizer, batch_size)
+    embeddings = compute_embeddings(sequences, model, tokenizer, batch_size)
     save_embeddings(embeddings, emb_path)
 
 def create_arg_parser():

@@ -62,8 +62,15 @@ y_train = df_train['SF'].tolist()
 
 # sort_and_save_embeddings("./data/Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Train_ProstT5.npz", "Train")
 
+# filename = './data/Dataset/embeddings/Train_ESM2.npz'
+# X_train = np.load(filename)['arr_0']
+
 filename = './data/Dataset/embeddings/Train_ESM2.npz'
-X_train = np.load(filename)['arr_0']
+Train_embed_dict = np.load(filename, allow_pickle=True)
+Train_embed_dict = dict(Train_embed_dict)
+
+X_train = list(Train_embed_dict.values())
+X_train = np.array(X_train)
 
 # val
 
@@ -75,8 +82,15 @@ y_val = df_val['SF'].tolist()
 
 # sort_and_save_embeddings("./data/Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Val_ProstT5.npz", "Val")
 
+# filename = './data/Dataset/embeddings/Val_ESM2.npz'
+# X_val = np.load(filename)['arr_0']
+
 filename = './data/Dataset/embeddings/Val_ESM2.npz'
-X_val = np.load(filename)['arr_0']
+Val_embed_dict = np.load(filename, allow_pickle=True)
+Val_embed_dict = dict(Val_embed_dict)
+
+X_val = list(Val_embed_dict.values())
+X_val = np.array(X_val)
 
 # test
 
@@ -90,8 +104,16 @@ y_test = df_test['SF'].tolist()
 
 # sort_and_save_embeddings("./data/Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Test_ProstT5.npz", "Test")
 
+# filename = './data/Dataset/embeddings/Test_ESM2.npz'
+# X_test = np.load(filename)['arr_0']
+
 filename = './data/Dataset/embeddings/Test_ESM2.npz'
-X_test = np.load(filename)['arr_0']
+Test_embed_dict = np.load(filename, allow_pickle=True)
+Test_embed_dict = dict(Test_embed_dict)
+
+# Assign the values to X_test
+X_test = list(Test_embed_dict.values())
+X_test = np.array(X_test)
 
 
 # Training preparation ############################################################################
