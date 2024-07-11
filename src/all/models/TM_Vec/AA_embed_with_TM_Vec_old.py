@@ -1,8 +1,6 @@
 # run with python ./src/all/models/TM_Vec/AA_embed_with_TM_Vec.py --input ./data/to/some_sequences.csv --output /path/to/some_embeddings.npz
 
-import argparse
 import time
-from pathlib import Path
 import torch
 import numpy as np
 import pandas as pd
@@ -11,6 +9,10 @@ from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Co
 from tqdm import tqdm
 import re
 import gc
+import os
+os.chdir('/home/ku76797/Documents/internship/Work/CATHe')
+
+
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -22,7 +24,7 @@ print("Using device: {}".format(device))
 
 def load_T5_model():
     print("loading model")
-    vocab = T5Tokenizer.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50", do_lower_case=False )
+    tokeniser = T5Tokenizer.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50", do_lower_case=False )
     model = T5EncoderModel.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50")
     gc.collect()
     
@@ -30,7 +32,7 @@ def load_T5_model():
     model = model.to(device)
     model = model.eval()
     
-    return model, vocab
+    return model, tokeniser
 
 def read_csv(seq_path):
     '''
@@ -39,7 +41,7 @@ def read_csv(seq_path):
     '''
     sequences = {}
     df = pd.read_csv(seq_path)
-    for index, row in df.iterrows():
+    for _ , row in df.iterrows():
         sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings
     return sequences
 
@@ -79,22 +81,24 @@ def encode(sequences, model_deep, model, tokenizer, device):
     for seq in tqdm(sequences, desc="Batch encoding"):
         protrans_sequence = featurize_prottrans([seq], model, tokenizer, device)
         if protrans_sequence is None:
+            print("\033[91mError: Could not embed sequence\033[0m")
             continue
         embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
         embed_all_sequences.append(embedded_sequence)
     return np.concatenate(embed_all_sequences, axis=0)
 
 def get_embeddings(seq_path, emb_path,
-                   max_residues=100000, max_seq_len=3263, max_batch=1000):
+                   max_residues=100000, max_seq_len=3263, max_batch=100000):
 
     emb_dict = dict()
 
     # Read in CSV
     sequences_dict = read_csv(seq_path)
     sequences = list(sequences_dict.values())
+    # sequences = sorted(sequences_dict.items(), key=lambda x: x[0])
     sequence_keys = list(sequences_dict.keys())
     
-    model, vocab = load_T5_model()
+    model, tokeniser = load_T5_model()
 
     # TM-Vec model paths
     tm_vec_model_cpnt = "./data/Dataset/weights/TM_Vec/tm_vec_cath_model.ckpt"
@@ -112,7 +116,7 @@ def get_embeddings(seq_path, emb_path,
     avg_length = sum([len(seq) for seq in sequences]) / len(sequences)
     n_long = sum([1 for seq in sequences if len(seq) > max_seq_len])
     # sort sequences by length to trigger OOM at the beginning
-    sequences = sorted(zip(sequence_keys, sequences), key=lambda x: len(x[1]), reverse=True)
+    sorted_sequences_tuple = sorted(zip(sequence_keys, sequences), key=lambda x: len(x[1]), reverse=True)
     
     print("Average sequence length: {}".format(avg_length))
     print("Number of sequences >{}: {}".format(max_seq_len, n_long))
@@ -121,14 +125,14 @@ def get_embeddings(seq_path, emb_path,
 
     batch = []
     batch_keys = []
-    for seq_idx, (seq_key, seq) in enumerate(tqdm(sequences, desc="Embedding sequences"), 1):
+    for seq_idx, (seq_key, seq) in enumerate(tqdm(sorted_sequences_tuple, desc="Embedding sequences"), 1):
         seq_len = len(seq)
         batch.append(seq)
         batch_keys.append(seq_key)
 
         n_res_batch = sum([len(s) for s in batch]) + seq_len
-        if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(sequences) or seq_len > max_seq_len:
-            embedded_batch = encode(batch, model_deep, model, vocab, device)
+        if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(sorted_sequences_tuple) or seq_len > max_seq_len:
+            embedded_batch = encode(batch, model_deep, model, tokeniser, device)
             for i, seq_key in enumerate(batch_keys):
                 emb_dict[seq_key] = embedded_batch[i]
             batch = []
@@ -136,47 +140,49 @@ def get_embeddings(seq_path, emb_path,
 
     end = time.time()
 
-    # Sort the dictionary by keys in ascending order before saving
-    sorted_emb_dict = dict(sorted(emb_dict.items()))
+    # sort created embedding dict
+    # Sort the keys in ascending order
+    sorted_keys = sorted(emb_dict.keys())
 
-    # Save embeddings as a dictionary
-    np.savez(emb_path, **sorted_emb_dict)
+    # Create a list of embeddings in the sorted order
+    sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
+
+    #DEBUG
+    print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
+    
+    np.savez(emb_path, sorted_embeddings)
 
     print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_emb_dict)))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_emb_dict), avg_length))
+    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
     return True
 
-def create_arg_parser():
-    """"Creates and returns the ArgumentParser object."""
-
-    # Instantiate the parser
-    parser = argparse.ArgumentParser(description=(
-            'AA_embed_with_TM_Vec creates TM_Vec-Encoder embeddings for a given text ' +
-            ' file containing sequence(s) in CSV-format.' +
-            'Example: python ./src/all/models/TM_Vec/AA_embed_with_TM_Vec.py --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz'))
-    
-    # Required positional argument
-    parser.add_argument('-i', '--input', required=True, type=str,
-                        help='A path to a CSV-formatted text file containing protein sequence(s).')
-
-    # Optional positional argument
-    parser.add_argument('-o', '--output', required=True, type=str, 
-                        help='A path for saving the created embeddings as NPZ file.')
-    
-    return parser
-
 def main():
-    parser = create_arg_parser()
-    args = parser.parse_args()
-    
-    seq_path = Path(args.input)  # path to input CSV
-    emb_path = Path(args.output)  # path where embeddings should be stored
+
+    seq_path_Test = "./data/Dataset/csv/Test.csv"
+    emb_path_Test = "./data/Dataset/embeddings/Test_TM_Vec.npz"
 
     get_embeddings(
-        seq_path,
-        emb_path
+        seq_path_Test,
+        emb_path_Test
+    
     )
 
+    seq_path_Val = "./data/Dataset/csv/Val.csv"
+    emb_path_Val = "./data/Dataset/embeddings/Val_TM_Vec.npz"
+
+    get_embeddings(
+        seq_path_Val,
+        emb_path_Val
+    )
+
+    seq_path_Train = "./data/Dataset/csv/Train.csv"
+    emb_path_Train = "./data/Dataset/embeddings/Train_TM_Vec.npz"
+
+    get_embeddings(
+        seq_path_Train,
+        emb_path_Train
+    )
+    
 if __name__ == '__main__':
     main()
