@@ -34,45 +34,23 @@ df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
 y_train = df_train['SF'].tolist()
 # AA_sequences_train = df_train['Sequence'].tolist()
 
-# filename = './data/Dataset/embeddings/Train_TM_Vec.npz'
-# X_train = np.load(filename)['arr_0']
-
 filename = './data/Dataset/embeddings/Train_TM_Vec.npz'
-Train_embed_dict = np.load(filename, allow_pickle=True)
-Train_embed_dict = dict(Train_embed_dict)
-
-X_train = list(Train_embed_dict.values())
-X_train = np.array(X_train)
+X_train = np.load(filename)['arr_0']
 
 # Val
 df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
 y_val = df_val['SF'].tolist()
 # AA_sequences_val = df_val['Sequence'].tolist()
 
-# filename = './data/Dataset/embeddings/Val_TM_Vec.npz'
-# X_val = np.load(filename)['arr_0']
-
 filename = './data/Dataset/embeddings/Val_TM_Vec.npz'
-Val_embed_dict = np.load(filename, allow_pickle=True)
-Val_embed_dict = dict(Val_embed_dict)
-
-X_val = list(Val_embed_dict.values())
-X_val = np.array(X_val)
+X_val = np.load(filename)['arr_0']
 
 # Test
 df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
 y_test = df_test['SF'].tolist()
 
-# filename = './data/Dataset/embeddings/Test_TM_Vec.npz'
-# X_test = np.load(filename)['arr_0']
-
 filename = './data/Dataset/embeddings/Test_TM_Vec.npz'
-Test_embed_dict = np.load(filename, allow_pickle=True)
-Test_embed_dict = dict(Test_embed_dict)
-
-# Assign the values to X_test
-X_test = list(Test_embed_dict.values())
-X_test = np.array(X_test)
+X_test = np.load(filename)['arr_0']
 
 
 

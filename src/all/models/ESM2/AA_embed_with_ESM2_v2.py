@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # part of the code from https://github.com/facebookresearch/esm/blob/main/README.md#bulk_fasta
-# run with: python ./src/all/models/ProstT5/AA_embed_with_ESM2.py --input "./data/CATHe Dataset/csv/Test.csv" --output "./data/CATHe Dataset/embeddings/Test_ESM2.npz" --batch_size 32
+# run with: python ./src/all/models/ProstT5/AA_embed_with_ESM2.py --input "./data/Dataset/csv/Test.csv" --output "./data/Dataset/embeddings/Test_ESM2.npz" --batch_size 32
 
 import argparse
 import time

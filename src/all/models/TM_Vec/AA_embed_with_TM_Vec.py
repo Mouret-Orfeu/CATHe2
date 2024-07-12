@@ -1,5 +1,4 @@
-# run with python ./src/all/models/TM_Vec/AA_embed_with_TM_Vec.py --input ./data/to/some_sequences.csv --output /path/to/some_embeddings.npz
-
+# run with python ./src/all/models/TM_Vec/AA_embed_with_TM_Vec.py
 import time
 import torch
 import numpy as np
@@ -10,6 +9,7 @@ from tqdm import tqdm
 import re
 import gc
 import os
+import sys
 os.chdir('/home/ku76797/Documents/internship/Work/CATHe')
 
 
@@ -42,7 +42,7 @@ def read_csv(seq_path):
     sequences = {}
     df = pd.read_csv(seq_path)
     for _ , row in df.iterrows():
-        sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings
+        sequences[int(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are integers
     return sequences
 
 # Function to extract ProtTrans embedding for a sequence
@@ -53,8 +53,13 @@ def featurize_prottrans(sequences, model, tokenizer, device):
     input_ids = torch.tensor(ids['input_ids']).to(device)
     attention_mask = torch.tensor(ids['attention_mask']).to(device)
 
-    with torch.no_grad():
-        embedding = model(input_ids=input_ids, attention_mask=attention_mask)
+    try:
+        with torch.no_grad():
+            embedding = model(input_ids=input_ids, attention_mask=attention_mask)
+    
+    except RuntimeError:
+                print("RuntimeError during ProtT5 embedding  (nb sequences in batch={} /n (length of sequences in the batch ={}))".format(len(sequences), [len(seq) for seq in sequences]))
+                sys.exit("Stopping execution due to RuntimeError.")
     
     embedding = embedding.last_hidden_state.cpu().numpy()
 
@@ -70,9 +75,15 @@ def featurize_prottrans(sequences, model, tokenizer, device):
     return prottrans_embedding
 
 # Embed a protein using tm_vec (takes as input a prottrans embedding)
-def embed_tm_vec(prottrans_embedding, model_deep, device):
+def embed_tm_vec(prottrans_embedding, model_deep, device, seq):
     padding = torch.zeros(prottrans_embedding.shape[0:2]).type(torch.BoolTensor).to(device)
-    tm_vec_embedding = model_deep(prottrans_embedding, src_mask=None, src_key_padding_mask=padding)
+
+    try:
+        tm_vec_embedding = model_deep(prottrans_embedding, src_mask=None, src_key_padding_mask=padding)
+    
+    except RuntimeError:
+        print("RuntimeError during TM_Vec embedding sequence {}".format(seq))
+        sys.exit("Stopping execution due to RuntimeError.")
 
     return tm_vec_embedding.cpu().detach().numpy()
 
@@ -81,14 +92,13 @@ def encode(sequences, model_deep, model, tokenizer, device):
     for seq in tqdm(sequences, desc="Batch encoding"):
         protrans_sequence = featurize_prottrans([seq], model, tokenizer, device)
         if protrans_sequence is None:
-            print("\033[91mError: Could not embed sequence\033[0m")
-            continue
-        embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device)
+            sys.exit()
+        embedded_sequence = embed_tm_vec(protrans_sequence, model_deep, device, seq)
         embed_all_sequences.append(embedded_sequence)
     return np.concatenate(embed_all_sequences, axis=0)
 
 def get_embeddings(seq_path, emb_path,
-                   max_residues=100000, max_seq_len=3263, max_batch=100000):
+                   max_residues=4096, max_seq_len=3263, max_batch=64):
 
     emb_dict = dict()
 
@@ -115,7 +125,8 @@ def get_embeddings(seq_path, emb_path,
 
     avg_length = sum([len(seq) for seq in sequences]) / len(sequences)
     n_long = sum([1 for seq in sequences if len(seq) > max_seq_len])
-    # sort sequences by length to trigger OOM at the beginning
+    
+    # Making (key,sequences) tuple, with sequences sorted by length to trigger OOM at the beginning
     sorted_sequences_tuple = sorted(zip(sequence_keys, sequences), key=lambda x: len(x[1]), reverse=True)
     
     print("Average sequence length: {}".format(avg_length))
@@ -149,11 +160,15 @@ def get_embeddings(seq_path, emb_path,
 
     #DEBUG
     print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
+
+    if len(sorted_embeddings) != len(sequences):
+        print("Number of embeddings does not match number of sequences!")
+        print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+        print('Total number of processed sequences: {}'.format(sequences))
+        sys.exit("Stopping execution due to mismatch.")
     
     np.savez(emb_path, sorted_embeddings)
 
-    print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
     print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
     return True
 

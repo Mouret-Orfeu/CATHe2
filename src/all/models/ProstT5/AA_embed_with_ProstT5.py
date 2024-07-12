@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-# code in large part from https://github.com/mheinzinger/ProstT5/blob/main/scripts/embed.py
-
-# run with ```python ./src/all/models/ProstT5/AA_embed_with_ProstT5.py --input ./data/CATHe\ Dataset/csv/Test.csv --output ./data/CATHe\ Dataset/embeddings/Test_ProstT5.npz --model Rostlab/ProstT5 --half 1 --is_3Di 0```
-
-
-"""
-Created on Fri Jun 16 14:27:44 2023
-
-@author: mheinzinger
-"""
+import os
+os.chdir('/home/ku76797/Documents/internship/Work/CATHe')
+import sys
 
 import argparse
 import time
@@ -43,13 +35,13 @@ def read_csv(seq_path):
     '''
     sequences = {}
     df = pd.read_csv(seq_path)
-    for index, row in df.iterrows():
-        sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings
+    for _, row in df.iterrows():
+        sequences[int(row['Unnamed: 0'])] = row['Sequence']
     return sequences
 
 
 def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
-                   max_residues=100000, max_seq_len=3263, max_batch=1000):
+                   max_residues=4096, max_seq_len=3263, max_batch=64):
     
     emb_dict = dict()
 
@@ -70,14 +62,16 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
 
     avg_length = sum([len(seq) for seq in seq_dict.values()]) / len(seq_dict)
     n_long = sum([1 for seq in seq_dict.values() if len(seq) > max_seq_len])
+    print("Average sequence length: {}".format(avg_length))
+    print("Number of sequences >{}: {}".format(max_seq_len, n_long))
+
     # sort sequences by length to trigger OOM at the beginning
     seq_dict = sorted(seq_dict.items(), key=lambda kv: len(kv[1]), reverse=True)
     
-    print("Average sequence length: {}".format(avg_length))
-    print("Number of sequences >{}: {}".format(max_seq_len, n_long))
-    
     start = time.time()
     batch = list()
+    processed_sequences = 0
+
     for seq_idx, (pdb_id, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
         # replace non-standard AAs
         seq = seq.replace('U', 'X').replace('Z', 'X').replace('O', 'X').replace('B', 'X')
@@ -103,7 +97,8 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
                                            attention_mask=token_encoding.attention_mask)
             except RuntimeError:
                 print("RuntimeError during embedding for {} (L={})".format(pdb_id, seq_len))
-                continue
+                sys.exit("Stopping execution due to RuntimeError.")
+                
             
             # batch-size x seq_len x embedding_dim
             # extra token is added at the end of the seq
@@ -112,11 +107,9 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
                 # account for prefix in offset
                 emb = embedding_repr.last_hidden_state[batch_idx, 1:s_len+1]
                 
-                
                 emb = emb.mean(dim=0)
                 emb_dict[identifier] = emb.detach().cpu().numpy().squeeze()
-                if len(emb_dict) == 1:
-                    print("Example: embedded protein {} with length {} to emb. of shape: {}".format(identifier, s_len, emb.shape))
+                processed_sequences += 1
 
     end = time.time()
 
@@ -126,12 +119,19 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
 
     # Create a list of embeddings in the sorted order
     sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
+
+    if len(sorted_embeddings) != len(seq_dict):
+        print("Number of embeddings does not match number of sequences!")
+        print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+        print('Total number of processed sequences: {}'.format(processed_sequences))
+        sys.exit("Stopping execution due to mismatch.")
     
     np.savez(emb_path, sorted_embeddings)
 
-    print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
+    #DEBUG
+    print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
+    
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/processed_sequences, avg_length))
     return True
 
 
@@ -141,8 +141,7 @@ def create_arg_parser():
     # Instantiate the parser
     parser = argparse.ArgumentParser(description=(
             'AA_embed_with_ProstT5.py creates ProstT5-Encoder embeddings for a given text ' +
-            ' file containing sequence(s) in CSV-format.' +
-            'Example: python ./src/all/models/ProstT5/AA_embed_with_ProstT5 --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz --half 1'))
+            ' file containing sequence(s).'))
     
     # Required positional argument
     parser.add_argument('-i', '--input', required=True, type=str,
@@ -159,12 +158,12 @@ def create_arg_parser():
 
         
     parser.add_argument('--half', type=int, 
-                        default=0,
+                        default=1,
                         help="Whether to use half_precision or not. Default: 0 (full-precision)")
     
     parser.add_argument('--is_3Di', type=int,
                         default=0,
-                        help=" 1 if you want to embed 3Di, 0 is you want to embed AA sequences, Default: 0")
+                        help="1 if you want to embed 3Di, 0 if you want to embed AA sequences. Default: 0")
     
     return parser
 
@@ -190,4 +189,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

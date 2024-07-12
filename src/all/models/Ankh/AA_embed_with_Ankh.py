@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # part of the code from https://github.com/agemagician/Ankh/blob/main/README.md
-# run with ```python ./src/all/models/ProstT5/AA_embed_with_Ankh.py --input ./data/CATHe\ Dataset/csv/Test.csv --output ./data/CATHe\ Dataset/embeddings/Test_Ankh.npz --model large```
+# run with ```python ./src/all/models/ProstT5/AA_embed_with_Ankh.py --input ./data/Dataset/csv/Test.csv --output ./data/Dataset/embeddings/Test_Ankh.npz --model large```
 
 
 import argparse
