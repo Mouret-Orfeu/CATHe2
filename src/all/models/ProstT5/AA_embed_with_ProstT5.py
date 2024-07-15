@@ -1,5 +1,4 @@
 import os
-os.chdir('/home/ku76797/Documents/internship/Work/CATHe')
 import sys
 
 import argparse
@@ -123,7 +122,6 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
     if len(sorted_embeddings) != len(seq_dict):
         print("Number of embeddings does not match number of sequences!")
         print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
-        print('Total number of processed sequences: {}'.format(processed_sequences))
         sys.exit("Stopping execution due to mismatch.")
     
     np.savez(emb_path, sorted_embeddings)
@@ -150,13 +148,7 @@ def create_arg_parser():
     # Optional positional argument
     parser.add_argument('-o', '--output', required=True, type=str, 
                         help='A path for saving the created embeddings as NPZ file.')
-
-    # Required positional argument
-    parser.add_argument('--model', required=False, type=str,
-                        default="Rostlab/ProstT5",
-                        help='Either a path to a directory holding the checkpoint for a pre-trained model or a huggingface repository link.')
-
-        
+      
     parser.add_argument('--half', type=int, 
                         default=1,
                         help="Whether to use half_precision or not. Default: 0 (full-precision)")
@@ -171,20 +163,46 @@ def main():
     parser = create_arg_parser()
     args = parser.parse_args()
     
-    seq_path = Path(args.input)  # path to input CSV
-    emb_path = Path(args.output)  # path where embeddings should be stored
-    model_dir = args.model  # path/repo_link to checkpoint
+    model_dir = "Rostlab/ProstT5"  # path/repo_link to checkpoint
 
     half_precision = False if int(args.half) == 0 else True
     is_3Di = False if int(args.is_3Di) == 0 else True
 
+
+    seq_path_Test = "./data/Dataset/csv/Test.csv"
+    emb_path_Test = "./data/Dataset/embeddings/Test_ProstT5.npz"
+
     get_embeddings(
-        seq_path,
-        emb_path,
+        seq_path_Test,
+        emb_path_Test,
         model_dir,
-        half_precision=half_precision,
-        is_3Di=is_3Di
+        half_precision,
+        is_3Di
+    
     )
+
+    seq_path_Val = "./data/Dataset/csv/Val.csv"
+    emb_path_Val = "./data/Dataset/embeddings/Val_ProstT5.npz"
+
+    get_embeddings(
+        seq_path_Val,
+        emb_path_Val,
+        model_dir,
+        half_precision,
+        is_3Di
+    )
+
+    seq_path_Train = "./data/Dataset/csv/Train.csv"
+    emb_path_Train = "./data/Dataset/embeddings/Train_ProsT5.npz"
+
+    get_embeddings(
+        seq_path_Train,
+        emb_path_Train,
+        model_dir,
+        half_precision,
+        is_3Di
+    )
+    
 
 
 if __name__ == '__main__':

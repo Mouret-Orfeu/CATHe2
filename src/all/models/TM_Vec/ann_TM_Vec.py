@@ -159,6 +159,19 @@ with tf.device('/gpu:0'):
     history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
     # model = load_model('saved_models/ann_TM_Vec.h5')
 
+    # Plot the training and validation loss
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs = range(1, len(loss) + 1)
+    plt.figure()
+    plt.plot(epochs, loss, 'bo', label='Training loss')
+    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+
     print("Validation")
     y_pred_val = model.predict(X_val)
     f1_score_val = f1_score(y_val, y_pred_val.argmax(axis=1), average = 'weighted')
@@ -222,3 +235,37 @@ with tf.device('/gpu:0'):
 
     print("F1 Score")
     print(f1_score(y_test, y_pred.argmax(axis=1), average='macro'))
+
+'''
+1st run:
+
+loss: 1.1229 - accuracy: 0.8141 - val_loss: 0.7508 - val_accuracy: 0.8850 - lr: 1.0000e-07
+
+Validation
+F1 Score:  0.8568468078161412
+Acc Score 0.8833258828788556
+
+Regular Testing
+F1 Score:  0.6896804434723143
+Acc Score:  0.8633790226460072
+MCC:  0.8628077017569116
+Bal Acc:  0.7116318782429579
+
+Bootstrapping Results
+
+Accuracy:  0.8631218712753278 0.004197531887796124
+F1-Score:  0.7010731880158906 0.0069561965005527585
+MCC:  0.8625483002008674 0.004210512769926501
+Bal Acc:  0.7368518532159927 0.006222487649248408
+
+Classification Report Validation
+
+Confusion Matrix
+[[151   0   0 ...   0   0   0]
+ [  0   2   0 ...   0   0   0]
+ [  0   0   0 ...   0   0   0]
+ ...
+ [  0   0   0 ...   1   0   0]
+ [  0   0   0 ...   0   1   0]
+ [  0   0   0 ...   0   0   1]]
+ '''

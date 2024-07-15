@@ -23,6 +23,7 @@ from tensorflow.keras import backend as K
 from tensorflow import keras
 from sklearn.model_selection import KFold
 from sklearn.utils import resample
+import torch
 import seaborn as sns
 import matplotlib
 matplotlib.use('Agg')
@@ -36,22 +37,25 @@ from tensorflow.compat.v1 import InteractiveSession
 tf.keras.backend.clear_session()
 config = ConfigProto()
 config.gpu_options.allow_growth = True
-gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.333)
+# gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.333)
 
-sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
+# sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 
-LIMIT = 3 * 1024
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=LIMIT)])
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        # Virtual devices must be set before GPUs have been initialized
-        print(e)
+# LIMIT = 3 * 1024
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# if gpus:
+#     try:
+#         tf.config.experimental.set_virtual_device_configuration(
+#             gpus[0],
+#             [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=LIMIT)])
+#         logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+#         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+#     except RuntimeError as e:
+#         # Virtual devices must be set before GPUs have been initialized
+#         print(e)
+
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 # dataset import
 # train 
@@ -152,7 +156,7 @@ def bm_generator(X_t, y_t, batch_size):
         yield X_batch, y_batch
 
 # batch size
-bs = 2048
+bs = 4096
 
 # Keras NN Model
 def create_model():
@@ -200,8 +204,20 @@ with tf.device('/gpu:0'):
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
     # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-
     model = load_model('saved_models/ann_t5_m1.h5')
+
+    # Plot the training and validation loss
+    # loss = history.history['loss']
+    # val_loss = history.history['val_loss']
+    # epochs = range(1, len(loss) + 1)
+    # plt.figure()
+    # plt.plot(epochs, loss, 'bo', label='Training loss')
+    # plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    # plt.title('Training and Validation Loss')
+    # plt.xlabel('Epochs')
+    # plt.ylabel('Loss')
+    # plt.legend()
+    # plt.show()
 
     print("Validation")
     y_pred_val = model.predict(X_val)

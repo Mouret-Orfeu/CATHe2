@@ -225,8 +225,21 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    model = load_model('saved_models/ann_ProstT5.h5')
+    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    # model = load_model('saved_models/ann_ProstT5.h5')
+
+    # Plot the training and validation loss
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs = range(1, len(loss) + 1)
+    plt.figure()
+    plt.plot(epochs, loss, 'bo', label='Training loss')
+    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -325,11 +338,14 @@ Confusion Matrix
 
 F1 Score
 0.7327831765545498
-'''
 
 
-'''
-nb run
+
+
+
+
+
+2nd run
 
 loss: 0.8994 - accuracy: 0.8618 - val_loss: 0.7553 - val_accuracy: 0.8966 - lr: 1.0000e-09
 
@@ -366,4 +382,39 @@ Confusion Matrix
  [  0   0   0 ...   0   1   0]
  [  0   0   0 ...   0   0   1]]
 
+
+
+
+
+
+ 3rd run
+
+Validation
+F1 Score:  0.8789980654501429
+Acc Score 0.8989718372820742
+
+Regular Testing
+F1 Score:  0.7417655359749582
+Acc Score:  0.8851311084624554
+MCC:  0.8846651906911425
+Bal Acc:  0.7620069050689151
+
+Bootstrapping Results
+Accuracy:  0.8849095649582837 0.003848691629648413
+F1-Score:  0.7483663586541225 0.006861601769890976
+MCC:  0.8844417795621147 0.0038605606045651213
+Bal Acc:  0.7815885856590119 0.005857068422754682
+
+Classification Report Validation
+
+Confusion Matrix
+[[150   0   0 ...   0   0   0]
+ [  0   2   0 ...   0   0   0]
+ [  0   0   0 ...   0   0   0]
+ ...
+ [  0   0   0 ...   0   0   0]
+ [  0   0   0 ...   0   1   0]
+ [  0   0   0 ...   0   0   1]]
+
 '''
+
