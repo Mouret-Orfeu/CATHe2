@@ -44,12 +44,12 @@ def read_csv(seq_path):
     df = pd.read_csv(seq_path)
 
     for _, row in df.iterrows():
-        sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings
+        sequences[int(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings
     
     return sequences
 
 def get_embeddings(seq_path, emb_path, model_type,
-                   max_residues=4096, max_seq_len=3263, max_batch=64):
+                   max_residues,  max_batch, max_seq_len=3263,):
     
     emb_dict = dict()
 
@@ -159,13 +159,23 @@ def main():
     
     model_type = args.model  # large or base Ankh model 
 
+    if model_type not in ["large", "base"]:
+        raise ValueError("Invalid model type. Choose 'large' or 'base'.")
+    
+    if model_type == "large":
+        max_residues,  max_batch = 4096, 65536
+    else:   
+        max_residues,  max_batch = 8192, 256
+
     # seq_path_Test = "./data/Dataset/csv/Test.csv"
     # emb_path_Test = f"./data/Dataset/embeddings/Test_Ankh_{model_type}.npz"
 
     # get_embeddings(
     #     seq_path_Test,
     #     emb_path_Test,
-    #     model_type
+    #     model_type, 
+    #     max_residues,
+    #     max_batch
     
     # )
 
@@ -175,7 +185,9 @@ def main():
     # get_embeddings(
     #     seq_path_Val,
     #     emb_path_Val,
-    #     model_type
+    #     model_type,
+    #     max_residues,
+    #     max_batch
     # )
 
     seq_path_Train = "./data/Dataset/csv/Train.csv"
@@ -184,7 +196,9 @@ def main():
     get_embeddings(
         seq_path_Train,
         emb_path_Train,
-        model_type
+        model_type,
+        max_residues,
+        max_batch
     )
     
 

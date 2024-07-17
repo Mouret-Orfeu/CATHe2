@@ -40,7 +40,7 @@ def read_csv(seq_path):
 
 
 def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
-                   max_residues=4096, max_seq_len=3263, max_batch=64):
+                   max_residues=4096, max_seq_len=3263, max_batch=34359738368):
     
     emb_dict = dict()
 
@@ -141,13 +141,6 @@ def create_arg_parser():
             'AA_embed_with_ProstT5.py creates ProstT5-Encoder embeddings for a given text ' +
             ' file containing sequence(s).'))
     
-    # Required positional argument
-    parser.add_argument('-i', '--input', required=True, type=str,
-                        help='A path to a CSV-formatted text file containing protein sequence(s).')
-
-    # Optional positional argument
-    parser.add_argument('-o', '--output', required=True, type=str, 
-                        help='A path for saving the created embeddings as NPZ file.')
       
     parser.add_argument('--half', type=int, 
                         default=1,
@@ -168,9 +161,13 @@ def main():
     half_precision = False if int(args.half) == 0 else True
     is_3Di = False if int(args.is_3Di) == 0 else True
 
+    if half_precision:
+        model_type = "half"
+    else:
+        model_type = "full"
 
     seq_path_Test = "./data/Dataset/csv/Test.csv"
-    emb_path_Test = "./data/Dataset/embeddings/Test_ProstT5.npz"
+    emb_path_Test = f"./data/Dataset/embeddings/Test_ProstT5_{model_type}.npz"
 
     get_embeddings(
         seq_path_Test,
@@ -182,7 +179,7 @@ def main():
     )
 
     seq_path_Val = "./data/Dataset/csv/Val.csv"
-    emb_path_Val = "./data/Dataset/embeddings/Val_ProstT5.npz"
+    emb_path_Val = f"./data/Dataset/embeddings/Val_ProstT5_{model_type}.npz"
 
     get_embeddings(
         seq_path_Val,
@@ -193,7 +190,7 @@ def main():
     )
 
     seq_path_Train = "./data/Dataset/csv/Train.csv"
-    emb_path_Train = "./data/Dataset/embeddings/Train_ProsT5.npz"
+    emb_path_Train = f"./data/Dataset/embeddings/Train_ProsT5_{model_type}.npz"
 
     get_embeddings(
         seq_path_Train,

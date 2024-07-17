@@ -60,7 +60,6 @@ y_train = df_train['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_train = df_train['Sequence'].tolist()
 
-# sort_and_save_embeddings("./data/Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Train_ProstT5.npz", "Train")
 
 filename = './data/Dataset/embeddings/Train_ESM2.npz'
 X_train = np.load(filename)['arr_0']
@@ -73,7 +72,6 @@ y_val = df_val['SF'].tolist()
 # # Extract AA Sequences
 # AA_sequences_val = df_val['Sequence'].tolist()
 
-# sort_and_save_embeddings("./data/Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Val_ProstT5.npz", "Val")
 
 filename = './data/Dataset/embeddings/Val_ESM2.npz'
 X_val = np.load(filename)['arr_0']
@@ -88,7 +86,6 @@ y_test = df_test['SF'].tolist()
 
 # AA_sequence_lists = [AA_sequences_train, AA_sequences_val, AA_sequences_test]
 
-# sort_and_save_embeddings("./data/Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Test_ProstT5.npz", "Test")
 
 filename = './data/Dataset/embeddings/Test_ESM2.npz'
 X_test = np.load(filename)['arr_0']
@@ -187,7 +184,7 @@ with tf.device('/gpu:0'):
     model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
     # callbacks
-    mcp_save = keras.callbacks.ModelCheckpoint('saved_models/ann_ProstT5.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
+    mcp_save = keras.callbacks.ModelCheckpoint('saved_models/ann_ESM2.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
     early_stop = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=30)
     callbacks_list = [reduce_lr, mcp_save, early_stop]
@@ -196,21 +193,22 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    model = load_model('saved_models/ann_ProstT5.h5')
+    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    # model = load_model('saved_models/ann_ESM2.h5')
 
     # Plot the training and validation loss
-    # loss = history.history['loss']
-    # val_loss = history.history['val_loss']
-    # epochs = range(1, len(loss) + 1)
-    # plt.figure()
-    # plt.plot(epochs, loss, 'bo', label='Training loss')
-    # plt.plot(epochs, val_loss, 'b', label='Validation loss')
-    # plt.title('Training and Validation Loss')
-    # plt.xlabel('Epochs')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.show()
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs = range(1, len(loss) + 1)
+    plt.figure()
+    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig(f'results/Loss/ESM2_loss.png')  # Save the plot
+    plt.close()
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -257,11 +255,11 @@ with tf.device('/gpu:0'):
     print("Classification Report Validation")
     cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True)
     df = pd.DataFrame(cr).transpose()
-    df.to_csv('results/CR_ANN_ProstT5.csv')
+    df.to_csv('results/CR_ANN_ESM2.csv')
     
-    print("Confusion Matrix")
+    # print("Confusion Matrix")
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
-    print(matrix)
+    # print(matrix)
     
     # Plot the confusion matrix 
     plt.figure(figsize=(10, 8))
@@ -269,10 +267,11 @@ with tf.device('/gpu:0'):
     plt.title('Confusion Matrix')
     plt.xlabel('Predicted')
     plt.ylabel('True')
-    plt.show()
+    plt.savefig(f'results/confusion_matrices/ESM2.png')  # Save the plot
+    plt.close()
 
     print("F1 Score")
-    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro'))
+    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro', zero_division=0))
 
 '''
 

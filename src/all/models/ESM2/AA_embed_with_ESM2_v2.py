@@ -33,7 +33,7 @@ def read_csv(seq_path):
     """
     df = pd.read_csv(seq_path)
     sequences = df['Sequence'].tolist()
-    ids = df['Unnamed: 0'].astype(str).tolist()
+    ids = df['Unnamed: 0'].astype(int).tolist()
     return dict(zip(ids, sequences))
 
 def replace_non_standard_aa(seq):

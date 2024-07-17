@@ -164,13 +164,14 @@ with tf.device('/gpu:0'):
     val_loss = history.history['val_loss']
     epochs = range(1, len(loss) + 1)
     plt.figure()
-    plt.plot(epochs, loss, 'bo', label='Training loss')
-    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
     plt.title('Training and Validation Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.show()
+    plt.savefig(f'results/Loss/TM_Vec_loss.png')
+    plt.close()
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -223,7 +224,7 @@ with tf.device('/gpu:0'):
     
     print("Confusion Matrix")
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
-    print(matrix)
+    # print(matrix)
     
     # Plot the confusion matrix 
     plt.figure(figsize=(10, 8))
@@ -231,10 +232,11 @@ with tf.device('/gpu:0'):
     plt.title('Confusion Matrix')
     plt.xlabel('Predicted')
     plt.ylabel('True')
-    plt.show()
+    plt.savefig(f'results/confusion_matrices/TM_Vec.png')  # Save the plot
+    plt.close()
 
     print("F1 Score")
-    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro'))
+    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro', zero_division=0))
 
 '''
 1st run:

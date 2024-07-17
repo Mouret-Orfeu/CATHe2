@@ -50,33 +50,8 @@ config.gpu_options.allow_growth = True
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-# functions #####################################################################################
-
-def sort_and_save_embeddings(input_npz_path, output_npz_path, name):
-    """
-    Sort embeddings from an NPZ file by index and save the sorted embeddings to a new NPZ file.
-
-    Parameters:
-    input_npz_path (str): Path to the input NPZ file with unsorted embeddings.
-    output_npz_path (str): Path to the output NPZ file to save the sorted embeddings.
-    name : name of the embedding dataset processed
-    """
-    print("Sorting ",name," embeddings")
-
-    # Load the embeddings from the NPZ file
-    embeddings_not_ordered = np.load(input_npz_path)
-
-    # Create a dictionary where keys are indices (converted to int) and values are embeddings
-    embeddings_dict = {int(key): value for key, value in tqdm(embeddings_not_ordered.items(), desc="Creating dictionary")}
-
-    # Sort the keys in ascending order
-    sorted_keys = sorted(embeddings_dict.keys())
-
-    # Create a list of embeddings in the sorted order
-    sorted_embeddings = [embeddings_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
-
-    # Save the sorted embeddings
-    np.savez(output_npz_path, sorted_embeddings)
+model_type = "half"
+# model_type = "full"
 
 # dataset import #################################################################################
 
@@ -90,7 +65,7 @@ y_train = df_train['SF'].tolist()
 
 # sort_and_save_embeddings("./data/Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Train_ProstT5.npz", "Train")
 
-filename = './data/Dataset/embeddings/Train_ProstT5.npz'
+filename = f'./data/Dataset/embeddings/Train_ProstT5_{model_type}.npz'
 X_train = np.load(filename)['arr_0']
 
 # val
@@ -103,7 +78,7 @@ y_val = df_val['SF'].tolist()
 
 # sort_and_save_embeddings("./data/Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Val_ProstT5.npz", "Val")
 
-filename = './data/Dataset/embeddings/Val_ProstT5.npz'
+filename = f'./data/Dataset/embeddings/Val_ProstT5_{model_type}.npz'
 X_val = np.load(filename)['arr_0']
 
 # test
@@ -118,7 +93,7 @@ y_test = df_test['SF'].tolist()
 
 # sort_and_save_embeddings("./data/Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Test_ProstT5.npz", "Test")
 
-filename = './data/Dataset/embeddings/Test_ProstT5.npz'
+filename = f'./data/Dataset/embeddings/Test_ProstT5_{model_type}.npz'
 X_test = np.load(filename)['arr_0']
 
 
@@ -216,7 +191,7 @@ with tf.device('/gpu:0'):
     model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
     # callbacks
-    mcp_save = keras.callbacks.ModelCheckpoint('saved_models/ann_ProstT5.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
+    mcp_save = keras.callbacks.ModelCheckpoint(f'saved_models/ann_ProstT5_{model_type}.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
     early_stop = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=30)
     callbacks_list = [reduce_lr, mcp_save, early_stop]
@@ -226,20 +201,21 @@ with tf.device('/gpu:0'):
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
     history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    # model = load_model('saved_models/ann_ProstT5.h5')
+    # model = load_model(f'saved_models/ann_ProstT5_{model_type}.h5')
 
     # Plot the training and validation loss
     loss = history.history['loss']
     val_loss = history.history['val_loss']
     epochs = range(1, len(loss) + 1)
     plt.figure()
-    plt.plot(epochs, loss, 'bo', label='Training loss')
-    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
     plt.title('Training and Validation Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.show()
+    plt.savefig(f'results/Loss/ProstT5_loss.png')  # Save the plot
+    plt.close()
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -286,22 +262,23 @@ with tf.device('/gpu:0'):
     print("Classification Report Validation")
     cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True)
     df = pd.DataFrame(cr).transpose()
-    df.to_csv('results/CR_ANN_ProstT5.csv')
+    df.to_csv(f'results/CR_ANN_ProstT5_{model_type}.csv')
     
-    print("Confusion Matrix")
+    # print("Confusion Matrix")
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
-    print(matrix)
-    
-    # Plot the confusion matrix 
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(matrix, annot=True, fmt='d', cmap='Blues', cbar=False)
-    plt.title('Confusion Matrix')
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.show()
+
+    # Find the indices and values of the non-zero elements
+    non_zero_indices = np.nonzero(matrix)
+    non_zero_values = matrix[non_zero_indices]
+
+    # Combine row indices, column indices, and values into a single array
+    non_zero_data = np.column_stack((non_zero_indices[0], non_zero_indices[1], non_zero_values))
+
+    # Save the non-zero entries to a CSV file
+    np.savetxt(f'results/confusion_matrices/ProstT5_{model_type}.csv', non_zero_data, delimiter=",", fmt='%d')
 
     print("F1 Score")
-    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro'))
+    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro', zero_division=0))
 
 '''
 First run 
@@ -415,6 +392,34 @@ Confusion Matrix
  [  0   0   0 ...   0   0   0]
  [  0   0   0 ...   0   1   0]
  [  0   0   0 ...   0   0   1]]
+
+ 
+
+
+ 4th run
+
+ loss: 0.8825 - accuracy: 0.8623 - val_loss: 0.7420 - val_accuracy: 0.8993 - lr: 1.0000e-07
+Validation
+F1 Score:  0.877830672028923
+Acc Score 0.8983758009238564
+
+Regular Testing
+F1 Score:  0.7382650500946161
+Acc Score:  0.8851311084624554
+MCC:  0.8846648727347662
+Bal Acc:  0.75947438790924
+
+Bootstrapping Results
+
+Accuracy:  0.8848551847437426 0.003893133453404982
+F1-Score:  0.7455093887946028 0.006745001034596315
+MCC:  0.8843867725851623 0.003904714664583348
+Bal Acc:  0.7794136948500072 0.005800158076804598
+
+Classification Report Validation
+
+F1 Score
+0.7382650500946161
 
 '''
 

@@ -42,8 +42,8 @@ def read_csv(seq_path):
     sequences = {}
     df = pd.read_csv(seq_path)
 
-    for index, row in df.iterrows():
-        sequences[str(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings 
+    for _, row in df.iterrows():
+        sequences[int(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings 
     
     return sequences
 
