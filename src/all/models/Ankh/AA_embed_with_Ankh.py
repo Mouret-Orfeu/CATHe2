@@ -163,9 +163,9 @@ def main():
         raise ValueError("Invalid model type. Choose 'large' or 'base'.")
     
     if model_type == "large":
-        max_residues,  max_batch = 4096, 65536
+        max_residues,  max_batch = 4096, 4096
     else:   
-        max_residues,  max_batch = 8192, 256
+        max_residues,  max_batch = 8192, 8192
 
     # seq_path_Test = "./data/Dataset/csv/Test.csv"
     # emb_path_Test = f"./data/Dataset/embeddings/Test_Ankh_{model_type}.npz"

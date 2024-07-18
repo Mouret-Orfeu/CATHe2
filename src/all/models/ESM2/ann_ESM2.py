@@ -3,18 +3,16 @@
 import pandas as pd 
 import numpy as np 
 from sklearn import preprocessing
-import math
 import tensorflow as tf
 from tensorflow import keras  
 from tensorflow.keras.models import Model, load_model
-from tensorflow.keras import optimizers, regularizers
+from tensorflow.keras import regularizers
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, balanced_accuracy_score, classification_report, confusion_matrix
 from sklearn.utils import shuffle, resample
 import torch
-from transformers import T5Tokenizer, T5EncoderModel
-import re
 from tqdm import tqdm
+import warnings
 import seaborn as sns
 import matplotlib
 matplotlib.use('Agg')
@@ -24,7 +22,6 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 # GPU config for Vamsi's Laptop
 from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
 
 tf.keras.backend.clear_session()
 config = ConfigProto()
@@ -93,17 +90,7 @@ X_test = np.load(filename)['arr_0']
 # Training preparation ############################################################################
 
 # y process
-y_tot = []
-
-for i in range(len(y_train)):
-    y_tot.append(y_train[i])
-
-for i in range(len(y_val)):
-    y_tot.append(y_val[i])
-
-for i in range(len(y_test)):
-    y_tot.append(y_test[i])
-
+y_tot = y_train + y_val + y_test
 le = preprocessing.LabelEncoder()
 le.fit(y_tot)
 
@@ -150,7 +137,7 @@ bs = 4096
 
 # Keras NN Model
 def create_model():
-    input_ = Input(shape = (1024,))
+    input_ = Input(shape = (1280,))
     
     x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(input_)
     x = LeakyReLU(alpha = 0.05)(x)
@@ -193,22 +180,22 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    # model = load_model('saved_models/ann_ESM2.h5')
+    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    model = load_model('saved_models/ann_ESM2.h5')
 
     # Plot the training and validation loss
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    epochs = range(1, len(loss) + 1)
-    plt.figure()
-    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
-    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
-    plt.title('Training and Validation Loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.savefig(f'results/Loss/ESM2_loss.png')  # Save the plot
-    plt.close()
+    # loss = history.history['loss']
+    # val_loss = history.history['val_loss']
+    # epochs = range(1, len(loss) + 1)
+    # plt.figure()
+    # plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    # plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
+    # plt.title('Training and Validation Loss')
+    # plt.xlabel('Epochs')
+    # plt.ylabel('Loss')
+    # plt.legend()
+    # plt.savefig(f'results/Loss/ESM2_loss.png')  # Save the plot
+    # plt.close()
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -234,11 +221,15 @@ with tf.device('/gpu:0'):
     acc_arr = []
     mcc_arr = []
     bal_arr = []
-    for it in range(num_iter):
+
+    #Suppress warnings that will rise when bootstrapping samples contain classes not in the original sample
+    warnings.filterwarnings("ignore", message="y_pred contains classes not in y_true")
+
+    for it in tqdm(range(num_iter)):
         # print("Iteration: ", it)
         X_test_re, y_test_re = resample(X_test, y_test, n_samples = len(y_test), random_state=it)
-        y_pred_test_re = model.predict(X_test_re)
-        print(y_test_re)
+        y_pred_test_re = model.predict(X_test_re, verbose=0)
+        # print(y_test_re)
         f1_arr.append(f1_score(y_test_re, y_pred_test_re.argmax(axis=1), average = 'macro'))
         acc_arr.append(accuracy_score(y_test_re, y_pred_test_re.argmax(axis=1)))
         mcc_arr.append(matthews_corrcoef(y_test_re, y_pred_test_re.argmax(axis=1)))
@@ -250,10 +241,13 @@ with tf.device('/gpu:0'):
     print("MCC: ", np.mean(mcc_arr), np.std(mcc_arr))
     print("Bal Acc: ", np.mean(bal_arr), np.std(bal_arr))
 
+    # Allow the warning back 
+    warnings.filterwarnings("default")
+
 with tf.device('/gpu:0'):
     y_pred = model.predict(X_test)
     print("Classification Report Validation")
-    cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True)
+    cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True, zero_division=1)
     df = pd.DataFrame(cr).transpose()
     df.to_csv('results/CR_ANN_ESM2.csv')
     
@@ -274,6 +268,28 @@ with tf.device('/gpu:0'):
     print(f1_score(y_test, y_pred.argmax(axis=1), average='macro', zero_division=0))
 
 '''
+1st run 
+
+Validation
+
+F1 Score:  0.82786871109077
+Acc Score 0.8533750558784086
+
+Regular Testing
+
+F1 Score:  0.6407190481177684
+Acc Score:  0.8396901072705601
+MCC:  0.8390902116609235
+Bal Acc:  0.6656206012576935
+
+Bootstrapping Results
+
+Accuracy:  0.8394934445768772 0.004610395854480061
+F1-Score:  0.6538735277767734 0.006975288326702168
+MCC:  0.8388910640294582 0.004619747007620903
+Bal Acc:  0.6921499908677112 0.006382194062679241
+
+Classification Report Validation
 
 
 '''

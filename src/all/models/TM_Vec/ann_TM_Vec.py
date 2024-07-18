@@ -5,20 +5,17 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
-import gc
 import matplotlib.pyplot as plt
 import seaborn as sns
-import re
 from sklearn.utils import shuffle, resample
-from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import f1_score, accuracy_score, balanced_accuracy_score, matthews_corrcoef, classification_report, confusion_matrix
 from tensorflow.keras.models import load_model, Model
 from tensorflow.keras.layers import Input, Dense, LeakyReLU, BatchNormalization, Dropout
 from tensorflow.keras import regularizers
 import tensorflow as tf
+import warnings
+from tqdm import tqdm
 import tensorflow.keras as keras
-import math
 from sklearn import preprocessing
 import matplotlib
 matplotlib.use('Agg')
@@ -57,16 +54,9 @@ X_test = np.load(filename)['arr_0']
 # Training preparation ############################################################################
 
 # y process
-y_tot = []
-
-for i in range(len(y_train)):
-    y_tot.append(y_train[i])
-
-for i in range(len(y_val)):
-    y_tot.append(y_val[i])
-
-for i in range(len(y_test)):
-    y_tot.append(y_test[i])
+y_tot = y_train + y_val + y_test
+le = preprocessing.LabelEncoder()
+le.fit(y_tot)
 
 le = preprocessing.LabelEncoder()
 le.fit(y_tot)
@@ -156,22 +146,22 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    # model = load_model('saved_models/ann_TM_Vec.h5')
+    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    model = load_model('saved_models/ann_TM_Vec.h5')
 
     # Plot the training and validation loss
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    epochs = range(1, len(loss) + 1)
-    plt.figure()
-    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
-    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
-    plt.title('Training and Validation Loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.savefig(f'results/Loss/TM_Vec_loss.png')
-    plt.close()
+    # loss = history.history['loss']
+    # val_loss = history.history['val_loss']
+    # epochs = range(1, len(loss) + 1)
+    # plt.figure()
+    # plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    # plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
+    # plt.title('Training and Validation Loss')
+    # plt.xlabel('Epochs')
+    # plt.ylabel('Loss')
+    # plt.legend()
+    # plt.savefig(f'results/Loss/TM_Vec_loss.png')
+    # plt.close()
 
     print("Validation")
     y_pred_val = model.predict(X_val)
@@ -197,11 +187,15 @@ with tf.device('/gpu:0'):
     acc_arr = []
     mcc_arr = []
     bal_arr = []
-    for it in range(num_iter):
+
+    #Suppress warnings that will rise when bootstrapping samples contain classes not in the original sample
+    warnings.filterwarnings("ignore", message="y_pred contains classes not in y_true")
+
+    for it in tqdm(range(num_iter)):
         # print("Iteration: ", it)
         X_test_re, y_test_re = resample(X_test, y_test, n_samples = len(y_test), random_state=it)
-        y_pred_test_re = model.predict(X_test_re)
-        print(y_test_re)
+        y_pred_test_re = model.predict(X_test_re, verbose=0)
+        # print(y_test_re)
         f1_arr.append(f1_score(y_test_re, y_pred_test_re.argmax(axis=1), average = 'macro'))
         acc_arr.append(accuracy_score(y_test_re, y_pred_test_re.argmax(axis=1)))
         mcc_arr.append(matthews_corrcoef(y_test_re, y_pred_test_re.argmax(axis=1)))
@@ -213,12 +207,13 @@ with tf.device('/gpu:0'):
     print("MCC: ", np.mean(mcc_arr), np.std(mcc_arr))
     print("Bal Acc: ", np.mean(bal_arr), np.std(bal_arr))
 
-
+    # Allow the warning back 
+    warnings.filterwarnings("default")
 
 with tf.device('/gpu:0'):
     y_pred = model.predict(X_test)
     print("Classification Report Validation")
-    cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True)
+    cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True, zero_division=1)
     df = pd.DataFrame(cr).transpose()
     df.to_csv('results/CR_ANN_TM_Vec.csv')
     

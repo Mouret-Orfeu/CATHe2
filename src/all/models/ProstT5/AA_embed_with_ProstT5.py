@@ -20,7 +20,7 @@ print("Using device: {}".format(device))
 
 
 def get_T5_model(model_dir):
-    print("Loading ProsT5 from: {}".format(model_dir))
+    print("Loading ProstT5 from: {}".format(model_dir))
     model = T5EncoderModel.from_pretrained(model_dir).to(device)
     model = model.eval()
     tokenizer = T5Tokenizer.from_pretrained(model_dir, do_lower_case=False)

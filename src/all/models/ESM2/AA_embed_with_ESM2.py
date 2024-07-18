@@ -3,21 +3,17 @@
 # run with ```python ./src/all/models/ProstT5/AA_embed_with_ESM2.py --input ./data/CATHe\ Dataset/csv/Test.csv --output ./data/CATHe\ Dataset/embeddings/Test_ESM2.npz --model large```
 
 
-import argparse
+
 import time
-from pathlib import Path
 import torch
 import numpy as np
 import pandas as pd
 from transformers import AutoModel, AutoTokenizer
 from tqdm import tqdm
+import sys
 
-if torch.cuda.is_available():
-    device = torch.device('cuda:0')
-elif torch.backends.mps.is_available():
-    device = torch.device('mps')
-else:
-    device = torch.device('cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 print("Using device: {}".format(device))
 
 
@@ -49,7 +45,7 @@ def read_csv(seq_path):
 
 
 def get_embeddings(seq_path, emb_path,
-                   max_residues=100000, max_seq_len=3263, max_batch=1000):
+                   max_residues=4096, max_seq_len=3263, max_batch=4096):
     
     emb_dict = dict()
 
@@ -120,47 +116,46 @@ def get_embeddings(seq_path, emb_path,
 
     # Create a list of embeddings in the sorted order
     sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
+
+    if len(sorted_embeddings) != len(seq_dict):
+        print("Number of embeddings does not match number of sequences!")
+        print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+        sys.exit("Stopping execution due to mismatch.")
     
     np.savez(emb_path, sorted_embeddings)
 
-    print('\n############# STATS #############')
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+    #DEBUG
+    print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
+    
     print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
     return True
 
 
-def create_arg_parser():
-    """"Creates and returns the ArgumentParser object."""
-
-    # Instantiate the parser
-    parser = argparse.ArgumentParser(description=(
-            'AA_embed_with_Ankh.py creates Ankh-Encoder embeddings for a given text ' +
-            ' file containing sequence(s) in CSV-format.' +
-            'Example: python ./src/all/models/ProstT5/AA_embed_with_ESM2 --input /path/to/some_sequences.csv --output /path/to/some_embeddings.npz'))
-    
-    # Required positional argument
-    parser.add_argument('-i', '--input', required=True, type=str,
-                        help='A path to a CSV-formatted text file containing protein sequence(s).')
-
-    # Optional positional argument
-    parser.add_argument('-o', '--output', required=True, type=str, 
-                        help='A path for saving the created embeddings as NPZ file.')
-
-
-    
-    return parser
-
 def main():
-    parser = create_arg_parser()
-    args = parser.parse_args()
-    
-    seq_path = Path(args.input)  # path to input CSV
-    emb_path = Path(args.output)  # path where embeddings should be stored
 
+    # seq_path_Test = "./data/Dataset/csv/Test.csv"
+    # emb_path_Test = f"./data/Dataset/embeddings/Test_ESM2.npz"
+
+    # get_embeddings(
+    #     seq_path_Test,
+    #     emb_path_Test
+    
+    # )
+
+    # seq_path_Val = "./data/Dataset/csv/Val.csv"
+    # emb_path_Val = f"./data/Dataset/embeddings/Val_ESM2.npz"
+
+    # get_embeddings(
+    #     seq_path_Val,
+    #     emb_path_Val
+    # )
+
+    seq_path_Train = "./data/Dataset/csv/Train.csv"
+    emb_path_Train = f"./data/Dataset/embeddings/Train_ESM2.npz"
 
     get_embeddings(
-        seq_path,
-        emb_path
+        seq_path_Train,
+        emb_path_Train
     )
 
 
