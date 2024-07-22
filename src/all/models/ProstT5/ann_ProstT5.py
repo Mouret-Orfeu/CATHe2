@@ -12,6 +12,7 @@ from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, balance
 from sklearn.utils import shuffle, resample
 import torch
 import warnings
+import math
 from tqdm import tqdm
 import matplotlib
 matplotlib.use('Agg')
@@ -30,7 +31,10 @@ config.gpu_options.allow_growth = True
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # model_type = "half"
-model_type = "full"
+# model_type = "full"
+
+# model_type = "half_CL"
+model_type = "full_CL"
 
 # dataset import #################################################################################
 
@@ -118,7 +122,11 @@ bs = 4096
 
 # Keras NN Model
 def create_model():
-    input_ = Input(shape = (1024,))
+
+    if model_type == "full_CL" or model_type == "half_CL":
+        input_ = Input(shape = (128,))
+    else:
+        input_ = Input(shape = (1024,))
     
     x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(input_)
     x = LeakyReLU(alpha = 0.05)(x)
@@ -161,8 +169,8 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    model = load_model(f'saved_models/ann_ProstT5_{model_type}.h5')
+    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    # model = load_model(f'saved_models/ann_ProstT5_{model_type}.h5')
 
     # Plot the training and validation loss
     # loss = history.history['loss']
