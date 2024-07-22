@@ -27,24 +27,6 @@ tf.keras.backend.clear_session()
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 
-# I comment out all gpu memory restrictions
-# gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.6)
-
-# sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
-
-# LIMIT = 3 * 1024
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# if gpus:
-#     try:
-#         tf.config.experimental.set_virtual_device_configuration(
-#             gpus[0],
-#             [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=LIMIT)])
-#         logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-#         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-#     except RuntimeError as e:
-#         # Virtual devices must be set before GPUs have been initialized
-#         print(e)
-
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # model_type = "half"
@@ -57,10 +39,6 @@ model_type = "full"
 df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
 # Extract Super Families (SF column) 
 y_train = df_train['SF'].tolist()
-# # Extract AA Sequences
-# AA_sequences_train = df_train['Sequence'].tolist()
-
-# sort_and_save_embeddings("./data/Dataset/embeddings/Train_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Train_ProstT5.npz", "Train")
 
 filename = f'./data/Dataset/embeddings/Train_ProstT5_{model_type}.npz'
 X_train = np.load(filename)['arr_0']
@@ -70,10 +48,6 @@ X_train = np.load(filename)['arr_0']
 df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
 # Extract Super Families (SF column)
 y_val = df_val['SF'].tolist()
-# # Extract AA Sequences
-# AA_sequences_val = df_val['Sequence'].tolist()
-
-# sort_and_save_embeddings("./data/Dataset/embeddings/Val_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Val_ProstT5.npz", "Val")
 
 filename = f'./data/Dataset/embeddings/Val_ProstT5_{model_type}.npz'
 X_val = np.load(filename)['arr_0']
@@ -83,12 +57,6 @@ X_val = np.load(filename)['arr_0']
 df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
 # Extract Super Families (SF column)
 y_test = df_test['SF'].tolist()
-# # Extract AA Sequences
-# AA_sequences_test = df_test['Sequence'].tolist()
-
-# AA_sequence_lists = [AA_sequences_train, AA_sequences_val, AA_sequences_test]
-
-# sort_and_save_embeddings("./data/Dataset/embeddings/Test_ProstT5_not_ordered.npz", "./data/Dataset/embeddings/Test_ProstT5.npz", "Test")
 
 filename = f'./data/Dataset/embeddings/Test_ProstT5_{model_type}.npz'
 X_test = np.load(filename)['arr_0']

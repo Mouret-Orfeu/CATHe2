@@ -29,7 +29,6 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # Train
 df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
 y_train = df_train['SF'].tolist()
-# AA_sequences_train = df_train['Sequence'].tolist()
 
 filename = './data/Dataset/embeddings/Train_TM_Vec.npz'
 X_train = np.load(filename)['arr_0']
@@ -37,7 +36,6 @@ X_train = np.load(filename)['arr_0']
 # Val
 df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
 y_val = df_val['SF'].tolist()
-# AA_sequences_val = df_val['Sequence'].tolist()
 
 filename = './data/Dataset/embeddings/Val_TM_Vec.npz'
 X_val = np.load(filename)['arr_0']
@@ -227,7 +225,7 @@ with tf.device('/gpu:0'):
     plt.title('Confusion Matrix')
     plt.xlabel('Predicted')
     plt.ylabel('True')
-    plt.savefig(f'results/confusion_matrices/TM_Vec.png')  # Save the plot
+    plt.savefig(f'results/confusion_matrices/TM_Vec.png')
     plt.close()
 
     print("F1 Score")

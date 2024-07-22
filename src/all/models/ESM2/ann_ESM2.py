@@ -27,24 +27,6 @@ tf.keras.backend.clear_session()
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 
-# I comment out all gpu memory restrictions
-# gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.6)
-
-# sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
-
-# LIMIT = 3 * 1024
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# if gpus:
-#     try:
-#         tf.config.experimental.set_virtual_device_configuration(
-#             gpus[0],
-#             [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=LIMIT)])
-#         logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-#         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-#     except RuntimeError as e:
-#         # Virtual devices must be set before GPUs have been initialized
-#         print(e)
-
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # dataset import #################################################################################
