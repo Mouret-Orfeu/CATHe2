@@ -13,8 +13,12 @@ from sklearn.utils import shuffle, resample
 import torch
 import warnings
 import math
+import csv
+import seaborn as sns
 from tqdm import tqdm
 import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 matplotlib.use('Agg')
 
 from sklearn.metrics import classification_report, confusion_matrix
@@ -30,11 +34,161 @@ config.gpu_options.allow_growth = True
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-# model_type = "half"
+dropout = True
+# dropout = False
+dropout_value = 0.2
+nb_layer_block = 1
+
+model_type = "half"
 # model_type = "full"
 
 # model_type = "half_CL"
-model_type = "full_CL"
+# model_type = "full_CL"
+
+def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
+
+    # print("Confusion Matrix")
+    matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
+    size = matrix.shape[0]
+    print(f"Size of confusion matrix: {size}")
+
+    # Find the indices and values of the non-zero elements
+    non_zero_indices = np.nonzero(matrix)
+    non_zero_values = matrix[non_zero_indices]
+
+    # Combine row indices, column indices, and values into a single array
+    non_zero_data = np.column_stack((non_zero_indices[0], non_zero_indices[1], non_zero_values))
+
+    # Save the non-zero entries to a CSV file
+    np.savetxt(f'{confusion_matrix_path}.csv', non_zero_data, delimiter=",", fmt='%d')
+
+    # # Read the sparse confusion matrix CSV file
+    # df = pd.read_csv(confusion_matrix_path, header=None, names=['row', 'col', 'value'])
+    
+    
+    # # Create an empty confusion matrix
+    # confusion_matrix = np.zeros((size, size), dtype=int)
+    
+    # # Fill the confusion matrix
+    # for _, row in df.iterrows():
+    #     confusion_matrix[row['row'], row['col']] = row['value']
+    
+    
+    # Create a custom color map that makes zero cells white
+    cmap = plt.cm.viridis
+    cmap.set_under('white')
+    
+    # Plot the heatmap with logarithmic scaling
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(matrix, annot=False, fmt="d", cmap=cmap, vmin=0.01, cbar_kws={'label': 'Log Scale'})
+    
+    # Create a purple to yellow color map for the annotations
+    norm = mcolors.Normalize(vmin=matrix.min(), vmax=matrix.max())
+    sm = plt.cm.ScalarMappable(cmap='plasma', norm=norm)
+    
+    # Emphasize non-zero values by adding colored annotations
+    for i in range(size):
+        for j in range(size):
+            if matrix[i, j] > 0:
+                plt.text(j + 0.5, i + 0.5, matrix[i, j],
+                         horizontalalignment='center',
+                         verticalalignment='center',
+                         fontsize=6, color=sm.to_rgba(matrix[i, j]))
+    
+    plt.xlabel('Predicted labels')
+    plt.ylabel('True labels')
+    plt.title('Confusion Matrix Heatmap (Log Scale)')
+    plt.savefig(f'{confusion_matrix_path}.png', bbox_inches='tight')
+    plt.close()
+
+def evaluate_model(model_type, X_val, y_val, X_test, y_test, nb_layer_block, dropout, dropout_value):
+    """Evaluates the trained model."""
+    
+    model_name = f'ProstT5_{model_type}'
+
+    if dropout :
+        base_model_path = f'saved_models/ann_{model_name}'
+        base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}_dropout_{dropout_value}'
+        base_confusion_matrix_path = f'results/confusion_matrices/{model_name}_dropout_{dropout_value}'
+
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout_value}.h5'
+
+
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout_value}.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout_value}'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout_value}.csv'
+    else:
+        base_model_path = f'saved_models/ann_{model_name}'
+        base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}_no_dropout'
+        base_confusion_matrix_path = f'results/confusion_matrices/{model_name}_no_dropout'
+
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout.h5'
+
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_no_dropout.csv'
+
+    with open(results_file, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Metric", "Value"])
+
+        try:
+            model = load_model(model_path)
+        except:
+            raise ValueError(f"Model file '{model_path}' not found, make sure you have trained the model first, to train the model use the --do_training flag")
+            
+        with tf.device('/gpu:0'):
+            writer.writerow(["Validation", ""])
+            y_pred_val = model.predict(X_val)
+            f1_score_val = f1_score(y_val, y_pred_val.argmax(axis=1), average='weighted')
+            acc_score_val = accuracy_score(y_val, y_pred_val.argmax(axis=1))
+            writer.writerow(["Validation F1 Score", f1_score_val])
+            writer.writerow(["Validation Accuracy Score", acc_score_val])
+
+            writer.writerow(["Regular Testing", ""])
+            y_pred_test = model.predict(X_test)
+            f1_score_test = f1_score(y_test, y_pred_test.argmax(axis=1), average='macro')
+            acc_score_test = accuracy_score(y_test, y_pred_test.argmax(axis=1))
+            mcc_score = matthews_corrcoef(y_test, y_pred_test.argmax(axis=1))
+            bal_acc = balanced_accuracy_score(y_test, y_pred_test.argmax(axis=1))
+            writer.writerow(["Test F1 Score", f1_score_test])
+            writer.writerow(["Test Accuracy Score", acc_score_test])
+            writer.writerow(["Test MCC", mcc_score])
+            writer.writerow(["Test Balanced Accuracy", bal_acc])
+
+            writer.writerow(["Bootstrapping Results", ""])
+            num_iter = 1000
+            f1_arr = []
+            acc_arr = []
+            mcc_arr = []
+            bal_arr = []
+
+            warnings.filterwarnings("ignore", message="y_pred contains classes not in y_true")
+
+            print("Evaluation with bootstrapping")
+            for it in tqdm(range(num_iter)):
+                X_test_re, y_test_re = resample(X_test, y_test, n_samples=len(y_test), random_state=it)
+                y_pred_test_re = model.predict(X_test_re, verbose=0)
+                f1_arr.append(f1_score(y_test_re, y_pred_test_re.argmax(axis=1), average='macro'))
+                acc_arr.append(accuracy_score(y_test_re, y_pred_test_re.argmax(axis=1)))
+                mcc_arr.append(matthews_corrcoef(y_test_re, y_pred_test_re.argmax(axis=1)))
+                bal_arr.append(balanced_accuracy_score(y_test_re, y_pred_test_re.argmax(axis=1)))
+
+            writer.writerow(["Accuracy ", np.mean(acc_arr)])
+            writer.writerow(["F1-Score", np.mean(f1_arr)])
+            writer.writerow(["MCC", np.mean(mcc_arr)])
+            writer.writerow(["Balanced Accuracy", np.mean(bal_arr)])
+            
+            warnings.filterwarnings("default")
+
+            y_pred = model.predict(X_test)
+            cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True, zero_division=1)
+            df = pd.DataFrame(cr).transpose()
+            df.to_csv(classification_report_path)
+
+            save_confusion_matrix(y_test, y_pred, confusion_matrix_path)
+
+            print("\033[92mModel evaluation done\033[0m")
 
 # dataset import #################################################################################
 
@@ -124,24 +278,18 @@ bs = 4096
 def create_model():
 
     if model_type == "full_CL" or model_type == "half_CL":
-        input_ = Input(shape = (128,))
+        input_ = Input(shape = (1024,))
     else:
         input_ = Input(shape = (1024,))
     
-    x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(input_)
-    x = LeakyReLU(alpha = 0.05)(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
-    
-    # x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
-    # x = LeakyReLU(alpha = 0.05)(x)
-    # x = BatchNormalization()(x)
-    # x = Dropout(0.5)(x) 
-    
-    # x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
-    # x = LeakyReLU(alpha = 0.05)(x)
-    # x = BatchNormalization()(x)
-    # x = Dropout(0.5)(x) 
+    x = input_
+
+    for _ in range(nb_layer_block):
+        x = Dense(128, kernel_initializer = 'glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(input_)
+        x = LeakyReLU(alpha = 0.05)(x)
+        x = BatchNormalization()(x)
+        if dropout :
+            x = Dropout(dropout_value)(x)
     
     out = Dense(num_classes, activation = 'softmax', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
     classifier = Model(input_, out)
@@ -160,7 +308,12 @@ with tf.device('/gpu:0'):
     model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
     # callbacks
-    mcp_save = keras.callbacks.ModelCheckpoint(f'saved_models/ann_ProstT5_{model_type}.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
+    if dropout :
+        model_path = f'saved_models/ann_ProstT5_{model_type}_{nb_layer_block}_blocks_dropout_{dropout_value}.h5'
+    else:
+        model_path = f'saved_models/ann_ProstT5_{model_type}_{nb_layer_block}_blocks_no_dropout.h5'
+
+    mcp_save = keras.callbacks.ModelCheckpoint(model_path, save_best_only=True, monitor='val_accuracy', verbose=1)
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
     early_stop = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=30)
     callbacks_list = [reduce_lr, mcp_save, early_stop]
@@ -170,101 +323,31 @@ with tf.device('/gpu:0'):
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
     history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    # model = load_model(f'saved_models/ann_ProstT5_{model_type}.h5')
+    # model = load_model(model_path)
+
+    if dropout :
+        plot_path = f'results/Loss/ProstT5_{model_type}_{nb_layer_block}_dropout_{dropout_value}.png'
+    else:
+        plot_path = f'results/Loss/ProstT5_{model_type}_{nb_layer_block}_no_dropout.png'
 
     # Plot the training and validation loss
-    # loss = history.history['loss']
-    # val_loss = history.history['val_loss']
-    # epochs = range(1, len(loss) + 1)
-    # plt.figure()
-    # plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
-    # plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
-    # plt.title('Training and Validation Loss')
-    # plt.xlabel('Epochs')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.savefig(f'results/Loss/ProstT5_loss.png')  # Save the plot
-    # plt.close()
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs = range(1, len(loss) + 1)
+    plt.figure()
+    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig(plot_path)  # Save the plot
+    plt.close()
 
-    print("Validation")
-    y_pred_val = model.predict(X_val)
-    f1_score_val = f1_score(y_val, y_pred_val.argmax(axis=1), average = 'weighted')
-    acc_score_val = accuracy_score(y_val, y_pred_val.argmax(axis=1))
-    print("F1 Score: ", f1_score_val)
-    print("Acc Score", acc_score_val)
-
-    print("Regular Testing")
-    y_pred_test = model.predict(X_test)
-    f1_score_test = f1_score(y_test, y_pred_test.argmax(axis=1), average = 'macro')
-    acc_score_test = accuracy_score(y_test, y_pred_test.argmax(axis=1))
-    mcc_score = matthews_corrcoef(y_test, y_pred_test.argmax(axis=1))
-    bal_acc = balanced_accuracy_score(y_test, y_pred_test.argmax(axis=1))
-    print("F1 Score: ", f1_score_test)
-    print("Acc Score: ", acc_score_test)
-    print("MCC: ", mcc_score)
-    print("Bal Acc: ", bal_acc)
-
-    print("Bootstrapping Results")
-    num_iter = 1000
-    f1_arr = []
-    acc_arr = []
-    mcc_arr = []
-    bal_arr = []
-    
-    #Suppress warnings that will rise when bootstrapping samples contain classes not in the original sample
-    warnings.filterwarnings("ignore", message="y_pred contains classes not in y_true")
-
-    for it in tqdm(range(num_iter)):
-        X_test_re, y_test_re = resample(X_test, y_test, n_samples = len(y_test), random_state=it)
-
-        y_pred_test_re_idx = model.predict(X_test_re, verbose=0).argmax(axis=1)
-        
-        # Calculate the metrics
-        f1_arr.append(f1_score(y_test_re, y_pred_test_re_idx, average='macro'))
-        acc_arr.append(accuracy_score(y_test_re, y_pred_test_re_idx))
-        mcc_arr.append(matthews_corrcoef(y_test_re, y_pred_test_re_idx))
-        bal_arr.append(balanced_accuracy_score(y_test_re, y_pred_test_re_idx))
-
-
-    print("Accuracy: ", np.mean(acc_arr), np.std(acc_arr))
-    print("F1-Score: ", np.mean(f1_arr), np.std(f1_arr))
-    print("MCC: ", np.mean(mcc_arr), np.std(mcc_arr))
-    print("Bal Acc: ", np.mean(bal_arr), np.std(bal_arr))
-
-
-    # Allow the warning back 
-    warnings.filterwarnings("default")
-
-with tf.device('/gpu:0'):
-    y_pred = model.predict(X_test)  
-
-    # Get the integer predictions
-    y_pred_label_idx = y_pred.argmax(axis=1)
-    # y_pred_labels = le.inverse_transform(y_pred_label_idx)
-
-    print("Classification Report Validation")
-    cr = classification_report(y_test, y_pred_label_idx, output_dict=True, zero_division=1)    
-    df = pd.DataFrame(cr).transpose()
-    df.to_csv(f'results/CR_ANN_ProstT5_{model_type}.csv')
-    
-    # print("Confusion Matrix")
-    matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
-
-    # Find the indices and values of the non-zero elements
-    non_zero_indices = np.nonzero(matrix)
-    non_zero_values = matrix[non_zero_indices]
-
-    # Combine row indices, column indices, and values into a single array
-    non_zero_data = np.column_stack((non_zero_indices[0], non_zero_indices[1], non_zero_values))
-
-    # Save the non-zero entries to a CSV file
-    np.savetxt(f'results/confusion_matrices/ProstT5_{model_type}.csv', non_zero_data, delimiter=",", fmt='%d')
-
-    print("F1 Score")
-    print(f1_score(y_test, y_pred.argmax(axis=1), average='macro', zero_division=0))
+    evaluate_model(model_type, X_val, y_val, X_test, y_test, nb_layer_block, dropout, dropout_value)
 
 '''
- half
+half
 First run 
 
 Validation

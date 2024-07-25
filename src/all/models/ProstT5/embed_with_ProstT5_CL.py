@@ -8,9 +8,9 @@ class ProtTucker(nn.Module):
         super(ProtTucker, self).__init__()
 
         self.protTucker = nn.Sequential(
-            nn.Linear(1024, 256),  # Adjust the input size if different
+            nn.Linear(1024, 1024),  # Adjust the input size if different
             nn.Tanh(),
-            nn.Linear(256, 128),  # Adjust the output size if different
+            nn.Linear(1024, 1024),  # Adjust the output size if different
         )
 
     def single_pass(self, X):

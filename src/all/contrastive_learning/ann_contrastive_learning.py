@@ -52,9 +52,9 @@ class ProtTucker(nn.Module):
         super(ProtTucker, self).__init__()
 
         self.protTucker = nn.Sequential(
-            nn.Linear(1024, 256),  # 512
+            nn.Linear(1024, 1024),  # 512
             nn.Tanh(),
-            nn.Linear(256, 128),  # 256
+            nn.Linear(1024, 1024),  # 256
         )
 
     def single_pass(self, X):
@@ -281,8 +281,23 @@ class DataSplitter():
         self.id2label, self.label2id = self.parse_label_mapping_cath(
                 set(self.id2embedding.keys()))
 
+        self.verify_id2label_and_label2id()
+
     def get_id2embedding(self):
         return self.id2embedding
+    
+
+    def verify_id2label_and_label2id(self):
+        # Check length of id2label and label2id
+        assert len(self.id2label) == len(self.id2embedding), "Length mismatch between id2label and id2embedding"
+
+        # Check if the labels and ids are mapped correctly
+        for id, label in self.id2label.items():
+            cath_class, cath_arch, cath_topo, cath_homo = label
+            assert id in self.label2id[cath_class][cath_arch][cath_topo][cath_homo], f"ID {id} not found in label2id mapping"
+
+        print("Verification of id2label and label2id passed.")
+        return None
 
     def parse_label_mapping_cath(self, id_subset):
         id2label = dict()
@@ -299,6 +314,9 @@ class DataSplitter():
                 # skip annotations of proteins without embedding (not part of data set)
                 if identifier not in id_subset:
                     continue
+                
+                #DEBUG
+                # print('identifier in subset: {}'.format(identifier))
 
                 cath_class = int(data[1])
                 cath_arch = int(data[2])
@@ -379,6 +397,10 @@ class DataSplitter():
         dataset = {idx: np.expand_dims(emb, axis=0) for idx, emb in enumerate(embeddings_array)}
 
         print("Example: {}".format(next(iter(dataset.keys()))))
+
+        #DEBUG
+        print('len dataset: {}'.format(len(dataset)))
+        print('1rst 10, and last 10 keys: {}, {}'.format(list(dataset.keys())[:10], list(dataset.keys())[-10:]))
 
         return dataset
 
@@ -1033,14 +1055,14 @@ def main():
 
     # Hyperparameters
     learning_rate = 1e-3
-    batch_size = 1024 # the number of actual samples per batch might be higher due to batch-hard sampling (see paper for more details)
+    batch_size = 256 # the number of actual samples per batch might be higher due to batch-hard sampling (see paper for more details)
     num_epochs = 200  # will stop earlier if early stopping is triggered
     n_classes = 4  # number of class-lvls; makes it easier to adjust for other problems
     n_bad = 0 # counter for number of epochs that did not improve (counter for early stopping)
     n_thresh = 20  # threshold for number of epochs that did not improve (threshold for early stopping)
     batch_hard = True  # whether to activate batch_hard sampling (recommneded)
     exclude_easy = False # whether to exclude trivial samples (did not improve performa)
-    margin = 1.0 # set this to a float to activate threshold-dependent loss functions (see TripletLoss)
+    margin = 1.1 # set this to a float to activate threshold-dependent loss functions (see TripletLoss)
 
     # initialize plotting class (used to monitor loss etc during training)
     pltr = plotter(experiment_dir)
@@ -1048,16 +1070,7 @@ def main():
     # Prepare datasets
     datasplitter = DataSplitter(embedding_p)
 
-
-    #DEBUG
-    # print("len datasplitter: ", len(datasplitter.get_id2embedding()))
-    # exit()
-
     train_splits, val, val_lookup20 = datasplitter.get_predef_splits()
-
-    #DEBUG
-    # print("Train splits len : ", len(train_splits))
-    # exit()
 
     val20 = Eval(val_lookup20, val,  datasplitter, n_classes)
 

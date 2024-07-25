@@ -1,5 +1,6 @@
 import argparse
 import pandas as pd 
+import os
 import numpy as np 
 from sklearn import preprocessing
 import tensorflow as tf
@@ -169,7 +170,7 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
 
 
 # Keras NN Model
-def create_model(model_name, num_classes, nb_layer_block):
+def create_model(model_name, num_classes, nb_layer_block, dropout):
     """Creates and returns a Keras model based on the specified model name and layer blocks."""
     
     input_shapes = {
@@ -193,28 +194,36 @@ def create_model(model_name, num_classes, nb_layer_block):
         x = Dense(128, kernel_initializer='glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
         x = LeakyReLU(alpha=0.05)(x)
         x = BatchNormalization()(x)
-        x = Dropout(0.5)(x)
+        if dropout:
+            x = Dropout(0.5)(x)
     
     out = Dense(num_classes, activation = 'softmax', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
     classifier = Model(input_, out)
 
     return classifier
 
-def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block):
+def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block, dropout):
     """Trains the model."""
 
-    base_model_path = f'saved_models/ann_{model_name}'
-    base_loss_path = f'results/Loss/ann_{model_name}'
+    if dropout:
+        base_model_path = f'saved_models/ann_{model_name}'
+        base_loss_path = f'results/Loss/ann_{model_name}'
 
-    save_model_path = f'{base_model_path}_{nb_layer_block}_blocks.h5'
-    save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks.png'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_with_dropout.h5'
+        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_with_dropout.png'
+    else:
+        base_model_path = f'saved_models/ann_{model_name}'
+        base_loss_path = f'results/Loss/ann_{model_name}'
+
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout.h5'
+        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout.png'
 
     num_epochs = 200
     batch_size = 4096
 
     with tf.device('/gpu:0'):
         # model
-        model = create_model(model_name, num_classes, nb_layer_block)
+        model = create_model(model_name, num_classes, nb_layer_block, dropout)
 
         # adam optimizer
         opt = keras.optimizers.Adam(learning_rate = 1e-5)
@@ -304,19 +313,30 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     plt.savefig(f'{confusion_matrix_path}.png', bbox_inches='tight')
     plt.close()
 
-def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block):
+def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout):
     """Evaluates the trained model."""
     
-    base_model_path = f'saved_models/ann_{model_name}'
-    base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
-    base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
+    if dropout:
+        base_model_path = f'saved_models/ann_{model_name}'
+        base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
+        base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-    model_path = f'{base_model_path}_{nb_layer_block}_blocks.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_with_dropout.h5'
 
 
-    classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks.csv'
-    confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks'
-    results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks.csv'
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_with_dropout.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_with_dropout'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_with_dropout.csv'
+    else:
+        base_model_path = f'saved_models/ann_{model_name}'
+        base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
+        base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
+
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout.h5'
+
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_no_dropout.csv'
 
     with open(results_file, mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -345,6 +365,21 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block):
             writer.writerow(["Test Accuracy Score", acc_score_test])
             writer.writerow(["Test MCC", mcc_score])
             writer.writerow(["Test Balanced Accuracy", bal_acc])
+
+            # Save the test F1 score in a DataFrame
+            df_results = pd.DataFrame({
+                'Model': [model_name],
+                'Nb_Layer_Block': [nb_layer_block],
+                'Dropout': [dropout],
+                'F1_Score': [f1_score_test]
+            })
+            df_results_path = './results/perf_dataframe.csv'
+            if os.path.exists(df_results_path):
+                df_existing = pd.read_csv(df_results_path)
+                df_combined = pd.concat([df_existing, df_results], ignore_index=True)
+            else:
+                df_combined = df_results
+            df_combined.to_csv(df_results_path, index=False)
 
             writer.writerow(["Bootstrapping Results", ""])
             num_iter = 1000
@@ -390,6 +425,10 @@ def create_arg_parser():
                         default=1, 
                         help="Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train")
     
+    parser.add_argument('--dropout', type=str, 
+                        default='all', 
+                        help="Whether to use dropout in the model layers or not, and if so, what value, put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value, and 'all' to test every values in [0.1,0.2,0.3,0.4]")
+    
     parser.add_argument('--model', type=str, 
                         default='all', 
                         help="What model to use between ProtT5, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
@@ -409,37 +448,106 @@ def main():
     nb_layer_block = args.nb_layer_block
 
     do_training = False if int(args.do_training) == 0 else True
+    dropout_tag = float(args.dropout) if args.dropout != 'all' else args.dropout
+
+    if dropout_tag == 'all':
+        pass
+    else:
+        dropout = dropout_tag
+
 
     if model_name == 'all':
         for model_name in ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']:
             if nb_layer_block == 'all':
                 for nb_layer_block in ['one', 'two', 'three']:
+                    if dropout_tag == 'all':
+                        for dropout in [0.1, 0.2, 0.3, 0.4]:
+                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                            X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                            if do_training:
+                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                    else:
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                        X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                        if do_training:
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+            else:
+                if dropout_tag == 'all':
+                    for dropout in [0.1, 0.2, 0.3, 0.4]:
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                        X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                        if do_training:
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                else:
                     X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
                     X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                     if do_training:
-                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
-            else:
-                X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
-                X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
-                if do_training:
-                    train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
-                evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
+                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
     
     else:
+        #DEBUG
+        print(f"Model: {model_name}")
+
         if nb_layer_block == 'all':
+            #DEBUG
+            print(f"Layer Block: {nb_layer_block}")
+
             for nb_layer_block in ['one', 'two', 'three']:
+                if dropout_tag == 'all':
+                    #DEBUG
+                    print(f"Dropout: {dropout_tag}")
+
+                    for dropout in [0.1, 0.2, 0.3, 0.4]:
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                        X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                        if do_training:
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                else:
+                    #DEBUG
+                    print(f"Dropout: {dropout_tag}")
+
+                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                    X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                    if do_training:
+                        #DEBUG
+                        print(f"Training model with {nb_layer_block} blocks and dropout {dropout}")
+
+                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+        else:
+            #DEBUG
+            print(f"Layer Block: {nb_layer_block}")
+
+            if dropout_tag == 'all':
+                #DEBUG
+                print(f"Dropout: {dropout_tag}")
+
+                for dropout in [0.1, 0.2, 0.3, 0.4]:
+                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                    X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                    if do_training:
+                        #DEBUG
+                        print(f"Training model with {nb_layer_block} blocks and dropout {dropout}")
+
+                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+            else:
+                #DEBUG
+                print(f"Dropout: {dropout_tag}")
+
                 X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
                 X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                 if do_training:
-                    train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
-                evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
-        else:
-            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
-            X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
-            if do_training:
-                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
-            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block])
+                    #DEBUG
+                    print(f"Training model with {nb_layer_block} blocks and dropout {dropout}")
+
+                    train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
 
 if __name__ == '__main__':
     main()
