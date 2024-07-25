@@ -141,7 +141,7 @@ def get_embeddings(seq_path, emb_path,
         batch.append(seq)
         batch_keys.append(seq_key)
 
-        n_res_batch = sum([len(s) for s in batch]) + seq_len
+        n_res_batch = sum([len(s) for s in batch])
         if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(sorted_sequences_tuple) or seq_len > max_seq_len:
             embedded_batch = encode(batch, model_deep, model, tokeniser, device)
             for i, seq_key in enumerate(batch_keys):

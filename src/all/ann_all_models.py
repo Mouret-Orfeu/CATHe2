@@ -221,6 +221,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test,
     num_epochs = 200
     batch_size = 4096
 
+
     with tf.device('/gpu:0'):
         # model
         model = create_model(model_name, num_classes, nb_layer_block, dropout)
@@ -374,11 +375,24 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 'F1_Score': [f1_score_test]
             })
             df_results_path = './results/perf_dataframe.csv'
+
             if os.path.exists(df_results_path):
                 df_existing = pd.read_csv(df_results_path)
-                df_combined = pd.concat([df_existing, df_results], ignore_index=True)
+                # Create a mask to find rows that match the current combination of parameters
+                mask = (
+                    (df_existing['Model'] == model_name) &
+                    (df_existing['Nb_Layer_Block'] == nb_layer_block) &
+                    (df_existing['Dropout'] == dropout)
+                )
+                # If a matching row exists, update its F1_Score
+                if mask.any():
+                    df_existing.loc[mask, 'F1_Score'] = f1_score_test
+                else:
+                    df_existing = pd.concat([df_existing, df_results], ignore_index=True)
+                df_combined = df_existing
             else:
                 df_combined = df_results
+
             df_combined.to_csv(df_results_path, index=False)
 
             writer.writerow(["Bootstrapping Results", ""])
@@ -426,7 +440,7 @@ def create_arg_parser():
                         help="Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train")
     
     parser.add_argument('--dropout', type=str, 
-                        default='all', 
+                        default='0', 
                         help="Whether to use dropout in the model layers or not, and if so, what value, put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value, and 'all' to test every values in [0.1,0.2,0.3,0.4]")
     
     parser.add_argument('--model', type=str, 
@@ -434,7 +448,7 @@ def create_arg_parser():
                         help="What model to use between ProtT5, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
     
     parser.add_argument('--nb_layer_block', type=str, 
-                        default='all',
+                        default='one',
                         help="Number of layer block {Dense, LeakyReLU, BatchNormalization, Dropout} in the classifier. Choose between 'one', 'two', 'three', or 'all'")
     return parser
 

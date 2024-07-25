@@ -133,22 +133,22 @@ def get_embeddings(seq_path, emb_path,
 
 def main():
 
-    # seq_path_Test = "./data/Dataset/csv/Test.csv"
-    # emb_path_Test = f"./data/Dataset/embeddings/Test_ESM2.npz"
+    seq_path_Test = "./data/Dataset/csv/Test.csv"
+    emb_path_Test = f"./data/Dataset/embeddings/Test_ESM2.npz"
 
-    # get_embeddings(
-    #     seq_path_Test,
-    #     emb_path_Test
+    get_embeddings(
+        seq_path_Test,
+        emb_path_Test
     
-    # )
+    )
 
-    # seq_path_Val = "./data/Dataset/csv/Val.csv"
-    # emb_path_Val = f"./data/Dataset/embeddings/Val_ESM2.npz"
+    seq_path_Val = "./data/Dataset/csv/Val.csv"
+    emb_path_Val = f"./data/Dataset/embeddings/Val_ESM2.npz"
 
-    # get_embeddings(
-    #     seq_path_Val,
-    #     emb_path_Val
-    # )
+    get_embeddings(
+        seq_path_Val,
+        emb_path_Val
+    )
 
     seq_path_Train = "./data/Dataset/csv/Train.csv"
     emb_path_Train = f"./data/Dataset/embeddings/Train_ESM2.npz"
