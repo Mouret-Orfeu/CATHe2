@@ -209,8 +209,8 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test,
         base_model_path = f'saved_models/ann_{model_name}'
         base_loss_path = f'results/Loss/ann_{model_name}'
 
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_with_dropout.h5'
-        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_with_dropout.png'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}.h5'
+        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}.png'
     else:
         base_model_path = f'saved_models/ann_{model_name}'
         base_loss_path = f'results/Loss/ann_{model_name}'
@@ -321,12 +321,12 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
         base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_with_dropout.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}.h5'
 
 
-        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_with_dropout.csv'
-        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_with_dropout'
-        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_with_dropout.csv'
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout}'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout}.csv'
     else:
         base_model_path = f'saved_models/ann_{model_name}'
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
