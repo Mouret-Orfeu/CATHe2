@@ -174,7 +174,7 @@ def embedding_set_up(seq_path, model_name, is_3Di, max_seq_len=3263):
 
 
 def get_embeddings(seq_path, emb_path, model_name, is_3Di,
-                   max_residues=4096, max_seq_len=3263, max_batch=4096):
+                   max_residues=4096, max_seq_len=3263, nb_seq_max_in_batch=4096):
     
     emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, max_seq_len)
 
@@ -188,7 +188,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di,
             batch_keys.append(seq_key)
 
             n_res_batch = sum([len(s) for s in batch])
-            if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
+            if len(batch) >= nb_seq_max_in_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
                 embedded_batch = encode(batch, model_deep, model, tokenizer, device)
                 for i, seq_key in enumerate(batch_keys):
                     emb_dict[seq_key] = embedded_batch[i]
@@ -214,51 +214,51 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di,
             # count residues in current batch and add the last sequence length to
             # avoid that batches with (n_res_batch > max_residues) get processed 
             n_res_batch = sum([s_len for _, _, s_len in batch])
-            if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
+            if len(batch) >= nb_seq_max_in_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
                 pdb_ids, seqs, seq_lens = zip(*batch)
                 batch = list()
 
 
 
-            if model_name in ['Ankh_large', 'Ankh_base']:
-                # Split sequences into individual tokens
-                seqs = [list(seq) for seq in seqs]
-                
-        
-            token_encoding = tokenizer.batch_encode_plus(seqs, 
-                                                    add_special_tokens=True, 
-                                                    padding="longest", 
-                                                    is_split_into_words =(model_name in ['ESM2','Ankh_base','Ankh_large']),
-                                                    return_tensors='pt'
-                                                    ).to(device)
-
-            try:
-                with torch.no_grad():
-                    embedding_repr = model(token_encoding.input_ids, 
-                                           attention_mask=token_encoding.attention_mask)
-            except RuntimeError:
-                print("RuntimeError during embedding for {} (L={})".format(pdb_id, seq_len))
-                continue
+                if model_name in ['Ankh_large', 'Ankh_base']:
+                    # Split sequences into individual tokens
+                    seqs = [list(seq) for seq in seqs]
+                    
             
-            # batch-size x seq_len x embedding_dim
-            # extra token is added at the end of the seq
-            for batch_idx, identifier in enumerate(pdb_ids):
-                s_len = seq_lens[batch_idx]
-                # account for prefix in offset
-                emb = embedding_repr.last_hidden_state[batch_idx, 1:s_len+1]
-                
-                
-                
-                
-                emb = emb.mean(dim=0)
-                
+                token_encoding = tokenizer.batch_encode_plus(seqs, 
+                                                        add_special_tokens=True, 
+                                                        padding="longest", 
+                                                        is_split_into_words =(model_name in ['ESM2','Ankh_base','Ankh_large']),
+                                                        return_tensors='pt'
+                                                        ).to(device)
 
-                emb_dict[identifier] = emb.detach().cpu().numpy().squeeze()
-                processed_sequences += 1
+                try:
+                    with torch.no_grad():
+                        embedding_repr = model(token_encoding.input_ids, 
+                                            attention_mask=token_encoding.attention_mask)
+                except RuntimeError:
+                    print("RuntimeError during embedding for {} (L={})".format(pdb_id, seq_len))
+                    continue
                 
-                # DEBUG
-                # if len(emb_dict) == 1:
-                #     print("Example: embedded protein {} with length {} to emb. of shape: {}".format(identifier, s_len, emb.shape))
+                # batch-size x seq_len x embedding_dim
+                # extra token is added at the end of the seq
+                for batch_idx, identifier in enumerate(pdb_ids):
+                    s_len = seq_lens[batch_idx]
+                    # account for prefix in offset
+                    emb = embedding_repr.last_hidden_state[batch_idx, 1:s_len+1]
+                    
+                    
+                    
+                    
+                    emb = emb.mean(dim=0)
+                    
+
+                    emb_dict[identifier] = emb.detach().cpu().numpy().squeeze()
+                    processed_sequences += 1
+                    
+                    # DEBUG
+                    # if len(emb_dict) == 1:
+                    #     print("Example: embedded protein {} with length {} to emb. of shape: {}".format(identifier, s_len, emb.shape))
 
     end = time.time()
 
