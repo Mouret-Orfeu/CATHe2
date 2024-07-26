@@ -1,30 +1,33 @@
-import os
-import sys
+# -*- coding: utf-8 -*-
+# part of the code from 
+# run with ```python ./src/all/models/ProstT5/AA_embed_with_ESM2.py --input ./data/CATHe\ Dataset/csv/Test.csv --output ./data/CATHe\ Dataset/embeddings/Test_ESM2.npz --model large```
 
-import argparse
+
+
 import time
-from pathlib import Path
 import torch
 import numpy as np
 import pandas as pd
-from transformers import T5EncoderModel, T5Tokenizer
+from transformers import AutoModel, AutoTokenizer, T5EncoderModel, T5Tokenizer
 from tqdm import tqdm
+import gc
+import sys
 
-if torch.cuda.is_available():
-    device = torch.device('cuda:0')
-elif torch.backends.mps.is_available():
-    device = torch.device('mps')
-else:
-    device = torch.device('cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 print("Using device: {}".format(device))
 
 
-def get_T5_model(model_dir):
-    print("Loading ProstT5 from: {}".format(model_dir))
-    model = T5EncoderModel.from_pretrained(model_dir).to(device)
+def load_T5_model():
+    print("loading model")
+    tokeniser = T5Tokenizer.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50", do_lower_case=False )
+    model = T5EncoderModel.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50")
+    gc.collect()
+    
+    model = model.to(device)
     model = model.eval()
-    tokenizer = T5Tokenizer.from_pretrained(model_dir, do_lower_case=False)
-    return model, tokenizer
+    
+    return model, tokeniser
 
 
 def read_csv(seq_path):
@@ -34,48 +37,43 @@ def read_csv(seq_path):
     '''
     sequences = {}
     df = pd.read_csv(seq_path)
+
     for _, row in df.iterrows():
-        sequences[int(row['Unnamed: 0'])] = row['Sequence']
+        sequences[int(row['Unnamed: 0'])] = row['Sequence']  # Ensure keys are strings 
+    
     return sequences
 
 
-def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
-                   max_residues=4096, max_seq_len=3263, max_batch=34359738368):
+def get_embeddings(seq_path, emb_path,
+                   max_residues=4096, max_seq_len=3263, max_batch=4096):
     
     emb_dict = dict()
 
     # Read in CSV
     seq_dict = read_csv(seq_path)
-    prefix = "<fold2AA>" if is_3Di else "<AA2fold>"
     
-    model, tokenizer = get_T5_model(model_dir)
-    if half_precision:
-        model = model.half()
-        print("Using model in half-precision!")
+    model, tokenizer = load_T5_model()
+    
 
-    print('########################################')
-    print(f"Input is 3Di: {is_3Di}")
-    print('Example sequence: {}\n{}'.format(next(iter(seq_dict.keys())), next(iter(seq_dict.values()))))
     print('########################################')
     print('Total number of sequences: {}'.format(len(seq_dict)))
 
     avg_length = sum([len(seq) for seq in seq_dict.values()]) / len(seq_dict)
     n_long = sum([1 for seq in seq_dict.values() if len(seq) > max_seq_len])
-    print("Average sequence length: {}".format(avg_length))
-    print("Number of sequences >{}: {}".format(max_seq_len, n_long))
-
     # sort sequences by length to trigger OOM at the beginning
     seq_dict = sorted(seq_dict.items(), key=lambda kv: len(kv[1]), reverse=True)
     
+    print("Average sequence length: {}".format(avg_length))
+    print("Number of sequences >{}: {}".format(max_seq_len, n_long))
+    
     start = time.time()
     batch = list()
-    processed_sequences = 0
-
     for seq_idx, (pdb_id, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
+        # add a spaces between AA
+        seq = " ".join(seq)
         # replace non-standard AAs
         seq = seq.replace('U', 'X').replace('Z', 'X').replace('O', 'X').replace('B', 'X')
         seq_len = len(seq)
-        seq = prefix + ' ' + ' '.join(list(seq))
         batch.append((pdb_id, seq, seq_len))
 
         # count residues in current batch and add the last sequence length to
@@ -96,8 +94,7 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
                                            attention_mask=token_encoding.attention_mask)
             except RuntimeError:
                 print("RuntimeError during embedding for {} (L={})".format(pdb_id, seq_len))
-                sys.exit("Stopping execution due to RuntimeError.")
-                
+                continue
             
             # batch-size x seq_len x embedding_dim
             # extra token is added at the end of the seq
@@ -106,9 +103,11 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
                 # account for prefix in offset
                 emb = embedding_repr.last_hidden_state[batch_idx, 1:s_len+1]
                 
+                
                 emb = emb.mean(dim=0)
                 emb_dict[identifier] = emb.detach().cpu().numpy().squeeze()
-                processed_sequences += 1
+                if len(emb_dict) == 1:
+                    print("Example: embedded protein {} with length {} to emb. of shape: {}".format(identifier, s_len, emb.shape))
 
     end = time.time()
 
@@ -129,78 +128,38 @@ def get_embeddings(seq_path, emb_path, model_dir, half_precision, is_3Di,
     #DEBUG
     print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
     
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/processed_sequences, avg_length))
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
     return True
 
 
-def create_arg_parser():
-    """"Creates and returns the ArgumentParser object."""
-
-    # Instantiate the parser
-    parser = argparse.ArgumentParser(description=(
-            'AA_embed_with_ProstT5.py creates ProstT5-Encoder embeddings for a given text ' +
-            ' file containing sequence(s).'))
-    
-      
-    parser.add_argument('--half', type=int, 
-                        default=1,
-                        help="Whether to use half_precision or not. Default: 0 (full-precision)")
-    
-    parser.add_argument('--is_3Di', type=int,
-                        default=0,
-                        help="1 if you want to embed 3Di, 0 if you want to embed AA sequences. Default: 0")
-    
-    return parser
-
 def main():
-    parser = create_arg_parser()
-    args = parser.parse_args()
-    
-    model_dir = "Rostlab/ProstT5"  # path/repo_link to checkpoint
-
-    half_precision = False if int(args.half) == 0 else True
-    is_3Di = False if int(args.is_3Di) == 0 else True
-
-    if half_precision:
-        model_type = "half"
-    else:
-        model_type = "full"
 
     seq_path_Test = "./data/Dataset/csv/Test.csv"
-    emb_path_Test = f"./data/Dataset/embeddings/Test_ProstT5_{model_type}.npz"
+    emb_path_Test = f"./data/Dataset/embeddings/Test_ProtT5_new.npz"
 
     get_embeddings(
         seq_path_Test,
-        emb_path_Test,
-        model_dir,
-        half_precision,
-        is_3Di
+        emb_path_Test
     
     )
 
     seq_path_Val = "./data/Dataset/csv/Val.csv"
-    emb_path_Val = f"./data/Dataset/embeddings/Val_ProstT5_{model_type}.npz"
+    emb_path_Val = f"./data/Dataset/embeddings/Val_ProtT5_new.npz"
 
     get_embeddings(
         seq_path_Val,
-        emb_path_Val,
-        model_dir,
-        half_precision,
-        is_3Di
+        emb_path_Val
     )
 
     seq_path_Train = "./data/Dataset/csv/Train.csv"
-    emb_path_Train = f"./data/Dataset/embeddings/Train_ProsT5_{model_type}.npz"
+    emb_path_Train = f"./data/Dataset/embeddings/Train_ProtT5_new.npz"
 
     get_embeddings(
         seq_path_Train,
-        emb_path_Train,
-        model_dir,
-        half_precision,
-        is_3Di
+        emb_path_Train
     )
-    
 
 
 if __name__ == '__main__':
     main()
+

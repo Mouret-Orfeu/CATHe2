@@ -79,7 +79,13 @@ def encode(sequences, model_deep, model, tokenizer, device):
 def get_model(model_name):
 
     print(f"Loading {model_name}")
-    if model_name == 'ESM2':
+
+    if model_name == 'ProtT5_new':
+        tokenizer = T5Tokenizer.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50", do_lower_case=False )
+        model = T5EncoderModel.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50")
+        gc.collect()
+
+    elif model_name == 'ESM2':
         model_path = "facebook/esm2_t33_650M_UR50D"
         model = AutoModel.from_pretrained(model_path)
         tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -167,7 +173,7 @@ def embedding_set_up(seq_path, model_name, is_3Di, max_seq_len=3263):
     
 
 
-def get_embeddings(seq_path, emb_path, light_attention, model_name, is_3Di,
+def get_embeddings(seq_path, emb_path, model_name, is_3Di,
                    max_residues=4096, max_seq_len=3263, max_batch=4096):
     
     emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, max_seq_len)
@@ -194,6 +200,10 @@ def get_embeddings(seq_path, emb_path, light_attention, model_name, is_3Di,
         batch = list()
         processed_sequences = 0
         for seq_idx, (pdb_id, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
+            if model_name is 'ProtT5_new':
+                # add a spaces between AA
+                seq = " ".join(seq)
+
             # replace non-standard AAs
             seq = seq.replace('U', 'X').replace('Z', 'X').replace('O', 'X').replace('B', 'X')
             seq_len = len(seq)
@@ -237,10 +247,11 @@ def get_embeddings(seq_path, emb_path, light_attention, model_name, is_3Di,
                 # account for prefix in offset
                 emb = embedding_repr.last_hidden_state[batch_idx, 1:s_len+1]
                 
-                if light_attention:
-                    pass
-                else:
-                    emb = emb.mean(dim=0)
+                
+                
+                
+                emb = emb.mean(dim=0)
+                
 
                 emb_dict[identifier] = emb.detach().cpu().numpy().squeeze()
                 processed_sequences += 1
@@ -282,11 +293,8 @@ def create_arg_parser():
     
     parser.add_argument('--model', type=str, 
                         default='all', 
-                        help="What model to use between ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
+                        help="What model to use between ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
     
-    parser.add_argument('--light_attention', type=int, 
-                        default=0,
-                        help="Whether to use light attention or not (if not used average pooling will be used to get per protein embeddings), put 1 to use light attention, 0 otherwise")
     
     parser.add_argument('--is_3Di', type=int,
                         default=0,
@@ -295,18 +303,19 @@ def create_arg_parser():
     return parser
 
 
-def process_datasets(model_name, light_attention, is_3Di):
+def process_datasets(model_name, is_3Di):
     print(f"Embedding with {model_name}")
 
     datasets = ["Test", "Val", "Train"]
     for dataset in datasets:
         seq_path = f"./data/Dataset/csv/{dataset}.csv"
-        emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}.npz"
+        
+        emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
+        
 
         get_embeddings(
             seq_path,
             emb_path,
-            light_attention,
             model_name,
             is_3Di
         )
@@ -317,17 +326,18 @@ def main():
     args = parser.parse_args()
 
     model_name = args.model
-    light_attention = args.light_attention
     is_3Di = False if int(args.is_3Di) == 0 else True
 
     if model_name == 'all':
+        
         print("Embedding with all models")
-        model_names = ['ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+        model_names = ['ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
         for model in model_names:
-            process_datasets(model, light_attention, is_3Di)
+            process_datasets(model, is_3Di)
     else:
+        
         print(f"Embedding with {model_name}")
-        process_datasets(model_name, light_attention, is_3Di)
+        process_datasets(model_name, is_3Di)
 
 
 

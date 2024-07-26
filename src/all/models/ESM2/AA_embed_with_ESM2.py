@@ -76,7 +76,7 @@ def get_embeddings(seq_path, emb_path,
 
         # count residues in current batch and add the last sequence length to
         # avoid that batches with (n_res_batch > max_residues) get processed 
-        n_res_batch = sum([s_len for _, _, s_len in batch]) + seq_len 
+        n_res_batch = sum([s_len for _, _, s_len in batch])
         if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
             pdb_ids, seqs, seq_lens = zip(*batch)
             batch = list()

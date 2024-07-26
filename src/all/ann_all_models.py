@@ -1,3 +1,5 @@
+# the light attention part is inspired from  https://github.com/HannesStark/protein-localization/blob/master/models/light_attention.py
+
 import argparse
 import pandas as pd 
 import os
@@ -5,9 +7,9 @@ import numpy as np
 from sklearn import preprocessing
 import tensorflow as tf
 from tensorflow import keras  
+from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU, Conv1D, Softmax, GlobalAveragePooling1D, Concatenate, Lambda
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import regularizers
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, balanced_accuracy_score, classification_report, confusion_matrix
 from sklearn.utils import shuffle, resample
 import torch
@@ -47,9 +49,9 @@ def load_data(model_name):
         ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
         y_train = list(ds_train["SF"])
 
-        filename = './data/Dataset/embeddings/SF_Train_ProtT5.npz'
+        filename = './data/Dataset/embeddings/SF_Train_ProtT5_per_protein.npz'
         X_train = np.load(filename)['arr_0']
-        filename = './data/Dataset/embeddings/Other Class/Other_Train.npz'
+        filename = './data/Dataset/embeddings/Other Class/Other_Train_per_protein.npz'
         X_train_other = np.load(filename)['arr_0']
 
         X_train = np.concatenate((X_train, X_train_other), axis=0)
@@ -61,11 +63,11 @@ def load_data(model_name):
         ds_val = pd.read_csv('./data/Dataset/annotations/Y_Val_SF.csv')
         y_val = list(ds_val["SF"])
 
-        filename = './data/Dataset/embeddings/SF_Val_ProtT5.npz'
+        filename = './data/Dataset/embeddings/SF_Val_ProtT5_per_protein.npz'
         X_val = np.load(filename)['arr_0']
 
-        # filename = './data/Dataset/embeddings/Other Class/Other_Val_US.npz'
-        filename = './data/Dataset/embeddings/Other Class/Other_Val.npz'
+        # filename = './data/Dataset/embeddings/Other Class/Other_Val_US_per_protein.npz'
+        filename = './data/Dataset/embeddings/Other Class/Other_Val_per_protein.npz'
         X_val_other = np.load(filename)['arr_0']
 
         X_val = np.concatenate((X_val, X_val_other), axis=0)
@@ -77,11 +79,11 @@ def load_data(model_name):
         ds_test = pd.read_csv('./data/Dataset/annotations/Y_Test_SF.csv')
         y_test = list(ds_test["SF"])
 
-        filename = './data/Dataset/embeddings/SF_Test_ProtT5.npz'
+        filename = './data/Dataset/embeddings/SF_Test_ProtT5_per_protein.npz'
         X_test = np.load(filename)['arr_0']
 
-        # filename = './data/Dataset/embeddings/Other Class/Other_Test_US.npz'
-        filename = './data/Dataset/embeddings/Other Class/Other_Test.npz'
+        # filename = './data/Dataset/embeddings/Other Class/Other_Test_US_per_protein.npz'
+        filename = './data/Dataset/embeddings/Other Class/Other_Test_per_protein.npz'
         X_test_other = np.load(filename)['arr_0']
 
         X_test = np.concatenate((X_test, X_test_other), axis=0)
@@ -102,18 +104,22 @@ def load_data(model_name):
         # Extract Super Families (SF column)
         y_test = df_test['SF'].tolist()
 
+        
+        
         file_paths = {
-            'ESM2': ('Train_ESM2.npz', 'Val_ESM2.npz', 'Test_ESM2.npz'),
-            'Ankh_large': ('Train_Ankh_large.npz', 'Val_Ankh_large.npz', 'Test_Ankh_large.npz'),
-            'Ankh_base': ('Train_Ankh_base.npz', 'Val_Ankh_base.npz', 'Test_Ankh_base.npz'),
-            'ProstT5_full': ('Train_ProstT5_full.npz', 'Val_ProstT5_full.npz', 'Test_ProstT5_full.npz'),
-            'ProstT5_half': ('Train_ProstT5_half.npz', 'Val_ProstT5_half.npz','Test_ProstT5_half.npz'),
-            'TM_Vec': ('Train_TM_Vec.npz', 'Val_TM_Vec.npz', 'Test_TM_Vec.npz')
+            'ProtT5': ('Train_ProtT5_per_protein.npz', 'Val_ProtT5_per_protein.npz', 'Test_ProtT5_per_protein.npz'),
+            'ProtT5_new' : ('Train_ProtT5_new_per_protein.npz', 'Val_ProtT5_new_per_protein.npz', 'Test_ProtT5_new_per_protein.npz'),
+            'ESM2': ('Train_ESM2_per_protein.npz', 'Val_ESM2_per_protein.npz', 'Test_ESM2_per_protein.npz'),
+            'Ankh_large': ('Train_Ankh_large_per_protein.npz', 'Val_Ankh_large_per_protein.npz', 'Test_Ankh_large_per_protein.npz'),
+            'Ankh_base': ('Train_Ankh_base_per_protein.npz', 'Val_Ankh_base_per_protein.npz', 'Test_Ankh_base_per_protein.npz'),
+            'ProstT5_full': ('Train_ProstT5_full_per_protein.npz', 'Val_ProstT5_full_per_protein.npz', 'Test_ProstT5_full_per_protein.npz'),
+            'ProstT5_half': ('Train_ProstT5_half_per_protein.npz', 'Val_ProstT5_half_per_protein.npz','Test_ProstT5_half_per_protein.npz'),
+            'TM_Vec': ('Train_TM_Vec_per_protein.npz', 'Val_TM_Vec_per_protein.npz', 'Test_TM_Vec_per_protein.npz')
         }
 
         if model_name not in file_paths:
             raise ValueError("Invalid model name")
-
+        
         Train_file_name, Val_file_name, Test_file_name = file_paths[model_name]
         X_train = np.load(f'./data/Dataset/embeddings/{Train_file_name}')['arr_0']
         X_val = np.load(f'./data/Dataset/embeddings/{Val_file_name}')['arr_0']
@@ -152,7 +158,7 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
         X_batch = []
         y_batch = []
 
-        for j in range(batch_size):
+        for _ in range(batch_size):
 
             if val == len(X_t):
                 val = 0
@@ -173,7 +179,10 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
 def create_model(model_name, num_classes, nb_layer_block, dropout):
     """Creates and returns a Keras model based on the specified model name and layer blocks."""
     
+    
+    
     input_shapes = {
+        'ProtT5_new': (1024,),
         'ProtT5': (1024,),
         'ProstT5_full': (1024,),
         'ProstT5_half': (1024,),
@@ -186,10 +195,15 @@ def create_model(model_name, num_classes, nb_layer_block, dropout):
     if model_name not in input_shapes:
         raise ValueError("Invalid model name")
 
+    
+
+    
+    
     input_shape = input_shapes[model_name]
     input_ = Input(shape=input_shape)
-    
     x = input_
+    
+    
     for _ in range(nb_layer_block):
         x = Dense(128, kernel_initializer='glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
         x = LeakyReLU(alpha=0.05)(x)
@@ -202,19 +216,23 @@ def create_model(model_name, num_classes, nb_layer_block, dropout):
 
     return classifier
 
-def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block, dropout):
+def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block, dropout, light_attention):
     """Trains the model."""
 
     if dropout:
         base_model_path = f'saved_models/ann_{model_name}'
         base_loss_path = f'results/Loss/ann_{model_name}'
 
+        
+        
         save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}.h5'
         save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}.png'
     else:
         base_model_path = f'saved_models/ann_{model_name}'
         base_loss_path = f'results/Loss/ann_{model_name}'
 
+       
+        
         save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout.h5'
         save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout.png'
 
@@ -445,7 +463,7 @@ def create_arg_parser():
     
     parser.add_argument('--model', type=str, 
                         default='all', 
-                        help="What model to use between ProtT5, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
+                        help="What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
     
     parser.add_argument('--nb_layer_block', type=str, 
                         default='one',
@@ -469,9 +487,12 @@ def main():
     else:
         dropout = dropout_tag
 
+    
 
-    if model_name == 'all':
-        for model_name in ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']:
+
+    if model_name == 'all': 
+        all_model_names = ['ProtT5', 'ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+        for model_name in all_model_names:
             if nb_layer_block == 'all':
                 for nb_layer_block in ['one', 'two', 'three']:
                     if dropout_tag == 'all':

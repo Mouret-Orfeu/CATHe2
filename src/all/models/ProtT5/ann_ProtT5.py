@@ -27,7 +27,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix
 
-# GPU config for Vamsi's Laptop
+# GPU config for Vamsi' Laptop
 from tensorflow.compat.v1 import ConfigProto
 
 tf.keras.backend.clear_session()
@@ -37,68 +37,101 @@ config.gpu_options.allow_growth = True
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-# dataset import
-# train 
-ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
-y_train = list(ds_train["SF"])
+new_embeddings = False
+# new_embeddings = True
 
-filename = './data/Dataset/embeddings/SF_Train_ProtT5.npz'
-X_train = np.load(filename)['arr_0']
-filename = './data/Dataset/embeddings/Other Class/Other_Train.npz'
-X_train_other = np.load(filename)['arr_0']
+if new_embeddings:
+    # train 
 
-X_train = np.concatenate((X_train, X_train_other), axis=0)
+    df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
+    # Extract Super Families (SF column) 
+    y_train = df_train['SF'].tolist()
 
-for i in range(len(X_train_other)):
-    y_train.append('other')
+    filename = f'./data/Dataset/embeddings/Train_ProtT5_new.npz'
+    X_train = np.load(filename)['arr_0']
 
-# val
-ds_val = pd.read_csv('./data/Dataset/annotations/Y_Val_SF.csv')
-y_val = list(ds_val["SF"])
+    # val
 
-filename = './data/Dataset/embeddings/SF_Val_ProtT5.npz'
-X_val = np.load(filename)['arr_0']
+    df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
+    # Extract Super Families (SF column)
+    y_val = df_val['SF'].tolist()
 
-# filename = './data/Dataset/embeddings/Other Class/Other_Val_US.npz'
-filename = './data/Dataset/embeddings/Other Class/Other_Val.npz'
-X_val_other = np.load(filename)['arr_0']
+    filename = f'./data/Dataset/embeddings/Val_ProtT5_new.npz'
+    X_val = np.load(filename)['arr_0']
 
-X_val = np.concatenate((X_val, X_val_other), axis=0)
+    # test
 
-for i in range(len(X_val_other)):
-    y_val.append('other')
+    df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
+    # Extract Super Families (SF column)
+    y_test = df_test['SF'].tolist()
 
-# test
-ds_test = pd.read_csv('./data/Dataset/annotations/Y_Test_SF.csv')
-y_test = list(ds_test["SF"])
+    filename = f'./data/Dataset/embeddings/Test_ProtT5_new.npz'
+    X_test = np.load(filename)['arr_0']
 
-filename = './data/Dataset/embeddings/SF_Test_ProtT5.npz'
-X_test = np.load(filename)['arr_0']
+else:
 
-# filename = './data/Dataset/embeddings/Other Class/Other_Test_US.npz'
-filename = './data/Dataset/embeddings/Other Class/Other_Test.npz'
-X_test_other = np.load(filename)['arr_0']
+    # dataset import
+    # train 
+    ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
+    y_train = list(ds_train["SF"])
 
-X_test = np.concatenate((X_test, X_test_other), axis=0)
+    filename = './data/Dataset/embeddings/SF_Train_ProtT5.npz'
+    X_train = np.load(filename)['arr_0']
+    filename = './data/Dataset/embeddings/Other Class/Other_Train.npz'
+    X_train_other = np.load(filename)['arr_0']
 
-for i in range(len(X_test_other)):
-    y_test.append('other')
+    X_train = np.concatenate((X_train, X_train_other), axis=0)
 
-# y process
-y_tot = y_train + y_val + y_test
-le = preprocessing.LabelEncoder()
-le.fit(y_tot)
+    for i in range(len(X_train_other)):
+        y_train.append('other')
 
-y_train = np.asarray(le.transform(y_train))
-y_val = np.asarray(le.transform(y_val))
-y_test = np.asarray(le.transform(y_test))
+    # val
+    ds_val = pd.read_csv('./data/Dataset/annotations/Y_Val_SF.csv')
+    y_val = list(ds_val["SF"])
 
-num_classes = len(np.unique(y_tot))
-print(num_classes)
-print("Loaded X and y")
+    filename = './data/Dataset/embeddings/SF_Val_ProtT5.npz'
+    X_val = np.load(filename)['arr_0']
 
-X_train, y_train = shuffle(X_train, y_train, random_state=42)
-print("Shuffled")
+    # filename = './data/Dataset/embeddings/Other Class/Other_Val_US.npz'
+    filename = './data/Dataset/embeddings/Other Class/Other_Val.npz'
+    X_val_other = np.load(filename)['arr_0']
+
+    X_val = np.concatenate((X_val, X_val_other), axis=0)
+
+    for i in range(len(X_val_other)):
+        y_val.append('other')
+
+    # test
+    ds_test = pd.read_csv('./data/Dataset/annotations/Y_Test_SF.csv')
+    y_test = list(ds_test["SF"])
+
+    filename = './data/Dataset/embeddings/SF_Test_ProtT5.npz'
+    X_test = np.load(filename)['arr_0']
+
+    # filename = './data/Dataset/embeddings/Other Class/Other_Test_US.npz'
+    filename = './data/Dataset/embeddings/Other Class/Other_Test.npz'
+    X_test_other = np.load(filename)['arr_0']
+
+    X_test = np.concatenate((X_test, X_test_other), axis=0)
+
+    for i in range(len(X_test_other)):
+        y_test.append('other')
+
+    # y process
+    y_tot = y_train + y_val + y_test
+    le = preprocessing.LabelEncoder()
+    le.fit(y_tot)
+
+    y_train = np.asarray(le.transform(y_train))
+    y_val = np.asarray(le.transform(y_val))
+    y_test = np.asarray(le.transform(y_test))
+
+    num_classes = len(np.unique(y_tot))
+    print(num_classes)
+    print("Loaded X and y")
+
+    X_train, y_train = shuffle(X_train, y_train, random_state=42)
+    print("Shuffled")
 
 # generator
 def bm_generator(X_t, y_t, batch_size):
