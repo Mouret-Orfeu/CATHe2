@@ -20,6 +20,33 @@ def clean_sequence(sequence):
 def compare_sequences(csv_sequence, pdb_sequence):
     return csv_sequence == pdb_sequence
 
+# Function to find the model with the best matching chain sequence
+def find_best_model(pdb_file_path, sequence, chain_id):
+    parser = PDBParser()
+    structure = parser.get_structure('structure', pdb_file_path)
+    best_model_id = None
+    best_match_score = float('inf')
+    best_pdb_sequence = ''
+
+    for model in structure:
+        for chain in model:
+            if chain.id == chain_id:
+                pdb_sequence = ''
+                for residue in chain:
+                    if residue.id[0] == ' ':  # Ensures only standard residues are considered
+                        pdb_sequence += seq1(residue.resname)
+                # Calculate match score (e.g., using Hamming distance or another metric)
+                match_score = sum(1 for a, b in zip(sequence, pdb_sequence) if a != b) + abs(len(sequence) - len(pdb_sequence))
+                if match_score < best_match_score:
+                    best_model_id = model.id
+                    best_match_score = match_score
+                    best_pdb_sequence = pdb_sequence
+
+    if best_model_id is None:
+        raise ValueError(f"Chain {chain_id} not found in any model of PDB file {pdb_file_path}")
+
+    return best_model_id, best_pdb_sequence
+
 class TrimSelect(Select):
     def __init__(self, residues):
         self.residues = residues
@@ -32,43 +59,78 @@ def trim_pdb(pdb_file_path, sequence, chain_id, model_id):
     structure = parser.get_structure('structure', pdb_file_path)
     
     # Convert sequence to a set of residues to keep
-    seq_residues = set()
+    seq_residues = []
     seq_index = 0
     untrimmed_sequence = ''
+    chain_found = False
+    model_found = False
     for model in structure:
         if model.id == model_id:  # Check if model matches
+            model_found = True
             for chain in model:
                 if chain.id == chain_id:  # Check if chain matches
+                    chain_found = True
                     for residue in chain:
                         res_name = seq1(residue.resname)
                         untrimmed_sequence += res_name
+                        # if seq_index < len(sequence) and (res_name == sequence[seq_index] or res_name == 'X'):
                         if seq_index < len(sequence) and res_name == sequence[seq_index]:
-                            seq_residues.add(residue)
+
+                            seq_residues.append(residue)
                             seq_index += 1
-                        if seq_index == len(sequence):
+                        # elif seq_index < len(sequence) and res_name != sequence[seq_index] and res_name != 'X':
+                        elif seq_index < len(sequence) and res_name != sequence[seq_index]:
+
+                            seq_residues.clear()
+                            seq_index = 0
+                        elif seq_index == len(sequence):
                             break
+                        else:
+                            raise ValueError("error, seq_index>len(sequence) in trim_pdb function in get_3Di_sequences.py, there is a bug to fix")
+    
+    if not chain_found:
+        if model_found:
+            print(f"model found: (model {model_id})")
+        else:
+            raise ValueError(f"\nModel {model_id} not found in PDB file {pdb_file_path}")
+        raise ValueError(f"\nModel {model_id} Chain {chain_id} not found in PDB file {pdb_file_path}")
+
+    # # Identify the start index (skip leading 'X' amino acids in the sequence)
+    # start_index = 0
+    # while start_index < len(sequence) and sequence[start_index] == 'X':
+    #     start_index += 1
+
+    # # Remove trailing 'X' amino acids from seq_residues
+    # while seq_residues and seq1(seq_residues[-1].resname) == 'X':
+    #     seq_residues.pop()
+
+    # # Keep only the valid residues starting from the identified start index
+    # seq_residues = seq_residues[start_index:]
 
     # Write out the trimmed structure
     io = PDBIO()
     io.set_structure(structure)
     trimmed_pdb_file_path = pdb_file_path.replace('.pdb', '_trimmed.pdb')
-    io.save(trimmed_pdb_file_path, select=TrimSelect(seq_residues))
-    
+    io.save(trimmed_pdb_file_path, select=TrimSelect(set(seq_residues)))
+
     # Verify the trimmed PDB file
     pdb_sequence = extract_sequence_from_pdb(trimmed_pdb_file_path, chain_id, model_id)
-    if not compare_sequences(clean_sequence(sequence), pdb_sequence):
+    if not compare_sequences(sequence, pdb_sequence):
         raise ValueError(f"Sequence mismatch for PDB ID {pdb_file_path}.\nCSV sequence: {sequence}\nPDB trimmed sequence: {pdb_sequence}\nUntrimmed PDB sequence: {untrimmed_sequence}")
     
+    # os.remove(pdb_file_path)
+
     return trimmed_pdb_file_path
+
+
 
 # Function to download and trim a PDB file given a PDB ID and chain
 def download_and_trim_pdb(row, output_dir):
     sequence_id = row['Unnamed: 0']
-    sequence = clean_sequence(row['Sequence'])
+    sequence = row['Sequence']
     domain = row['Domain']
     pdb_id = domain[:4]  # Extract the first 4 characters as PDB ID
     chain = domain[4]  # Extract the 5th character as the chain
-    model_id = int(domain[5:])  # Extract the 6th character as the model ID (format example '02')
 
     url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
     try:
@@ -78,8 +140,12 @@ def download_and_trim_pdb(row, output_dir):
         with open(pdb_file_path, 'w') as file:
             file.write(response.text)
         
+        # Find the best matching model
+        best_model_id, _ = find_best_model(pdb_file_path, sequence, chain)
+        #print(f"Best matching model: {best_model_id}")
+        
         # Trim the PDB file
-        trimmed_pdb_file_path = trim_pdb(pdb_file_path, sequence, chain, model_id)
+        trimmed_pdb_file_path = trim_pdb(pdb_file_path, sequence, chain, best_model_id)
         
         # Remove the original untrimmed file
         os.remove(pdb_file_path)
@@ -107,11 +173,8 @@ def extract_sequence_from_pdb(pdb_file_path, chain_id, model_id):
                 if chain.id == chain_id:  # Check if chain matches
                     chain_model_found = True
                     for residue in chain:
-                        if residue.id[0] == ' ':  # Ensures only standard residues are considered
-                            sequence += seq1(residue.resname)
+                        sequence += seq1(residue.resname)
 
-    if not chain_model_found:
-        raise ValueError(f"Chain {chain_id} of model {model_id} not found in PDB file {pdb_file_path}")
     return sequence
 
 # Function to run a shell command and check for errors
@@ -134,7 +197,7 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta):
     os.makedirs(output_dir, exist_ok=True)
 
     results = []
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=1) as executor:
         futures = [executor.submit(download_and_trim_pdb, row, output_dir) for _, row in data.iterrows()]
         for future in tqdm(as_completed(futures), total=len(futures)):
             result = future.result()
@@ -163,7 +226,6 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta):
     for file in os.listdir(output_dir):
         file_path = os.path.join(output_dir, file)
         os.remove(file_path)
-
 
 def main():
     # Parse arguments
