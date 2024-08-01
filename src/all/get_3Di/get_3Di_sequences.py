@@ -23,7 +23,7 @@ def clean_sequence(sequence):
     return sequence.replace('X', '')
 
 # Function to find the model with the best matching chain sequence
-def find_best_model(pdb_file_path, sequence, chain_id):
+def find_best_model(pdb_file_path, sequence):
     parser = PDBParser()
     structure = parser.get_structure('structure', pdb_file_path)
     best_model_id = None
@@ -32,22 +32,19 @@ def find_best_model(pdb_file_path, sequence, chain_id):
 
     for model in structure:
         for chain in model:
-            if chain.id == chain_id:
-                pdb_sequence = ''
-                for residue in chain:
-                    if residue.id[0] == ' ':  # Ensures only standard residues are considered
-                        pdb_sequence += seq1(residue.resname)
-                # Calculate match score (e.g., using Hamming distance or another metric)
-                match_score = sum(1 for a, b in zip(sequence, pdb_sequence) if a != b) + abs(len(sequence) - len(pdb_sequence))
-                if match_score < best_match_score:
-                    best_model_id = model.id
-                    best_match_score = match_score
-                    best_pdb_sequence = pdb_sequence
+            pdb_sequence = ''
+            for residue in chain:
+                if residue.id[0] == ' ':  # Ensures only standard residues are considered
+                    pdb_sequence += seq1(residue.resname)
+            # Calculate match score (e.g., using Hamming distance or another metric)
+            match_score = sum(1 for a, b in zip(sequence, pdb_sequence) if a != b) + abs(len(sequence) - len(pdb_sequence))
+            if match_score < best_match_score:
+                best_model_id = model.id
+                best_match_chain_id = chain.id
+                best_match_score = match_score
+                best_pdb_sequence = pdb_sequence
 
-    if best_model_id is None:
-        raise ValueError(f"Chain {chain_id} not found in any model of PDB file {pdb_file_path}")
-
-    return best_model_id, best_pdb_sequence
+    return best_model_id, best_match_chain_id, best_pdb_sequence 
 
 class TrimSelect(Select):
     def __init__(self, residues):
@@ -89,17 +86,26 @@ def plot_plddt_scores(plddt_scores, output_dir):
     plt.savefig(os.path.join(output_dir, 'aggregated_plddt_boxplot.png'))
     plt.close()
 
-def trim_pdb(pdb_file_path, sequence, chain_id, model_id):
+def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id):
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('structure', pdb_file_path)
+
+   # Check if expected_chain_id exists in the model
+    used_chain_id = expected_chain_id
+    chain_ids = [chain.id for chain in structure[model_id]]
+    if expected_chain_id not in chain_ids:
+        used_chain_id = best_chain_id
+
 
     # Extract sequence from PDB file for the specified chain and model
     pdb_sequence = ''
     residues = []
+    chain_model_found = False
     for model in structure:
         if model.id == model_id:
             for chain in model:
-                if chain.id == chain_id:
+                if chain.id == used_chain_id:
+                    chain_model_found = True
                     for residue in chain:
                         if is_aa(residue, standard=True):
                             pdb_sequence += seq1(residue.resname)
@@ -107,8 +113,11 @@ def trim_pdb(pdb_file_path, sequence, chain_id, model_id):
                     break
             break
 
-    if not pdb_sequence:
-        raise ValueError(f"Chain {chain_id} in model {model_id} not found in PDB file {pdb_file_path}")
+
+    if not chain_model_found:
+        raise ValueError(f"Chain {used_chain_id} in model {model_id} not found in PDB file {pdb_file_path}")
+    if len(pdb_sequence) == 0:
+        raise ValueError(f"No amino acids found in chain {used_chain_id} in model {model_id} in PDB file {pdb_file_path}")
 
     # Perform sequence alignment using PairwiseAligner
     aligner = PairwiseAligner()
@@ -157,26 +166,28 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
     if process_training_set:
         afdb_id = row['Domain']
         url = f"https://alphafold.ebi.ac.uk/files/AF-{afdb_id}-F1-model_v4.pdb"
-        chain = 'A'
+        expected_chain = 'A'
     else:
         domain = row['Domain']
         pdb_id = domain[:4]
-        chain = domain[4]
+        expected_chain = domain[4]
         url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
 
     try:
         response = requests.get(url)
         response.raise_for_status()
         pdb_file_path = os.path.join(output_dir, f"{sequence_id}_{os.path.basename(url)}")
+
         with open(pdb_file_path, 'w') as file:
             file.write(response.text)
-        
+
+        model, best_chain, _ = find_best_model(pdb_file_path, sequence)
+
         if process_training_set:
             plddt_scores = extract_global_plddt(pdb_file_path)
         
-        best_model_id = 0  # Default to the first model if there's no function to find the best model
-        trimmed_pdb_file_path = trim_pdb(pdb_file_path, sequence, chain, best_model_id)
-        
+        trimmed_pdb_file_path = trim_pdb(pdb_file_path, sequence, best_chain, model, expected_chain)
+    
         os.remove(pdb_file_path)
         
         return {"sequence_id": sequence_id, "pdb_file": trimmed_pdb_file_path}, plddt_scores
@@ -191,6 +202,7 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
         return {"sequence_id": sequence_id, "pdb_file": None}, plddt_scores
 
 
+#DEBUG
 # Function to extract sequence from PDB file
 def extract_sequence_from_pdb(pdb_file_path, chain_id, model_id):
     parser = PDBParser()
@@ -230,7 +242,7 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_train
     os.makedirs(output_dir, exist_ok=True)
 
     results = []
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=100) as executor:
         futures = [executor.submit(download_and_trim_pdb, row, output_dir, process_training_set) for _, row in data.iterrows()]
         for future in tqdm(as_completed(futures), total=len(futures)):
             result, plddt_scores = future.result()
@@ -280,10 +292,10 @@ def main():
 
     for csv_file in datasets_to_process:
         #DEBUG
-        data = pd.read_csv(csv_file, nrows=10)
+        #data = pd.read_csv(csv_file, nrows=10)
 
         
-        # data = pd.read_csv(csv_file)
+        data = pd.read_csv(csv_file)
         dataset_name = os.path.basename(csv_file).split('.')[0]
 
         if dataset_name == 'Train':
