@@ -1,3 +1,5 @@
+# run "all" with internet connection with 720 Mbps download speed: took around  
+
 import pandas as pd
 import requests
 import subprocess
@@ -201,6 +203,9 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
         print(f"Other error occurred: {err}")
         return {"sequence_id": sequence_id, "pdb_file": None}, plddt_scores
 
+   
+
+
 
 #DEBUG
 # Function to extract sequence from PDB file
@@ -230,13 +235,6 @@ def run_command(command):
         print(result.stderr)
         raise Exception("Command failed")
     return result.stdout
-
-# Create an ArgumentParser
-def create_arg_parser():
-    parser = argparse.ArgumentParser(description='Process dataset to extract 3Di sequences.')
-    parser.add_argument('--dataset', type=str, choices=['all', 'test', 'train', 'validation'], default='all',
-                        help="Dataset to process: 'all', 'test', 'train', 'validation'")
-    return parser
 
 def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_training_set, plddt_scores_list):
     os.makedirs(output_dir, exist_ok=True)
@@ -277,18 +275,93 @@ def remove_intermediate_files(output_dir):
             file_path = os.path.join(output_dir, file_name)
             os.remove(file_path)
 
+
+def get_missing_domains():
+    Train_part_1 = './data/pdb_files/Train/Train_first/directly_saved_pdb_idx.csv'
+    Train_part_2 = './data/pdb_files/Train/Train_second/directly_saved_pdb_idx.csv'
+    Train_csv = './data/Dataset/csv/Train.csv'
+    output_file = './data/pdb_files/Train/Train_missing_ones/missing_train_domains_id.csv'
+
+    missing_domain_id_list = []
+    with open(Train_part_1, 'r') as file:
+        data = pd.read_csv(file)
+        missing_domain_id_list.extend(data[data['pdb_file'].isnull()]['sequence_id'].tolist())
+
+    with open(Train_part_2, 'r') as file:
+        data = pd.read_csv(file)
+        missing_domain_id_list.extend(data[data['pdb_file'].isnull()]['sequence_id'].tolist())
+
+    missing_domain_id_list.sort()
+
+    # Read the Train.csv file
+    train_data = pd.read_csv(Train_csv)
+
+    # Filter the rows in Train.csv that match the missing domain IDs
+    missing_domains_data = train_data[train_data['Unnamed: 0'].isin(missing_domain_id_list)][['Unnamed: 0','Domain', 'Sequence']]
+
+    # Save the filtered data to the output file
+    missing_domains_data.to_csv(output_file, index=False)
+
+    print(f"Missing domains data saved to {output_file}")
+
+def read_fasta(file):
+    """Reads a FASTA file and returns a list of tuples (id, header, sequence)."""
+    fasta_entries = []
+    header = None
+    sequence = []
+    for line in file:
+        line = line.strip()
+        if line.startswith(">"):
+            if header:
+                fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
+            header = line[1:]
+            sequence = []
+        else:
+            sequence.append(line)
+    if header:
+        fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
+    return fasta_entries
+
+def write_fasta(file, fasta_entries):
+    """Writes a list of tuples (id, header, sequence) to a FASTA file."""
+    for _, header, sequence in fasta_entries:
+        file.write(f">{header}\n")
+        file.write(f"{sequence}\n")
+
+
+# Create an ArgumentParser
+def create_arg_parser():
+    parser = argparse.ArgumentParser(description='Process dataset to extract 3Di sequences.')
+    parser.add_argument('--dataset', type=str, choices=['all', 'test', 'train', 'validation', 'train_missing_ones'], default='all',
+                        help="Dataset to process: 'all', 'test', 'train', 'validation' or train_missing_ones")
+    return parser
+
 def main():
     # Parse arguments
     parser = create_arg_parser()
     args = parser.parse_args()
 
     dataset_map = {
-        'test': './data/Dataset/csv/Test.csv',
-        'validation': './data/Dataset/csv/Val.csv',
-        'train': './data/Dataset/csv/Train.csv'
+    'test': './data/Dataset/csv/Test.csv',
+    'validation': './data/Dataset/csv/Val.csv',
+    'train': './data/Dataset/csv/Train.csv',
+    'train_missing_ones': './data/pdb_files/Train/Train_missing_ones/missing_train_domains_id.csv',
     }
 
-    datasets_to_process = dataset_map.values() if args.dataset == 'all' else [dataset_map[args.dataset]]
+    if args.dataset == 'all':
+        datasets_to_process = [value for key, value in dataset_map.items() if key != 'train_missing_ones']
+    else:
+        datasets_to_process = [dataset_map[args.dataset]]
+
+    # if args.dataset == 'all':
+    #     datasets_to_process = [dataset for dataset in datasets_to_process if dataset != dataset_map['train_missing_ones']]  
+    # else:
+    #     [dataset_map[args.dataset]]
+
+    if len(datasets_to_process) == 1 and datasets_to_process[0] == dataset_map['train_missing_ones']:
+        missing_train_domains_id_file = './data/pdb_files/Train/Train_missing_ones/missing_train_domains_id.csv'
+        if not os.path.exists(missing_train_domains_id_file):
+            get_missing_domains()
 
     for csv_file in datasets_to_process:
         #DEBUG
@@ -320,23 +393,36 @@ def main():
             process_dataset(data_second_half, output_dir_second, query_db_second, query_db_ss_fasta_second, process_training_set, plddt_scores_list)
             remove_intermediate_files(output_dir_second)
 
-            # Plot and save aggregated pLDDT scores
-            plot_plddt_scores(plddt_scores_list, f'./data/pdb_files/{dataset_name}')
+            # Plot and save aggregated pLDDT scores (it is making the code crash, probably due to memory issues)
+            #plot_plddt_scores(plddt_scores_list, f'./data/pdb_files/{dataset_name}') 
 
 
             final_fasta_path = f'./data/Dataset/3Di/{dataset_name}.fasta'
-            with open(final_fasta_path, 'w') as final_fasta:
-                with open(query_db_ss_fasta_first, 'r') as first_fasta:
-                    final_fasta.write(first_fasta.read())
-                with open(query_db_ss_fasta_second, 'r') as second_fasta:
-                    final_fasta.write(second_fasta.read())
+            # with open(final_fasta_path, 'w') as final_fasta:
+            #     with open(query_db_ss_fasta_first, 'r') as first_fasta:
+            #         final_fasta.write(first_fasta.read())
+            #     with open(query_db_ss_fasta_second, 'r') as second_fasta:
+            #         final_fasta.write(second_fasta.read())
 
-            os.remove(query_db_ss_fasta_first)
-            os.remove(query_db_ss_fasta_second)
+            
+            with open(query_db_ss_fasta_first, 'r') as first_fasta, open(query_db_ss_fasta_second, 'r') as second_fasta:
+                fasta_entries = read_fasta(first_fasta) + read_fasta(second_fasta)
+
+            # Sort the entries by the extracted ID
+            fasta_entries.sort(key=lambda x: int(x[0]))
+
+            # Write the sorted entries to the final FASTA file
+            with open(final_fasta_path, 'w') as final_fasta:
+                write_fasta(final_fasta, fasta_entries)
+                
+                 
+
+            # os.remove(query_db_ss_fasta_first)
+            # os.remove(query_db_ss_fasta_second)
 
             print(f"Merged FASTA file created at {final_fasta_path}")
 
-        else:
+        elif dataset_name == 'Test' or dataset_name == 'Val':
             process_training_set = False
             plddt_scores_list = []
 
@@ -347,6 +433,20 @@ def main():
             process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_training_set, plddt_scores_list)
 
             remove_intermediate_files(output_dir)
+        
+        elif dataset_name == 'missing_train_domains_id':
+
+            process_training_set = True
+            plddt_scores_list = []
+
+            output_dir = f'./data/pdb_files/{dataset_name}'
+            query_db = f'./data/pdb_files/{dataset_name}/{dataset_name}_queryDB'
+            query_db_ss_fasta = f'./data/Dataset/3Di/{dataset_name}.fasta'
+
+            process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_training_set, plddt_scores_list)
+
+            remove_intermediate_files(output_dir)
+            
 
             
 

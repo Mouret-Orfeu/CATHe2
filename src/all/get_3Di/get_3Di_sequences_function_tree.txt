@@ -1,0 +1,66 @@
+main
+ └── process_dataset
+      ├── download_and_trim_pdb
+      │    ├── requests.get
+      │    ├── open (writing file)
+      │    ├── find_best_model
+      │    │    ├── PDBParser.get_structure
+      │    │    ├── Model.__iter__
+      │    │    └── Chain.__iter__
+      │    ├── extract_global_plddt (if process_training_set)
+      │    │    ├── PDBParser.get_structure
+      │    │    ├── Model.__iter__
+      │    │    └── Chain.__iter__
+      │    ├── trim_pdb
+      │    │    ├── PDBParser.get_structure
+      │    │    ├── Model.__iter__
+      │    │    ├── Chain.__iter__
+      │    │    ├── Select.__init__
+      │    │    ├── PairwiseAligner.align
+      │    │    ├── PDBIO.set_structure
+      │    │    └── PDBIO.save
+      │    └── os.remove
+      ├── as_completed
+      ├── pd.DataFrame
+      ├── DataFrame.to_csv
+      ├── run_command
+      │    └── subprocess.run
+      └── tqdm
+
+remove_intermediate_files
+ └── os.listdir
+ └── os.remove
+
+plot_plddt_scores
+ └── plt.boxplot
+ └── plt.title
+ └── plt.ylabel
+ └── plt.savefig
+ └── plt.close
+
+save_plddt_scores
+ └── open (writing file)
+
+find_best_model
+ ├── PDBParser.get_structure
+ ├── Model.__iter__
+ └── Chain.__iter__
+
+extract_global_plddt
+ ├── PDBParser.get_structure
+ ├── Model.__iter__
+ └── Chain.__iter__
+
+trim_pdb
+ ├── PDBParser.get_structure
+ ├── Model.__iter__
+ ├── Chain.__iter__
+ ├── Select.__init__
+ ├── PairwiseAligner.align
+ ├── PDBIO.set_structure
+ └── PDBIO.save
+
+run_command
+ └── subprocess.run
+
+clean_sequence
