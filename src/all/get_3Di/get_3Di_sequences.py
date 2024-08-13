@@ -333,7 +333,7 @@ def write_fasta(file, fasta_entries):
 def create_arg_parser():
     parser = argparse.ArgumentParser(description='Process dataset to extract 3Di sequences.')
     parser.add_argument('--dataset', type=str, choices=['all', 'test', 'train', 'validation', 'train_missing_ones'], default='all',
-                        help="Dataset to process: 'all', 'test', 'train', 'validation' or train_missing_ones")
+                        help="Dataset to process: 'all', 'test', 'train', 'validation' or 'train_missing_ones' ")
     return parser
 
 def main():
@@ -446,6 +446,31 @@ def main():
             process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_training_set, plddt_scores_list)
 
             remove_intermediate_files(output_dir)
+
+            final_fasta_path = './data/Dataset/3Di/Train.fasta'
+            missing_train_fasta_path = f'./data/Dataset/3Di/{dataset_name}.fasta'
+
+            with open(final_fasta_path, 'r') as Train_3Di, open(missing_train_fasta_path, 'r') as missing_train_3Di:
+                Train_entries = read_fasta(Train_3Di)
+                missing_3Di_found_during_search_rerun = read_fasta(missing_train_3Di)
+                fasta_entries = Train_entries + missing_3Di_found_during_search_rerun
+
+            # Sort the entries by the extracted ID
+            fasta_entries.sort(key=lambda x: int(x[0]))
+
+            number_of_missing_3Di_found_during_search_rerun = len(missing_3Di_found_during_search_rerun)
+
+            # Write the sorted entries to the final FASTA file
+            with open(final_fasta_path, 'w') as final_fasta:
+                write_fasta(final_fasta, fasta_entries)
+                
+            print(f"{number_of_missing_3Di_found_during_search_rerun} Missing 3Di found during search rerun, added to Train.fasta")
+                 
+
+            # os.remove(query_db_ss_fasta_first)
+            # os.remove(query_db_ss_fasta_second)
+
+            print(f" {final_fasta_path}")
             
 
             

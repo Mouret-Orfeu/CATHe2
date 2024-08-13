@@ -41,7 +41,7 @@ nb_layer_block_dict = {
         "three": 3
     }
 
-def load_data(model_name):
+def load_data(model_name, input_type):
     """Loads data for the specified model."""
 
     if model_name == 'ProtT5':
@@ -92,21 +92,33 @@ def load_data(model_name):
             y_test.append('other')
     
     else:
+
+
+        
+
         df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
-        # Extract Super Families (SF column) 
-        y_train = df_train['SF'].tolist()
-
         df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
-        # Extract Super Families (SF column)
-        y_val = df_val['SF'].tolist()
-
         df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
-        # Extract Super Families (SF column)
+        
+        if input_type == '3Di' or input_type == 'AA+3Di':
+            # Load the domain IDs for which 3Di data is available
+            train_ids_for_3Di_usage = set(pd.read_csv('./data/Dataset/csv/Train_ids_for_3Di_usage.csv')['Domain_id'])
+            val_ids_for_3Di_usage = set(pd.read_csv('./data/Dataset/csv/Val_ids_for_3Di_usage.csv')['Domain_id'])
+            test_ids_for_3Di_usage = set(pd.read_csv('./data/Dataset/csv/Test_ids_for_3Di_usage.csv')['Domain_id'])
+
+
+            # Filter the datasets to keep only the domains for which 3Di data is available
+            df_train = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)]
+            df_val = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)]
+            df_test = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)]
+
+        y_train = df_train['SF'].tolist()
+        y_val = df_val['SF'].tolist()
         y_test = df_test['SF'].tolist()
 
         
         
-        file_paths = {
+        prot_sequence_embeddings_paths = {
             'ProtT5': ('Train_ProtT5_per_protein.npz', 'Val_ProtT5_per_protein.npz', 'Test_ProtT5_per_protein.npz'),
             'ProtT5_new' : ('Train_ProtT5_new_per_protein.npz', 'Val_ProtT5_new_per_protein.npz', 'Test_ProtT5_new_per_protein.npz'),
             'ESM2': ('Train_ESM2_per_protein.npz', 'Val_ESM2_per_protein.npz', 'Test_ESM2_per_protein.npz'),
@@ -117,16 +129,80 @@ def load_data(model_name):
             'TM_Vec': ('Train_TM_Vec_per_protein.npz', 'Val_TM_Vec_per_protein.npz', 'Test_TM_Vec_per_protein.npz')
         }
 
-        if model_name not in file_paths:
+        prot_3Di_embeddings_paths = {
+            'ProtT5_new': ('Train_ProtT5_new_per_protein_3Di.npz', 'Val_ProtT5_new_per_protein_3Di.npz', 'Test_ProtT5_new_per_protein_3Di.npz'),
+            'ESM2': ('Train_ESM2_per_protein_3Di.npz', 'Val_ESM2_per_protein_3Di.npz', 'Test_ESM2_per_protein_3Di.npz'),
+            'Ankh_large': ('Train_Ankh_large_per_protein_3Di.npz', 'Val_Ankh_large_per_protein_3Di.npz', 'Test_Ankh_large_per_protein_3Di.npz'),
+            'Ankh_base': ('Train_Ankh_base_per_protein_3Di.npz', 'Val_Ankh_base_per_protein_3Di.npz', 'Test_Ankh_base_per_protein_3Di.npz'),
+            'ProstT5_full': ('Train_ProstT5_full_per_protein_3Di.npz', 'Val_ProstT5_full_per_protein_3Di.npz', 'Test_ProstT5_full_per_protein_3Di.npz'),
+            'ProstT5_half': ('Train_ProstT5_half_per_protein_3Di.npz', 'Val_ProstT5_half_per_protein_3Di.npz', 'Test_ProstT5_half_per_protein_3Di.npz'),
+            'TM_Vec': ('Train_TM_Vec_per_protein_3Di.npz', 'Val_TM_Vec_per_protein_3Di.npz', 'Test_TM_Vec_per_protein_3Di.npz')
+        }
+
+
+        if model_name not in prot_sequence_embeddings_paths:
             raise ValueError("Invalid model name")
         
-        Train_file_name, Val_file_name, Test_file_name = file_paths[model_name]
-        X_train = np.load(f'./data/Dataset/embeddings/{Train_file_name}')['arr_0']
-        X_val = np.load(f'./data/Dataset/embeddings/{Val_file_name}')['arr_0']
-        X_test = np.load(f'./data/Dataset/embeddings/{Test_file_name}')['arr_0']
+        Train_file_name_seq_embed, Val_file_name_seq_embed, Test_file_name_seq_embed = prot_sequence_embeddings_paths[model_name]
+        Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed = prot_3Di_embeddings_paths[model_name]
 
-        print("\033[92mData Loading done\033[0m")
-    
+        if input_type == 'AA':
+            
+            X_train = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
+            X_val = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
+            X_test = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
+        
+        if input_type == '3Di':
+
+            X_train = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
+            X_val = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
+            X_test = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0'] 
+        
+        if input_type == 'AA+3Di':
+
+            # Load sequence embeddings
+            X_train_seq = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
+            X_val_seq = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
+            X_test_seq = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
+
+            # Ensure that 'Unnamed: 0' is integer
+            df_train['Unnamed: 0'] = df_train['Unnamed: 0'].astype(int)
+            df_val['Unnamed: 0'] = df_val['Unnamed: 0'].astype(int)
+            df_test['Unnamed: 0'] = df_test['Unnamed: 0'].astype(int)
+
+            # Filter the DataFrame to include only the IDs present in train_ids_for_3Di_usage
+            filtered_df_train = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)]
+            filtered_df_val = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)]
+            filtered_df_test = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)]
+
+            # Get the indices of the rows that should be kept
+            train_indices_to_keep = filtered_df_train.index
+            val_indices_to_keep = filtered_df_val.index
+            test_indices_to_keep = filtered_df_test.index
+
+            # Use these indices to filter the embeddings arrays
+            X_train_seq_filtered = X_train_seq[train_indices_to_keep]
+            X_val_seq_filtered = X_val_seq[val_indices_to_keep]
+            X_test_seq_filtered = X_test_seq[test_indices_to_keep]
+            
+
+            # Load 3Di embeddings
+            X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
+            X_val_3Di = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
+            X_test_3Di = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0']
+
+            # Ensure that lengths match before concatenation
+            assert len(X_train_seq_filtered) == len(X_train_3Di), "Train sequence and 3Di embeddings must have the same length"
+            assert len(X_val_seq_filtered) == len(X_val_3Di), "Val sequence and 3Di embeddings must have the same length"
+            assert len(X_test_seq_filtered) == len(X_test_3Di), "Test sequence and 3Di embeddings must have the same length"
+
+            # Concatenate the sequence and 3Di embeddings along the feature axis
+            X_train = np.concatenate((X_train_seq_filtered, X_train_3Di), axis=1)
+            X_val = np.concatenate((X_val_seq_filtered, X_val_3Di), axis=1)
+            X_test = np.concatenate((X_test_seq_filtered, X_test_3Di), axis=1)
+
+        print("\033[92m \nData Loading done\033[0m")
+
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 
@@ -176,21 +252,43 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
 
 
 # Keras NN Model
-def create_model(model_name, num_classes, nb_layer_block, dropout):
+def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, layer_size):
     """Creates and returns a Keras model based on the specified model name and layer blocks."""
     
     
+    if input_type == 'AA+3Di':
+        input_shapes = {
+            'ProtT5_new': (2048,),
+            'ProtT5': (2048,),
+            'ProstT5_full': (2048,),
+            'ProstT5_half': (2048,),
+            'ESM2': (2304,),
+            'Ankh_large': (2560,),
+            'Ankh_base': (1792,),
+            'TM_Vec': (1536,)
+        }
+
+    elif input_type == 'AA':
+        input_shapes = {
+            'ProtT5_new': (1024,),
+            'ProtT5': (1024,),
+            'ProstT5_full': (1024,),
+            'ProstT5_half': (1024,),
+            'ESM2': (1280,),
+            'Ankh_large': (1536,),
+            'Ankh_base': (768,),
+            'TM_Vec': (512,)
+        }
     
-    input_shapes = {
-        'ProtT5_new': (1024,),
-        'ProtT5': (1024,),
-        'ProstT5_full': (1024,),
-        'ProstT5_half': (1024,),
-        'ESM2': (1280,),
-        'Ankh_large': (1536,),
-        'Ankh_base': (768,),
-        'TM_Vec': (512,)
-    }
+    # For 3Di only inputs, only the ProstT5 models are available
+    elif input_type == '3Di':
+        input_shapes = {
+            'ProstT5_full': (1024,),
+            'ProstT5_half': (1024,)
+        }
+    
+    else:
+        raise ValueError("Invalid input type, must be 'AA', '3Di', or 'AA+3Di'")
 
     if model_name not in input_shapes:
         raise ValueError("Invalid model name")
@@ -200,36 +298,44 @@ def create_model(model_name, num_classes, nb_layer_block, dropout):
     x = input_
     
     for _ in range(nb_layer_block):
-        x = Dense(128, kernel_initializer='glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
+        x = Dense(layer_size, kernel_initializer='glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
         x = LeakyReLU(alpha=0.05)(x)
         x = BatchNormalization()(x)
         if dropout:
-            x = Dropout(0.5)(x)
+            x = Dropout(dropout)(x)
     
     out = Dense(num_classes, activation = 'softmax', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
     classifier = Model(input_, out)
 
     return classifier
 
-def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, nb_layer_block, dropout, light_attention):
+
+def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size):
     """Trains the model."""
 
+    print("\033[92mModel training \033[0m")
+
+    base_model_path = f'saved_models/ann_{model_name}'
+    base_loss_path = f'results/Loss/ann_{model_name}'
+
     if dropout:
-        base_model_path = f'saved_models/ann_{model_name}'
-        base_loss_path = f'results/Loss/ann_{model_name}'
 
-        
-        
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}.h5'
-        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}.png'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.h5'
+        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.png'
     else:
-        base_model_path = f'saved_models/ann_{model_name}'
-        base_loss_path = f'results/Loss/ann_{model_name}'
-
-       
         
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout.h5'
-        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout.png'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.h5'
+        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.png'
+    
+    if input_type == '3Di':
+
+        save_model_path  = save_model_path.replace('.h5', '_3Di.h5')
+        save_loss_path = save_loss_path.replace('.png', '_3Di.png')
+    
+    if input_type == 'AA+3Di':
+            
+        save_model_path  = save_model_path.replace('.h5', '_AA+3Di.h5')
+        save_loss_path = save_loss_path.replace('.png', '_AA+3Di.png')
 
     num_epochs = 200
     batch_size = 4096
@@ -237,7 +343,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, nb_laye
 
     with tf.device('/gpu:0'):
         # model
-        model = create_model(model_name, num_classes, nb_layer_block, dropout)
+        model = create_model(model_name, num_classes, nb_layer_block, dropout, input_type, layer_size)
 
         # adam optimizer
         opt = keras.optimizers.Adam(learning_rate = 1e-5)
@@ -327,30 +433,46 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     plt.savefig(f'{confusion_matrix_path}.png', bbox_inches='tight')
     plt.close()
 
-def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout):
+def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size):
     """Evaluates the trained model."""
+
+    print("\033[92mModel evaluation \033[0m")
     
     if dropout:
         base_model_path = f'saved_models/ann_{model_name}'
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
         base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.h5'
 
 
-        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}.csv'
-        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout}'
-        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout}.csv'
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.csv'
     else:
         base_model_path = f'saved_models/ann_{model_name}'
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
         base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.h5'
 
-        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout.csv'
-        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout'
-        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_no_dropout.csv'
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.csv'
+    
+    if input_type == '3Di':
+            
+        model_path = model_path.replace('.h5', '_3Di.h5')
+        classification_report_path = classification_report_path.replace('.csv', '_3Di.csv')
+        confusion_matrix_path = confusion_matrix_path.replace('.png', '_3Di.png')
+        results_file = results_file.replace('.csv', '_3Di.csv')
+    
+    if input_type == 'AA+3Di':
+                
+        model_path = model_path.replace('.h5', '_AA+3Di.h5')
+        classification_report_path = classification_report_path.replace('.csv', '_AA+3Di.csv')
+        confusion_matrix_path = confusion_matrix_path.replace('.png', '_AA+3Di.png')
+        results_file = results_file.replace('.csv', '_AA+3Di.csv')
 
     with open(results_file, mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -385,6 +507,8 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 'Model': [model_name],
                 'Nb_Layer_Block': [nb_layer_block],
                 'Dropout': [dropout],
+                'Input_Type': [input_type],
+                'Layer_Size': [layer_size],
                 'F1_Score': [f1_score_test]
             })
             df_results_path = './results/perf_dataframe.csv'
@@ -395,7 +519,9 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 mask = (
                     (df_existing['Model'] == model_name) &
                     (df_existing['Nb_Layer_Block'] == nb_layer_block) &
-                    (df_existing['Dropout'] == dropout)
+                    (df_existing['Dropout'] == dropout) &
+                    (df_existing['Input_Type'] == input_type)
+                    (df_existing['Layer_Size'] == layer_size)
                 )
                 # If a matching row exists, update its F1_Score
                 if mask.any():
@@ -453,16 +579,24 @@ def create_arg_parser():
                         help="Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train")
     
     parser.add_argument('--dropout', type=str, 
-                        default='0', 
-                        help="Whether to use dropout in the model layers or not, and if so, what value, put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value, and 'all' to test every values in [0.1,0.2,0.3,0.4]")
-    
-    parser.add_argument('--model', type=str, 
                         default='all', 
+                        help="Whether to use dropout in the model layers or not, and if so, what value, put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value, and 'all' to test every values in [0,0.2,0.4]")
+    
+    parser.add_argument('--layer_size', type=str, 
+                        default='all', 
+                        help="To choose the size of the dens layers in the classifier, choose a values in [64,128,256,512,1024] or 'all' to test every values")
+
+    parser.add_argument('--model', type=str, 
+                        default='ProstT5_full', 
                         help="What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
     
     parser.add_argument('--nb_layer_block', type=str, 
-                        default='one',
+                        default='all',
                         help="Number of layer block {Dense, LeakyReLU, BatchNormalization, Dropout} in the classifier. Choose between 'one', 'two', 'three', or 'all'")
+    
+    parser.add_argument('--classifier_input', type=str, 
+                        default='AA', 
+                        help="Whether to use Amino Acids, 3Di or a concatenation of both to train the classifier, put 'AA' for Amino Acids, '3Di' for 3Di, 'AA+3Di' for the concatenation of the 2")
     return parser
 
 def main():
@@ -473,111 +607,64 @@ def main():
     model_name = args.model
     do_training = args.do_training
     nb_layer_block = args.nb_layer_block
+    input_type = args.classifier_input
+
+    if input_type == '3Di' or input_type == 'AA+3Di' and model_name == 'ProtT5':
+        raise ValueError("Please use 'ProtT5_new' instead of 'ProtT5' when using classifier_input '3Di' or 'AA+3Di'")
 
     do_training = False if int(args.do_training) == 0 else True
     dropout_tag = float(args.dropout) if args.dropout != 'all' else args.dropout
+    layer_size_tag = int(args.layer_size) if args.layer_size != 'all' else args.layer_size
 
     if dropout_tag == 'all':
-        pass
+        dropout_values = [0, 0.2, 0.4]
     else:
-        dropout = dropout_tag
+        dropout_values = [dropout_tag]
 
-    
+    if layer_size_tag == 'all':
+        layer_size_values = [64, 128, 256, 512, 1024]
+    else:
+        layer_size_values = [layer_size_tag]
 
+    all_model_names = ['ProtT5', 'ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
-    if model_name == 'all': 
-        all_model_names = ['ProtT5', 'ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-        for model_name in all_model_names:
+    if model_name == 'all':
+        for model_name in tqdm(all_model_names, desc="Models"):
             if nb_layer_block == 'all':
-                for nb_layer_block in ['one', 'two', 'three']:
-                    if dropout_tag == 'all':
-                        for dropout in [0.1, 0.2, 0.3, 0.4]:
-                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
+                    for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
+                        for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
+                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
                             X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                             if do_training:
-                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                    else:
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
-                        X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
-                        if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
             else:
-                if dropout_tag == 'all':
-                    for dropout in [0.1, 0.2, 0.3, 0.4]:
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+                for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
+                    for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
                         X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                else:
-                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
-                    X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
-                    if do_training:
-                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-    
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
     else:
-        #DEBUG
-        print(f"Model: {model_name}")
-
         if nb_layer_block == 'all':
-            #DEBUG
-            print(f"Layer Block: {nb_layer_block}")
-
-            for nb_layer_block in ['one', 'two', 'three']:
-                if dropout_tag == 'all':
-                    #DEBUG
-                    print(f"Dropout: {dropout_tag}")
-
-                    for dropout in [0.1, 0.2, 0.3, 0.4]:
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+            for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
+                for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
+                    for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
                         X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                else:
-                    #DEBUG
-                    print(f"Dropout: {dropout_tag}")
-
-                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
-                    X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
-                    if do_training:
-                        #DEBUG
-                        print(f"Training model with {nb_layer_block} blocks and dropout {dropout}")
-
-                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
         else:
-            #DEBUG
-            print(f"Layer Block: {nb_layer_block}")
-
-            if dropout_tag == 'all':
-                #DEBUG
-                print(f"Dropout: {dropout_tag}")
-
-                for dropout in [0.1, 0.2, 0.3, 0.4]:
-                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
+            for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
+                for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
+                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
                     X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                     if do_training:
-                        #DEBUG
-                        print(f"Training model with {nb_layer_block} blocks and dropout {dropout}")
-
-                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-            else:
-                #DEBUG
-                print(f"Dropout: {dropout_tag}")
-
-                X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name)
-                X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
-                if do_training:
-                    #DEBUG
-                    print(f"Training model with {nb_layer_block} blocks and dropout {dropout}")
-
-                    train_model(model_name, num_classes, X_train, y_train, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
-                evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout)
+                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
 
 if __name__ == '__main__':
     main()

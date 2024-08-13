@@ -1,0 +1,1 @@
+X_val_seq = np.load(f'./data/Dataset/embeddings/Val_ProstT5_full_per_protein.npz')

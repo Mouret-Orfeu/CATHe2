@@ -132,22 +132,63 @@ def get_model(model_name):
     return model_deep, model, tokenizer
 
 
-def get_sequences(seq_path):
+def read_fasta(file):
+    """Reads a FASTA file and returns a list of tuples (id, header, sequence)."""
+    fasta_entries = []
+    header = None
+    sequence = []
+    for line in file:
+        line = line.strip()
+        if line.startswith(">"):
+            if header:
+                fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
+            header = line[1:]
+            sequence = []
+        else:
+            sequence.append(line)
+    if header:
+        fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
+    return fasta_entries
+
+def get_sequences(seq_path, dataset, is_3Di):
 
     print("Reading sequences")
 
     sequences = {}
-    df = pd.read_csv(seq_path)
-    for _, row in df.iterrows():
-        sequences[int(row['Unnamed: 0'])] = row['Sequence']  
+
+    if is_3Di:
+        # Determine the correct CSV file path based on the dataset
+        usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage.csv'
+
+        # Load the IDs that should be kept
+        df_domains_for_3Di_usage = pd.read_csv(usage_csv_path)
+        sequence_ids_to_use = set(df_domains_for_3Di_usage['Domain_id'])
+
+        # Read the FASTA file and filter based on sequence_ids_to_use
+        with open(seq_path, 'r') as fasta_file:
+            fasta_entries = read_fasta(fasta_file)
+            fasta_entries.sort(key=lambda entry: int(entry[0]))
+        for entry in fasta_entries:
+            if int(entry[0]) in sequence_ids_to_use:
+                sequences[int(entry[0])] = entry[2]
+        
+        # 3Di-sequences need to be lower-case
+        for key in sequences.keys():
+            sequences[key] = sequences[key].lower()
+        
+    else:
+        # If not 3Di, simply load the sequences from the CSV
+        df = pd.read_csv(seq_path)
+        for _, row in df.iterrows():
+            sequences[int(row['Unnamed: 0'])] = row['Sequence']  
     
     return sequences
 
 
 
-def embedding_set_up(seq_path, model_name, is_3Di, max_seq_len=3263):
+def embedding_set_up(seq_path, model_name, is_3Di, dataset, max_seq_len=3263):
     emb_dict = dict()
-    seq_dict = get_sequences(seq_path)
+    seq_dict = get_sequences(seq_path, dataset, is_3Di)
     model_deep, model, tokenizer = get_model(model_name)
 
     if model_name == 'ProstT5_half':
@@ -173,10 +214,10 @@ def embedding_set_up(seq_path, model_name, is_3Di, max_seq_len=3263):
     
 
 
-def get_embeddings(seq_path, emb_path, model_name, is_3Di,
+def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
                    max_residues=4096, max_seq_len=3263, nb_seq_max_in_batch=4096):
-    
-    emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, max_seq_len)
+                                                                                           
+    emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, dataset, max_seq_len)
 
     if model_name == 'TM_Vec':
         start = time.time()
@@ -200,7 +241,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di,
         batch = list()
         processed_sequences = 0
         for seq_idx, (pdb_id, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
-            if model_name is 'ProtT5_new':
+            if model_name == 'ProtT5_new':
                 # add a spaces between AA
                 seq = " ".join(seq)
 
@@ -308,16 +349,21 @@ def process_datasets(model_name, is_3Di):
 
     datasets = ["Test", "Val", "Train"]
     for dataset in datasets:
-        seq_path = f"./data/Dataset/csv/{dataset}.csv"
-        
-        emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
+        if is_3Di:
+            seq_path = f"./data/Dataset/3Di/{dataset}.fasta"
+            emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz"
+
+        else:
+            seq_path = f"./data/Dataset/csv/{dataset}.csv"
+            emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
         
 
         get_embeddings(
             seq_path,
             emb_path,
             model_name,
-            is_3Di
+            is_3Di,
+            dataset
         )
 
 def main():
@@ -327,6 +373,10 @@ def main():
 
     model_name = args.model
     is_3Di = False if int(args.is_3Di) == 0 else True
+
+    if is_3Di:
+        if model_name not in ['ProstT5_full', 'ProstT5_half']:
+            raise ValueError("For 3Di sequences, the model should be 'ProstT5_full' or 'ProstT5_half'")
 
     if model_name == 'all':
         

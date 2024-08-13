@@ -15,7 +15,7 @@ def plot_all_f1_scores(dataframe):
     :param dataframe: pandas DataFrame containing the results.
     """
     # Create a unique identifier for each combination of parameters
-    dataframe['Parameters'] = dataframe.apply(lambda row: f'Nb_Layer_Block={row["Nb_Layer_Block"]}, Dropout={row["Dropout"]}', axis=1)
+    dataframe['Parameters'] = dataframe.apply(lambda row: f'Nb_Layer_Block={row["Nb_Layer_Block"]}, Dropout={row["Dropout"]}, input_type={row["input_type"]}, Layer_size={row["Layer_size"]}', axis=1)
     
     # Calculate the maximum F1 score for each model
     max_f1_scores = dataframe.groupby('Model')['F1_Score'].max().sort_values(ascending=False)
@@ -39,7 +39,7 @@ def plot_all_f1_scores(dataframe):
             y=param_data['F1_Score'],
             name=param,
             hoverinfo='text',
-            text=param_data.apply(lambda row: f'Model={row["Model"]}<br>Nb_Layer_Block={row["Nb_Layer_Block"]}<br>Dropout={row["Dropout"]}<br>F1_Score={row["F1_Score"]:.4f}', axis=1)
+            text=param_data.apply(lambda row: f'Model={row["Model"]}<br>Nb_Layer_Block={row["Nb_Layer_Block"]}<br>Dropout={row["Dropout"]}<br>input_type={row["input_type"]}<br>Layer_size={row["Layer_size"]}<br>F1_Score={row["F1_Score"]:.4f}', axis=1)
         ))
 
     fig.update_layout(
@@ -71,7 +71,7 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, **conditions):
     Plots the F1 score evolution for selected models along a specified parameter.
     
     :param dataframe: pandas DataFrame containing the results.
-    :param x_param: The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout').
+    :param x_param: The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout', 'input_type').
     :param models_to_plot: List of models to include in the plot.
     :param conditions: Dictionary of conditions to filter the data (optional).
     """
