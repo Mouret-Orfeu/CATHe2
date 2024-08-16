@@ -1,6 +1,7 @@
 import pandas as pd 
 import os
 import csv
+from tqdm import tqdm
 
 def read_fasta(file):
     """Reads a FASTA file and returns a list of tuples (id, header, sequence)."""
@@ -47,7 +48,33 @@ def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold):
 
     # Save the domain IDs for 3Di usage in a CSV file
     df_train_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Train_domain_ids_for_which_I_have_3Di})
+
+    # to create the 0 threshold id csv, we add the order ids to be able to get theses ids for other threshold id csv
+    if pLDDT_threshold == 0:
+        # add the "order_id" to df_train_ids_for_which_I_have_3Di with id from 0
+        df_train_ids_for_which_I_have_3Di['order_id'] = range(len(df_train_ids_for_which_I_have_3Di))
+
+    # to create n!=0 threshold id csv, we add the order ids from the 0 threshold id csv to be able to filter the 3Di embeddings in the future (which are in the same order)
+    else:
+        # Iterate through each row in df_train_ids_for_which_I_have_3Di to find the corresponding order_id
+        order_ids = []
+        with open('./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv', 'r') as unfiltered_id_csv_file:
+            reader = pd.read_csv(unfiltered_id_csv_file)
+            for domain_id in tqdm(df_train_ids_for_which_I_have_3Di['Domain_id'], desc=f"Processing Train IDs, threshold {pLDDT_threshold}"):
+                # Find the matching row for the current domain_id and extract the order_id
+                order_id_row = reader[reader['Domain_id'] == domain_id]
+                if not order_id_row.empty:
+                    order_id = order_id_row['order_id'].values[0]
+                    order_ids.append(order_id)
+                else:
+                    raise ValueError(f"No order_id found for domain_id {domain_id}")
+
+        # Add the order_id column to df_train_ids_for_which_I_have_3Di
+        df_train_ids_for_which_I_have_3Di['order_id'] = order_ids
+
     df_train_ids_for_which_I_have_3Di.to_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv', index=False)
+
+    
 
     # Val and Test
     
@@ -103,10 +130,53 @@ def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold):
 
     # Save the domain IDs for 3Di usage in CSV files
     df_val_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
+    if pLDDT_threshold == 0:
+        # add the "order_id" to df_val_ids_for_which_I_have_3Di with id from 0
+        df_val_ids_for_which_I_have_3Di['order_id'] = range(len(df_val_ids_for_which_I_have_3Di))
+    else:
+        # Iterate through each row in df_val_ids_for_which_I_have_3Di to find the corresponding order_id
+        order_ids = []
+        with open('./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv', 'r') as unfiltered_id_csv_file:
+            reader = pd.read_csv(unfiltered_id_csv_file)
+            for domain_id in tqdm(df_val_ids_for_which_I_have_3Di['Domain_id'], desc=f"Processing Val IDs, threshold {pLDDT_threshold}"):
+                # Find the matching row for the current domain_id and extract the order_id
+                order_id_row = reader[reader['Domain_id'] == domain_id]
+                if not order_id_row.empty:
+                    order_id = order_id_row['order_id'].values[0]
+                    order_ids.append(order_id)
+                else:
+                    raise ValueError(f"No order_id found for domain_id {domain_id}")
+        
+        # Add the order_id column to df_val_ids_for_which_I_have_3Di
+        df_val_ids_for_which_I_have_3Di['order_id'] = order_ids
+
     df_val_ids_for_which_I_have_3Di.to_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv', index=False)
 
+    
+
     df_test_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
+    if pLDDT_threshold == 0:
+        # add the "order_id" to df_test_ids_for_which_I_have_3Di with id from 0
+        df_test_ids_for_which_I_have_3Di['order_id'] = range(len(df_test_ids_for_which_I_have_3Di))
+    else:
+        # Iterate through each row in df_test_ids_for_which_I_have_3Di to find the corresponding order_id
+        order_ids = []
+        with open('./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv', 'r') as unfiltered_id_csv_file:
+            reader = pd.read_csv(unfiltered_id_csv_file)
+            for domain_id in tqdm(df_test_ids_for_which_I_have_3Di['Domain_id'], desc=f"Processing Test IDs, threshold {pLDDT_threshold}"):
+                # Find the matching row for the current domain_id and extract the order_id
+                order_id_row = reader[reader['Domain_id'] == domain_id]
+                if not order_id_row.empty:
+                    order_id = order_id_row['order_id'].values[0]
+                    order_ids.append(order_id)
+                else:
+                    raise ValueError(f"No order_id found for domain_id {domain_id}")
+        
+        # Add the order_id column to df_test_ids_for_which_I_have_3Di
+        df_test_ids_for_which_I_have_3Di['order_id'] = order_ids
     df_test_ids_for_which_I_have_3Di.to_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv', index=False)
+
+    
 
     # Calculate the number of removed superfamilies in test set
     SF_removed_in_test = len(Test_domain_ids_for_which_I_have_3Di) - len(Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train)
@@ -132,6 +202,8 @@ def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold):
     
 
 def main():
+    # save_dataset_ids_for_3Di_usage_in_classification(0)
+
     for pLDDT_threshold in [0, 4, 14, 24, 34, 44, 54, 64, 74, 84]:
         save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold)
 
