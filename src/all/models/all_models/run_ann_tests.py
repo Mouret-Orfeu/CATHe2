@@ -5,7 +5,7 @@ from tqdm import tqdm
 # Define the possible values for each parameter
 dropout_values = [0.3]
 layer_size_values = [2048]
-nb_layer_block_values = ['two']
+nb_layer_block_values = ['three']
 input_type = ['AA+3Di']
 pLDDT_threshold = [0, 4, 14, 24, 34, 44, 54, 64, 74, 84]
 script_path = './src/all/models/all_models/ann_all_models.py'

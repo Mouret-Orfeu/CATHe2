@@ -158,7 +158,7 @@ def get_sequences(seq_path, dataset, is_3Di):
 
     if is_3Di:
         # Determine the correct CSV file path based on the dataset
-        usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage.csv'
+        usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage_0.csv'
 
         # Load the IDs that should be kept
         df_domains_for_3Di_usage = pd.read_csv(usage_csv_path)
