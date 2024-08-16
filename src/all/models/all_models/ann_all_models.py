@@ -4,6 +4,7 @@ import argparse
 import pandas as pd 
 import os
 import numpy as np 
+import gc
 from sklearn import preprocessing
 import tensorflow as tf
 from tensorflow import keras  
@@ -22,6 +23,7 @@ import matplotlib
 import matplotlib.colors as mcolors
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from memory_profiler import profile
 
 
 
@@ -41,7 +43,12 @@ nb_layer_block_dict = {
         "three": 3
     }
 
-def load_data(model_name, input_type):
+def domain_id_generator(domain_ids):
+    for index, id_value in enumerate(domain_ids):
+        yield id_value, index
+
+# @profile
+def load_data(model_name, input_type, pLDDT_threshold):
     """Loads data for the specified model."""
 
     if model_name == 'ProtT5':
@@ -88,13 +95,13 @@ def load_data(model_name, input_type):
 
         X_test = np.concatenate((X_test, X_test_other), axis=0)
 
-        for i in range(len(X_test_other)):
+        for _ in range(len(X_test_other)):
             y_test.append('other')
     
     else:
 
 
-        
+        # labels y_train, y_val, y_test
 
         df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
         df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
@@ -102,21 +109,27 @@ def load_data(model_name, input_type):
         
         if input_type == '3Di' or input_type == 'AA+3Di':
             # Load the domain IDs for which 3Di data is available
-            train_ids_for_3Di_usage = set(pd.read_csv('./data/Dataset/csv/Train_ids_for_3Di_usage.csv')['Domain_id'])
-            val_ids_for_3Di_usage = set(pd.read_csv('./data/Dataset/csv/Val_ids_for_3Di_usage.csv')['Domain_id'])
-            test_ids_for_3Di_usage = set(pd.read_csv('./data/Dataset/csv/Test_ids_for_3Di_usage.csv')['Domain_id'])
 
+            train_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+            val_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+            test_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
 
-            # Filter the datasets to keep only the domains for which 3Di data is available
-            df_train = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)]
-            df_val = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)]
-            df_test = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)]
+            # Ensure that 'Unnamed: 0' is integer
+            df_train['Unnamed: 0'] = df_train['Unnamed: 0'].astype(int)
+            df_val['Unnamed: 0'] = df_val['Unnamed: 0'].astype(int)
+            df_test['Unnamed: 0'] = df_test['Unnamed: 0'].astype(int)
 
-        y_train = df_train['SF'].tolist()
-        y_val = df_val['SF'].tolist()
-        y_test = df_test['SF'].tolist()
+            # Filter the DataFrame to include only the rows where the id is present in train_ids_for_3Di_usage
+            df_train_filtered = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)]
+            df_val_filtered = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)]
+            df_test_filtered = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)]
+
+        y_train = df_train_filtered['SF'].tolist()
+        y_val = df_val_filtered['SF'].tolist()
+        y_test = df_test_filtered['SF'].tolist()
 
         
+        # features X_train, X_val, X_test
         
         prot_sequence_embeddings_paths = {
             'ProtT5': ('Train_ProtT5_per_protein.npz', 'Val_ProtT5_per_protein.npz', 'Test_ProtT5_per_protein.npz'),
@@ -130,18 +143,17 @@ def load_data(model_name, input_type):
         }
 
         prot_3Di_embeddings_paths = {
-            'ProtT5_new': ('Train_ProtT5_new_per_protein_3Di.npz', 'Val_ProtT5_new_per_protein_3Di.npz', 'Test_ProtT5_new_per_protein_3Di.npz'),
-            'ESM2': ('Train_ESM2_per_protein_3Di.npz', 'Val_ESM2_per_protein_3Di.npz', 'Test_ESM2_per_protein_3Di.npz'),
-            'Ankh_large': ('Train_Ankh_large_per_protein_3Di.npz', 'Val_Ankh_large_per_protein_3Di.npz', 'Test_Ankh_large_per_protein_3Di.npz'),
-            'Ankh_base': ('Train_Ankh_base_per_protein_3Di.npz', 'Val_Ankh_base_per_protein_3Di.npz', 'Test_Ankh_base_per_protein_3Di.npz'),
             'ProstT5_full': ('Train_ProstT5_full_per_protein_3Di.npz', 'Val_ProstT5_full_per_protein_3Di.npz', 'Test_ProstT5_full_per_protein_3Di.npz'),
-            'ProstT5_half': ('Train_ProstT5_half_per_protein_3Di.npz', 'Val_ProstT5_half_per_protein_3Di.npz', 'Test_ProstT5_half_per_protein_3Di.npz'),
-            'TM_Vec': ('Train_TM_Vec_per_protein_3Di.npz', 'Val_TM_Vec_per_protein_3Di.npz', 'Test_TM_Vec_per_protein_3Di.npz')
+            'ProstT5_half': ('Train_ProstT5_half_per_protein_3Di.npz', 'Val_ProstT5_half_per_protein_3Di.npz', 'Test_ProstT5_half_per_protein_3Di.npz')
+            
         }
 
-
-        if model_name not in prot_sequence_embeddings_paths:
-            raise ValueError("Invalid model name")
+        if input_type == 'AA':
+            if model_name not in prot_sequence_embeddings_paths:
+                raise ValueError("Invalid model name")
+        else:
+            if model_name not in prot_3Di_embeddings_paths:
+                raise ValueError("Invalid model name")
         
         Train_file_name_seq_embed, Val_file_name_seq_embed, Test_file_name_seq_embed = prot_sequence_embeddings_paths[model_name]
         Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed = prot_3Di_embeddings_paths[model_name]
@@ -161,45 +173,62 @@ def load_data(model_name, input_type):
         if input_type == 'AA+3Di':
 
             # Load sequence embeddings
-            X_train_seq = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
-            X_val_seq = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
-            X_test_seq = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
+            X_train_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
+            X_val_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
+            X_test_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
 
-            # Ensure that 'Unnamed: 0' is integer
-            df_train['Unnamed: 0'] = df_train['Unnamed: 0'].astype(int)
-            df_val['Unnamed: 0'] = df_val['Unnamed: 0'].astype(int)
-            df_test['Unnamed: 0'] = df_test['Unnamed: 0'].astype(int)
-
-            # Filter the DataFrame to include only the IDs present in train_ids_for_3Di_usage
-            filtered_df_train = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)]
-            filtered_df_val = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)]
-            filtered_df_test = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)]
-
-            # Get the indices of the rows that should be kept
-            train_indices_to_keep = filtered_df_train.index
-            val_indices_to_keep = filtered_df_val.index
-            test_indices_to_keep = filtered_df_test.index
+            # Get the indices of the rows that should be kept, (not the seq id but the actual row in the csv file, for example the first id of the test set is 0, but the first sequence id is 1035679)
+            # Find the row numbers (positions) for train, val, and test IDs in their respective DataFrames
+            train_domain_id_to_keep = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)].index.tolist()
+            val_domain_id_to_keep = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)].index.tolist()
+            test_domain_id_to_keep = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)].index.tolist()
 
             # Use these indices to filter the embeddings arrays
-            X_train_seq_filtered = X_train_seq[train_indices_to_keep]
-            X_val_seq_filtered = X_val_seq[val_indices_to_keep]
-            X_test_seq_filtered = X_test_seq[test_indices_to_keep]
+            X_train_seq_embeddings_filtered = X_train_seq_embeddings[train_domain_id_to_keep]
+            X_val_seq_embeddings_filtered = X_val_seq_embeddings[val_domain_id_to_keep]
+            X_test_seq_embeddings_filtered = X_test_seq_embeddings[test_domain_id_to_keep]
             
+            del X_train_seq_embeddings, X_val_seq_embeddings, X_test_seq_embeddings  # Immediately delete to free memory
+            gc.collect()
 
             # Load 3Di embeddings
             X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
             X_val_3Di = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
             X_test_3Di = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0']
 
+            train_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv')['Domain_id'])
+            val_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv')['Domain_id'])
+            test_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv')['Domain_id'])
+            
+            # val_domain_id_to_fasta_row_id_dict = {id_value: index for index, id_value in enumerate(val_ids_for_3Di_usage_threshold_0)}
+            # test_domain_id_to_fasta_row_id_dict = {id_value: index for index, id_value in enumerate(test_ids_for_3Di_usage_threshold_0)}
+            # val_3Di_id_to_keep = [val_domain_id_to_fasta_row_id_dict[domain_id] for domain_id in val_ids_for_3Di_usage_threshold_0]
+            # test_3Di_id_to_keep = [test_domain_id_to_fasta_row_id_dict[domain_id] for domain_id in test_ids_for_3Di_usage_threshold_0]
+
+            # Get the corresponding 3Di ids to keep
+            train_3Di_id_to_keep = [index for id_value, index in domain_id_generator(train_ids_for_3Di_usage_threshold_0) if id_value in train_ids_for_3Di_usage]
+            val_3Di_id_to_keep = [index for id_value, index in domain_id_generator(val_ids_for_3Di_usage_threshold_0) if id_value in val_ids_for_3Di_usage]
+            test_3Di_id_to_keep = [index for id_value, index in domain_id_generator(test_ids_for_3Di_usage_threshold_0) if id_value in test_ids_for_3Di_usage]
+
+            # filter the train embeddings so that only the ones with pLDDT > threshold are kept
+            X_train_3Di_filtered = X_train_3Di[train_3Di_id_to_keep]
+
+            # filter test and val embeddings so that only the the ones corresponding to SF present in filtered train set are kept
+            X_val_3Di_filtered = X_val_3Di[val_3Di_id_to_keep]
+            X_test_3Di_filtered = X_test_3Di[test_3Di_id_to_keep]
+
             # Ensure that lengths match before concatenation
-            assert len(X_train_seq_filtered) == len(X_train_3Di), "Train sequence and 3Di embeddings must have the same length"
-            assert len(X_val_seq_filtered) == len(X_val_3Di), "Val sequence and 3Di embeddings must have the same length"
-            assert len(X_test_seq_filtered) == len(X_test_3Di), "Test sequence and 3Di embeddings must have the same length"
+            assert len(X_train_seq_embeddings_filtered) == len(X_train_3Di_filtered), "Train sequence and 3Di embeddings must have the same length"
+            assert len(X_val_seq_embeddings_filtered) == len(X_val_3Di_filtered), "Val sequence and 3Di embeddings must have the same length"
+            assert len(X_test_seq_embeddings_filtered) == len(X_test_3Di_filtered), "Test sequence and 3Di embeddings must have the same length"
 
             # Concatenate the sequence and 3Di embeddings along the feature axis
-            X_train = np.concatenate((X_train_seq_filtered, X_train_3Di), axis=1)
-            X_val = np.concatenate((X_val_seq_filtered, X_val_3Di), axis=1)
-            X_test = np.concatenate((X_test_seq_filtered, X_test_3Di), axis=1)
+            X_train = np.concatenate((X_train_seq_embeddings_filtered, X_train_3Di_filtered), axis=1)
+            X_val = np.concatenate((X_val_seq_embeddings_filtered, X_val_3Di_filtered), axis=1)
+            X_test = np.concatenate((X_test_seq_embeddings_filtered, X_test_3Di_filtered), axis=1)
+
+            del X_train_seq_embeddings_filtered, X_val_seq_embeddings_filtered, X_test_seq_embeddings_filtered, X_train_3Di_filtered, X_val_3Di_filtered, X_test_3Di_filtered  # Immediately delete to free memory
+            gc.collect()
 
         print("\033[92m \nData Loading done\033[0m")
 
@@ -309,8 +338,8 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
 
     return classifier
 
-
-def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size):
+# @profile
+def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold):
     """Trains the model."""
 
     print("\033[92mModel training \033[0m")
@@ -320,12 +349,12 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
 
     if dropout:
 
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.h5'
-        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.png'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.h5'
+        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.png'
     else:
         
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.h5'
-        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.png'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.h5'
+        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.png'
     
     if input_type == '3Di':
 
@@ -376,6 +405,9 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         plt.close()
 
         print("\033[92mModel training done\033[0m")
+
+        del model, history, loss, val_loss, epochs  # Immediately delete to free memory
+        gc.collect()
 
 def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
 
@@ -433,7 +465,8 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     plt.savefig(f'{confusion_matrix_path}.png', bbox_inches='tight')
     plt.close()
 
-def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size):
+# @profile
+def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold):
     """Evaluates the trained model."""
 
     print("\033[92mModel evaluation \033[0m")
@@ -443,12 +476,12 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
         base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.h5'
 
 
-        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.csv'
-        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}'
-        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}.csv'
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.csv'
     else:
         base_model_path = f'saved_models/ann_{model_name}'
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
@@ -456,9 +489,9 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
         model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.h5'
 
-        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.csv'
-        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}'
-        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.csv'
+        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.csv'
+        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}'
+        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.csv'
     
     if input_type == '3Di':
             
@@ -508,7 +541,8 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 'Nb_Layer_Block': [nb_layer_block],
                 'Dropout': [dropout],
                 'Input_Type': [input_type],
-                'Layer_Size': [layer_size],
+                'Layer_size': [layer_size],
+                'pLDDT_threshold': [pLDDT_threshold],
                 'F1_Score': [f1_score_test]
             })
             df_results_path = './results/perf_dataframe.csv'
@@ -517,11 +551,13 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 df_existing = pd.read_csv(df_results_path)
                 # Create a mask to find rows that match the current combination of parameters
                 mask = (
-                    (df_existing['Model'] == model_name) &
-                    (df_existing['Nb_Layer_Block'] == nb_layer_block) &
-                    (df_existing['Dropout'] == dropout) &
-                    (df_existing['Input_Type'] == input_type)
-                    (df_existing['Layer_Size'] == layer_size)
+                    (df_existing['Model'].astype(type(model_name)) == model_name) &
+                    (df_existing['Nb_Layer_Block'].astype(type(nb_layer_block)) == nb_layer_block) &
+                    (df_existing['Dropout'].astype(type(dropout)) == dropout) &
+                    (df_existing['Input_Type'].astype(type(input_type)) == input_type) &
+                    (df_existing['Layer_size'].astype(type(layer_size)) == layer_size) &
+                    (df_existing['pLDDT_threshold'].astype(type(pLDDT_threshold)) == pLDDT_threshold) 
+
                 )
                 # If a matching row exists, update its F1_Score
                 if mask.any():
@@ -552,6 +588,9 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 mcc_arr.append(matthews_corrcoef(y_test_re, y_pred_test_re.argmax(axis=1)))
                 bal_arr.append(balanced_accuracy_score(y_test_re, y_pred_test_re.argmax(axis=1)))
 
+                del X_test_re, y_test_re, y_pred_test_re  # Immediately delete to free memory
+                gc.collect()
+
             writer.writerow(["Accuracy ", np.mean(acc_arr)])
             writer.writerow(["F1-Score", np.mean(f1_arr)])
             writer.writerow(["MCC", np.mean(mcc_arr)])
@@ -568,6 +607,10 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
             print("\033[92mModel evaluation done\033[0m")
 
+            # free all memory
+            del model, y_pred_val, y_pred_test, y_pred, cr, df, df_results, df_existing, df_combined, f1_arr, acc_arr, mcc_arr, bal_arr, num_iter
+            gc.collect()
+
 
 def create_arg_parser():
     """Creates and returns the ArgumentParser object."""
@@ -579,24 +622,31 @@ def create_arg_parser():
                         help="Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train")
     
     parser.add_argument('--dropout', type=str, 
-                        default='all', 
+                        default='0.3', 
                         help="Whether to use dropout in the model layers or not, and if so, what value, put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value, and 'all' to test every values in [0,0.2,0.4]")
     
     parser.add_argument('--layer_size', type=str, 
-                        default='all', 
-                        help="To choose the size of the dens layers in the classifier, choose a values in [64,128,256,512,1024] or 'all' to test every values")
+                        default='2048', 
+                        help="To choose the size of the dens layers in the classifier, choose a values in [64,128,256,512, 1024, 2048] or 'all' to test every values")
 
+
+    parser.add_argument('--nb_layer_block', type=str, 
+                        default='two',
+                        help="Number of layer block {Dense, LeakyReLU, BatchNormalization, Dropout} in the classifier. Choose between 'one', 'two', 'three', or 'all'")
+    
     parser.add_argument('--model', type=str, 
                         default='ProstT5_full', 
                         help="What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
     
-    parser.add_argument('--nb_layer_block', type=str, 
-                        default='all',
-                        help="Number of layer block {Dense, LeakyReLU, BatchNormalization, Dropout} in the classifier. Choose between 'one', 'two', 'three', or 'all'")
-    
     parser.add_argument('--classifier_input', type=str, 
-                        default='AA', 
+                        default='AA+3Di', 
                         help="Whether to use Amino Acids, 3Di or a concatenation of both to train the classifier, put 'AA' for Amino Acids, '3Di' for 3Di, 'AA+3Di' for the concatenation of the 2")
+    
+    
+    parser.add_argument('--pLDDT_threshold', type=int, 
+                        default='0', 
+                        help="Threshold for pLDDT to filter the trining set of 3Di from hight structure quality, choose from [0, 4, 14, 24, 34, 44, 54, 64, 74, 84] (only useful for 3Di input)")
+    
     return parser
 
 def main():
@@ -608,8 +658,12 @@ def main():
     do_training = args.do_training
     nb_layer_block = args.nb_layer_block
     input_type = args.classifier_input
+    pLDDT_threshold = args.pLDDT_threshold
 
-    if input_type == '3Di' or input_type == 'AA+3Di' and model_name == 'ProtT5':
+    if input_type == 'AA':
+        pLDDT_threshold = 0.0
+
+    if (input_type == '3Di' or input_type == 'AA+3Di') and model_name == 'ProtT5':
         raise ValueError("Please use 'ProtT5_new' instead of 'ProtT5' when using classifier_input '3Di' or 'AA+3Di'")
 
     do_training = False if int(args.do_training) == 0 else True
@@ -622,7 +676,7 @@ def main():
         dropout_values = [dropout_tag]
 
     if layer_size_tag == 'all':
-        layer_size_values = [64, 128, 256, 512, 1024]
+        layer_size_values = [64, 128, 256, 512]
     else:
         layer_size_values = [layer_size_tag]
 
@@ -634,37 +688,50 @@ def main():
                 for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
                     for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                         for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
+                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
                             X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                             if do_training:
-                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
-                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
+                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                            # Clear memory after evaluation
+                            del X_train, y_train, X_val, y_val, X_test, y_test
+                            gc.collect()
             else:
                 for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                     for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
                         X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                        # Clear memory after evaluation
+                        del X_train, y_train, X_val, y_val, X_test, y_test
+                        gc.collect()
     else:
         if nb_layer_block == 'all':
             for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
                 for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                     for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
                         X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                        # Clear memory after evaluation
+                        del X_train, y_train, X_val, y_val, X_test, y_test
+                        gc.collect()
         else:
             for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                 for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type)
+                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
                     X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
                     if do_training:
-                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, layer_size)
+                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
+                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                    # Clear memory after evaluation
+                    del X_train, y_train, X_val, y_val, X_test, y_test
+                    gc.collect()
+                                   
 
 if __name__ == '__main__':
     main()

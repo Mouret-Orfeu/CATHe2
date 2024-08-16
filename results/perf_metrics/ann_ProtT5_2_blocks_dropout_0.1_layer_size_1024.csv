@@ -1,0 +1,14 @@
+Metric,Value
+Validation,
+Validation F1 Score,0.8876152037246393
+Validation Accuracy Score,0.9039778522512021
+Regular Testing,
+Test F1 Score,0.7649045888844982
+Test Accuracy Score,0.8806470416788108
+Test MCC,0.8801534154651584
+Test Balanced Accuracy,0.7912587693009787
+Bootstrapping Results,
+Accuracy ,0.8808647624599243
+F1-Score,0.764828510144738
+MCC,0.8803713059091876
+Balanced Accuracy,0.8082752202185945
