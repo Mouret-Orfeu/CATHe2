@@ -45,9 +45,9 @@ nb_layer_block_dict = {
 
 
 
-# def domain_id_generator(domain_ids):
-#     for index, id_value in enumerate(domain_ids):
-#         yield id_value, index
+def domain_id_generator(domain_ids):
+    for index, id_value in enumerate(domain_ids):
+        yield id_value, index
 
 # @profile
 def load_data(model_name, input_type, pLDDT_threshold):
@@ -187,30 +187,90 @@ def load_data(model_name, input_type, pLDDT_threshold):
         
         if input_type == 'AA+3Di':
 
+            # # Load sequence embeddings
+            # X_train_seq = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
+            # X_val_seq = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
+            # X_test_seq = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
+
+            # # Ensure that 'Unnamed: 0' is integer
+            # df_train['Unnamed: 0'] = df_train['Unnamed: 0'].astype(int)
+            # df_val['Unnamed: 0'] = df_val['Unnamed: 0'].astype(int)
+            # df_test['Unnamed: 0'] = df_test['Unnamed: 0'].astype(int)
+
+            # # Filter the DataFrame to include only the IDs present in train_ids_for_3Di_usage
+            # filtered_df_train = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)]
+            # filtered_df_val = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)]
+            # filtered_df_test = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)]
+
+            # # Get the indices of the rows that should be kept
+            # train_indices_to_keep = filtered_df_train.index
+            # val_indices_to_keep = filtered_df_val.index
+            # test_indices_to_keep = filtered_df_test.index
+
+            # # Use these indices to filter the embeddings arrays
+            # X_train_seq_filtered = X_train_seq[train_indices_to_keep]
+            # X_val_seq_filtered = X_val_seq[val_indices_to_keep]
+            # X_test_seq_filtered = X_test_seq[test_indices_to_keep]
+
+            # # Load 3Di embeddings
+            # X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
+            # X_val_3Di = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
+            # X_test_3Di = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0']
+
+            # train_3Di_id_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
+            # val_3Di_id_to_keep =   list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
+            # test_3Di_id_to_keep =  list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
+            
+            # #DEBUG
+            # # print("Length of X_train_3Di_unfiltered: ", len(X_train_3Di))
+            # # print("Length of nb id in train_3Di_id_to_keep: ", len(train_3Di_id_to_keep))
+            # # print("Length of X_train_seq_filtered: ", len(X_train_seq_filtered))
+
+            # # print("Length of X_val_3Di_unfiltered: ", len(X_val_3Di))
+            # # print("Length of nb id in val_3Di_id_to_keep: ", len(val_3Di_id_to_keep))
+            # # print("Length of X_val_seq_filtered: ", len(X_val_seq_filtered))
+
+            # # print("Length of X_test_3Di_unfiltered: ", len(X_test_3Di))
+            # # print("Length of nb id in test_3Di_id_to_keep: ", len(test_3Di_id_to_keep))
+            # # print("Length of X_test_seq_filtered: ", len(X_test_seq_filtered))
+
+
+            # # exit()
+
+            # # filter the 3Di embeddings so that only the ones with pLDDT > threshold are kept
+            # X_train_3Di_filtered = X_train_3Di[train_3Di_id_to_keep]
+            # X_val_3Di_filtered = X_val_3Di[val_3Di_id_to_keep]
+            # X_test_3Di_filtered = X_test_3Di[test_3Di_id_to_keep]
+
+            # # Ensure that lengths match before concatenation
+            # assert len(X_train_seq_filtered) == len(X_train_3Di_filtered), "Train sequence and 3Di embeddings must have the same length"
+            # assert len(X_val_seq_filtered) == len(X_val_3Di_filtered), "Val sequence and 3Di embeddings must have the same length"
+            # assert len(X_test_seq_filtered) == len(X_test_3Di_filtered), "Test sequence and 3Di embeddings must have the same length"
+
+
+            # # Concatenate the sequence and 3Di embeddings along the feature axis
+            # X_train = np.concatenate((X_train_seq_filtered, X_train_3Di_filtered), axis=1)
+            # X_val = np.concatenate((X_val_seq_filtered, X_val_3Di_filtered), axis=1)
+            # X_test = np.concatenate((X_test_seq_filtered, X_test_seq_filtered), axis=1)
+
             # Load sequence embeddings
-            X_train_seq = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
-            X_val_seq = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
-            X_test_seq = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
+            X_train_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
+            X_val_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
+            X_test_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
 
-            # Ensure that 'Unnamed: 0' is integer
-            df_train['Unnamed: 0'] = df_train['Unnamed: 0'].astype(int)
-            df_val['Unnamed: 0'] = df_val['Unnamed: 0'].astype(int)
-            df_test['Unnamed: 0'] = df_test['Unnamed: 0'].astype(int)
-
-            # Filter the DataFrame to include only the IDs present in train_ids_for_3Di_usage
-            filtered_df_train = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)]
-            filtered_df_val = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)]
-            filtered_df_test = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)]
-
-            # Get the indices of the rows that should be kept
-            train_indices_to_keep = filtered_df_train.index
-            val_indices_to_keep = filtered_df_val.index
-            test_indices_to_keep = filtered_df_test.index
+            # Get the indices of the rows that should be kept, (not the seq id but the actual row in the csv file, for example the first id of the test set is 0, but the first sequence id is 1035679)
+            # Find the row numbers (positions) for train, val, and test IDs in their respective DataFrames
+            train_domain_id_to_keep = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)].index.tolist()
+            val_domain_id_to_keep = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)].index.tolist()
+            test_domain_id_to_keep = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)].index.tolist()
 
             # Use these indices to filter the embeddings arrays
-            X_train_seq_filtered = X_train_seq[train_indices_to_keep]
-            X_val_seq_filtered = X_val_seq[val_indices_to_keep]
-            X_test_seq_filtered = X_test_seq[test_indices_to_keep]
+            X_train_seq_embeddings_filtered = X_train_seq_embeddings[train_domain_id_to_keep]
+            X_val_seq_embeddings_filtered = X_val_seq_embeddings[val_domain_id_to_keep]
+            X_test_seq_embeddings_filtered = X_test_seq_embeddings[test_domain_id_to_keep]
+            
+            del X_train_seq_embeddings, X_val_seq_embeddings, X_test_seq_embeddings  # Immediately delete to free memory
+            gc.collect()
 
             # Load 3Di embeddings
             X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
@@ -220,116 +280,56 @@ def load_data(model_name, input_type, pLDDT_threshold):
             train_3Di_id_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
             val_3Di_id_to_keep =   list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
             test_3Di_id_to_keep =  list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-            
+
             #DEBUG
-            # print("Length of X_train_3Di_unfiltered: ", len(X_train_3Di))
-            # print("Length of nb id in train_3Di_id_to_keep: ", len(train_3Di_id_to_keep))
-            # print("Length of X_train_seq_filtered: ", len(X_train_seq_filtered))
-
-            # print("Length of X_val_3Di_unfiltered: ", len(X_val_3Di))
-            # print("Length of nb id in val_3Di_id_to_keep: ", len(val_3Di_id_to_keep))
-            # print("Length of X_val_seq_filtered: ", len(X_val_seq_filtered))
-
-            # print("Length of X_test_3Di_unfiltered: ", len(X_test_3Di))
-            # print("Length of nb id in test_3Di_id_to_keep: ", len(test_3Di_id_to_keep))
-            # print("Length of X_test_seq_filtered: ", len(X_test_seq_filtered))
-
-
-            # exit()
-
-            # filter the 3Di embeddings so that only the ones with pLDDT > threshold are kept
-            X_train_3Di_filtered = X_train_3Di[train_3Di_id_to_keep]
-            X_val_3Di_filtered = X_val_3Di[val_3Di_id_to_keep]
-            X_test_3Di_filtered = X_test_3Di[test_3Di_id_to_keep]
-
-            # Ensure that lengths match before concatenation
-            assert len(X_train_seq_filtered) == len(X_train_3Di_filtered), "Train sequence and 3Di embeddings must have the same length"
-            assert len(X_val_seq_filtered) == len(X_val_3Di_filtered), "Val sequence and 3Di embeddings must have the same length"
-            assert len(X_test_seq_filtered) == len(X_test_3Di_filtered), "Test sequence and 3Di embeddings must have the same length"
-
-
-            # Concatenate the sequence and 3Di embeddings along the feature axis
-            X_train = np.concatenate((X_train_seq_filtered, X_train_3Di_filtered), axis=1)
-            X_val = np.concatenate((X_val_seq_filtered, X_val_3Di_filtered), axis=1)
-            X_test = np.concatenate((X_test_seq_filtered, X_test_seq_filtered), axis=1)
-
-            # # Load sequence embeddings
-            # X_train_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
-            # X_val_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
-            # X_test_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
-
-            # # Get the indices of the rows that should be kept, (not the seq id but the actual row in the csv file, for example the first id of the test set is 0, but the first sequence id is 1035679)
-            # # Find the row numbers (positions) for train, val, and test IDs in their respective DataFrames
-            # train_domain_id_to_keep = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)].index.tolist()
-            # val_domain_id_to_keep = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)].index.tolist()
-            # test_domain_id_to_keep = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)].index.tolist()
-
-            # # Use these indices to filter the embeddings arrays
-            # X_train_seq_embeddings_filtered = X_train_seq_embeddings[train_domain_id_to_keep]
-            # X_val_seq_embeddings_filtered = X_val_seq_embeddings[val_domain_id_to_keep]
-            # X_test_seq_embeddings_filtered = X_test_seq_embeddings[test_domain_id_to_keep]
-            
-            # del X_train_seq_embeddings, X_val_seq_embeddings, X_test_seq_embeddings  # Immediately delete to free memory
-            # gc.collect()
-
-            # Load 3Di embeddings
-            # X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
-            # X_val_3Di = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
-            # X_test_3Di = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0']
-
-            # train_3Di_id_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-            # val_3Di_id_to_keep =   list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-            # test_3Di_id_to_keep =  list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-
-            # #DEBUG
             # print("Length of X_val_3Di: ", len(X_val_3Di))
             # print("Length of val_3Di_id_to_keep: ", len(val_3Di_id_to_keep))
 
             # print("Length of X_test_3Di: ", len(X_test_3Di))
             # print("Length of test_3Di_id_to_keep: ", len(test_3Di_id_to_keep))
 
-            # train_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv')['Domain_id'])
-            # val_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv')['Domain_id'])
-            # test_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv')['Domain_id'])
+            train_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv')['Domain_id'])
+            val_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv')['Domain_id'])
+            test_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv')['Domain_id'])
             
-            # # val_domain_id_to_fasta_row_id_dict = {id_value: index for index, id_value in enumerate(val_ids_for_3Di_usage_threshold_0)}
-            # # test_domain_id_to_fasta_row_id_dict = {id_value: index for index, id_value in enumerate(test_ids_for_3Di_usage_threshold_0)}
-            # # val_3Di_id_to_keep = [val_domain_id_to_fasta_row_id_dict[domain_id] for domain_id in val_ids_for_3Di_usage_threshold_0]
-            # # test_3Di_id_to_keep = [test_domain_id_to_fasta_row_id_dict[domain_id] for domain_id in test_ids_for_3Di_usage_threshold_0]
+            # val_domain_id_to_fasta_row_id_dict = {id_value: index for index, id_value in enumerate(val_ids_for_3Di_usage_threshold_0)}
+            # test_domain_id_to_fasta_row_id_dict = {id_value: index for index, id_value in enumerate(test_ids_for_3Di_usage_threshold_0)}
+            # val_3Di_id_to_keep = [val_domain_id_to_fasta_row_id_dict[domain_id] for domain_id in val_ids_for_3Di_usage_threshold_0]
+            # test_3Di_id_to_keep = [test_domain_id_to_fasta_row_id_dict[domain_id] for domain_id in test_ids_for_3Di_usage_threshold_0]
 
-            # # Get the corresponding 3Di ids to keep
-            # train_3Di_id_to_keep = [index for id_value, index in domain_id_generator(train_ids_for_3Di_usage_threshold_0) if id_value in train_ids_for_3Di_usage]
-            # val_3Di_id_to_keep =   [index for id_value, index in domain_id_generator(val_ids_for_3Di_usage_threshold_0) if id_value in val_ids_for_3Di_usage]
-            # test_3Di_id_to_keep =  [index for id_value, index in domain_id_generator(test_ids_for_3Di_usage_threshold_0) if id_value in test_ids_for_3Di_usage]
+            # Get the corresponding 3Di ids to keep
+            train_3Di_id_to_keep = [index for id_value, index in domain_id_generator(train_ids_for_3Di_usage_threshold_0) if id_value in train_ids_for_3Di_usage]
+            val_3Di_id_to_keep =   [index for id_value, index in domain_id_generator(val_ids_for_3Di_usage_threshold_0) if id_value in val_ids_for_3Di_usage]
+            test_3Di_id_to_keep =  [index for id_value, index in domain_id_generator(test_ids_for_3Di_usage_threshold_0) if id_value in test_ids_for_3Di_usage]
 
-            # # filter the train embeddings so that only the ones with pLDDT > threshold are kept
-            # X_train_3Di_filtered = X_train_3Di[train_3Di_id_to_keep]
+            # filter the train embeddings so that only the ones with pLDDT > threshold are kept
+            X_train_3Di_filtered = X_train_3Di[train_3Di_id_to_keep]
 
-            # # filter test and val embeddings so that only the the ones corresponding to SF present in filtered train set are kept
-            # X_val_3Di_filtered = X_val_3Di[val_3Di_id_to_keep]
-            # X_test_3Di_filtered = X_test_3Di[test_3Di_id_to_keep]
+            # filter test and val embeddings so that only the the ones corresponding to SF present in filtered train set are kept
+            X_val_3Di_filtered = X_val_3Di[val_3Di_id_to_keep]
+            X_test_3Di_filtered = X_test_3Di[test_3Di_id_to_keep]
 
-            # #DEBUG  
+            #DEBUG  
             # print("Length of X_val_3Di_filtered: ", len(X_val_3Di_filtered))
             # print("Length of X_test_3Di_filtered: ", len(X_test_3Di_filtered))
             # exit()
-            # # Load 3Di embeddings
-            # # X_train_3Di_filtered = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
-            # # X_val_3Di_filtered = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
-            # # X_test_3Di_filtered = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0']
+            # Load 3Di embeddings
+            # X_train_3Di_filtered = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
+            # X_val_3Di_filtered = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
+            # X_test_3Di_filtered = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0']
 
-            # # Ensure that lengths match before concatenation
-            # assert len(X_train_seq_embeddings_filtered) == len(X_train_3Di_filtered), "Train sequence and 3Di embeddings must have the same length"
-            # assert len(X_val_seq_embeddings_filtered) == len(X_val_3Di_filtered), "Val sequence and 3Di embeddings must have the same length"
-            # assert len(X_test_seq_embeddings_filtered) == len(X_test_3Di_filtered), "Test sequence and 3Di embeddings must have the same length"
+            # Ensure that lengths match before concatenation
+            assert len(X_train_seq_embeddings_filtered) == len(X_train_3Di_filtered), "Train sequence and 3Di embeddings must have the same length"
+            assert len(X_val_seq_embeddings_filtered) == len(X_val_3Di_filtered), "Val sequence and 3Di embeddings must have the same length"
+            assert len(X_test_seq_embeddings_filtered) == len(X_test_3Di_filtered), "Test sequence and 3Di embeddings must have the same length"
 
-            # # Concatenate the sequence and 3Di embeddings along the feature axis
-            # X_train = np.concatenate((X_train_seq_embeddings_filtered, X_train_3Di_filtered), axis=1)
-            # X_val = np.concatenate((X_val_seq_embeddings_filtered, X_val_3Di_filtered), axis=1)
-            # X_test = np.concatenate((X_test_seq_embeddings_filtered, X_test_3Di_filtered), axis=1)
+            # Concatenate the sequence and 3Di embeddings along the feature axis
+            X_train = np.concatenate((X_train_seq_embeddings_filtered, X_train_3Di_filtered), axis=1)
+            X_val = np.concatenate((X_val_seq_embeddings_filtered, X_val_3Di_filtered), axis=1)
+            X_test = np.concatenate((X_test_seq_embeddings_filtered, X_test_3Di_filtered), axis=1)
 
-            # del X_train_seq_embeddings_filtered, X_val_seq_embeddings_filtered, X_test_seq_embeddings_filtered, X_train_3Di_filtered, X_val_3Di_filtered, X_test_3Di_filtered  # Immediately delete to free memory
-            # gc.collect()
+            del X_train_seq_embeddings_filtered, X_val_seq_embeddings_filtered, X_test_seq_embeddings_filtered, X_train_3Di_filtered, X_val_3Di_filtered, X_test_3Di_filtered  # Immediately delete to free memory
+            gc.collect()
 
         print("\033[92m \nData Loading done\033[0m")
 
@@ -711,6 +711,9 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             # free all memory
             del model, y_pred_val, y_pred_test, y_pred, cr, df, df_results, df_existing, df_combined, f1_arr, acc_arr, mcc_arr, bal_arr, num_iter
             gc.collect()
+
+            # DEBUG
+            print(f"f1_score_test: {f1_score_test}")
 
 
 def create_arg_parser():

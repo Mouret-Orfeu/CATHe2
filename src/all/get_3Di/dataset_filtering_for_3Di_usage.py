@@ -102,27 +102,17 @@ def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold):
     threshold_filtered_Train_df = filtered_Train_df[filtered_Train_df['Unnamed: 0'].isin(valid_train_ids)]
     SF_for_Train_domains_with_3Di = set(threshold_filtered_Train_df['SF'].tolist())   
 
-    # DEBUG
-    # print("len SF_for_Train_domains_with_3Di:", len(SF_for_Train_domains_with_3Di))
-
     # Read the Val.csv and Test.csv files
     df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
     df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
 
-    # Get the indices where the SF are in SF_for_Train_domains_with_3Di
-    filtered_df_val= df_val[df_val['SF'].isin(SF_for_Train_domains_with_3Di)]
-    filtered_df_test= df_test[df_test['SF'].isin(SF_for_Train_domains_with_3Di)]
-
-    ids_filtered_df_val = filtered_df_val['Unnamed: 0'].tolist()
-    ids_filtered_df_test = filtered_df_test['Unnamed: 0'].tolist()
-
-    # DEBUG
-    # print("number of removed SF in Val:", len(indices_in_val_not_in_train))
-    # print("number of removed SF in Test:", len(indices_in_test_not_in_train))
+    # Get the indices where the SF is not in SF_for_Train_domains_with_3Di
+    indices_in_val_not_in_train = df_val.index[~df_val['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
+    indices_in_test_not_in_train = df_test.index[~df_test['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
 
     # Remove the indices from the Val and Test domain ids
-    Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [int(id) for id in Val_domain_ids_for_which_I_have_3Di if int(id) in ids_filtered_df_val]
-    Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [int(id) for id in Test_domain_ids_for_which_I_have_3Di if int(id) in ids_filtered_df_test]
+    Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Val_domain_ids_for_which_I_have_3Di if id not in indices_in_val_not_in_train]
+    Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Test_domain_ids_for_which_I_have_3Di if id not in indices_in_test_not_in_train]
 
     #DEBUG
     # print("number of domains in Val for which I have 3Di for this threshold:", len(Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train))
@@ -197,6 +187,76 @@ def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold):
     with open(lost_sf_filename, 'a', newline='') as csvfile:
         csv_writer = csv.writer(csvfile)
         csv_writer.writerow([pLDDT_threshold, total_lost_SF, training_set_size])
+
+
+
+    # # Val and Test
+    
+    # # I get the list of ids of the Val and Test domains for which I have the 3Di sequence
+    # with open('./data/Dataset/3Di/Val.fasta', 'r') as Val_fasta, open('./data/Dataset/3Di/Test.fasta', 'r') as Test_fasta:
+    #     fasta_val_entries = read_fasta(Val_fasta)
+    #     fasta_test_entries = read_fasta(Test_fasta)
+
+    # Val_domain_ids_for_which_I_have_3Di = [int(entry[0]) for entry in fasta_val_entries]
+    # Val_domain_ids_for_which_I_have_3Di.sort()  # Sort the list in place
+
+    # Test_domain_ids_for_which_I_have_3Di = [int(entry[0]) for entry in fasta_test_entries]
+    # Test_domain_ids_for_which_I_have_3Di.sort()  # Sort the list in place
+
+    # # I remove from these ids, the ids of the domains for which the SF is not represented by any domains in the Train domains for which I have 3Di
+
+    # # Read the Train.csv file and filter to get SF for the domains that have 3Di data
+    # df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
+    # filtered_Train_df = df_train[df_train['Unnamed: 0'].isin(Train_domain_ids_for_which_I_have_3Di)]
+    # SF_for_Train_domains_with_3Di = set(filtered_Train_df['SF'].tolist())   
+
+    
+
+    # print("len SF_for_Train_domains_with_3Di:", len(SF_for_Train_domains_with_3Di))
+
+    # # Read the Val.csv and Test.csv files
+    # df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
+    # df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
+
+    # # Get the indices where the SF is not in SF_for_Train_domains_with_3Di
+    # indices_in_val_not_in_train = df_val.index[~df_val['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
+    # indices_in_test_not_in_train = df_test.index[~df_test['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
+
+    # # Remove the indices from the Val and Test domain ids
+    # Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Val_domain_ids_for_which_I_have_3Di if id not in indices_in_val_not_in_train]
+    # Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Test_domain_ids_for_which_I_have_3Di if id not in indices_in_test_not_in_train]
+
+    # ####################################################################################
+
+
+    # # Read the Val.csv and Test.csv files
+    # df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
+    # df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
+
+    # # Get the indices where the SF are in SF_for_Train_domains_with_3Di
+    # filtered_df_val= df_val[~df_val['SF'].isin(SF_for_Train_domains_with_3Di)]
+    # filtered_df_test= df_test[df_test['SF'].isin(SF_for_Train_domains_with_3Di)]
+
+    # ids_filtered_df_val = filtered_df_val['Unnamed: 0'].tolist()
+    # ids_filtered_df_test = filtered_df_test['Unnamed: 0'].tolist()
+
+    # # DEBUG
+    # # print("number of removed SF in Val:", len(indices_in_val_not_in_train))
+    # # print("number of removed SF in Test:", len(indices_in_test_not_in_train))
+
+    # # Remove the indices from the Val and Test domain ids
+    # Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [int(id) for id in Val_domain_ids_for_which_I_have_3Di if int(id) in ids_filtered_df_val]
+    # Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [int(id) for id in Test_domain_ids_for_which_I_have_3Di if int(id) in ids_filtered_df_test]
+
+    # ####################################################################################
+
+
+    # # Save the domain IDs for 3Di usage in CSV files
+    # df_val_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
+    # df_val_ids_for_which_I_have_3Di.to_csv('./data/Dataset/csv/Val_ids_for_3Di_usage.csv', index=False)
+
+    # df_test_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
+    # df_test_ids_for_which_I_have_3Di.to_csv('./data/Dataset/csv/Test_ids_for_3Di_usage.csv', index=False)
 
 
     
