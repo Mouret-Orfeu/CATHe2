@@ -26,7 +26,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
     dataframe = dataframe[dataframe['Model'].isin(list_model_to_show)]
 
     # Create a unique identifier for each combination of parameters
-    dataframe['Parameters'] = dataframe.apply(lambda row: f'Nb_Layer_Block={row["Nb_Layer_Block"]}, Dropout={row["Dropout"]}, Input_Type={row["Input_Type"]}, Layer_size={row["Layer_size"]}', axis=1)
+    dataframe['Parameters'] = dataframe.apply(lambda row: f'Nb_Layer_Block={row["Nb_Layer_Block"]}, Dropout={row["Dropout"]}, Input_Type={row["Input_Type"]}, Layer_size={row["Layer_size"]}, pLDDT_threshold={row["pLDDT_threshold"]}', axis=1) 
     
     # Sort the dataframe by Model, then by F1_Score in descending order
     dataframe = dataframe.sort_values(by=['Model', 'F1_Score'], ascending=[True, False])
@@ -51,7 +51,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
             name=row['Parameters'],
             marker_color=color_map.get(row['Input_Type'], 'gray'),  # Use gray if Input_Type is not in the color_map
             hoverinfo='text',
-            text=f'Model={row["Model"]}<br>Nb_Layer_Block={row["Nb_Layer_Block"]}<br>Dropout={row["Dropout"]}<br>Input_Type={row["Input_Type"]}<br>Layer_size={row["Layer_size"]}<br>F1_Score={row["F1_Score"]:.4f}'
+            text=f'Model={row["Model"]}<br>Nb_Layer_Block={row["Nb_Layer_Block"]}<br>Dropout={row["Dropout"]}<br>Input_Type={row["Input_Type"]}<br>Layer_size={row["Layer_size"]}<br>pLDDT_threshold={row["pLDDT_threshold"]}<br>F1_Score={row["F1_Score"]:.4f}'
         ))
 
     fig.update_layout(
