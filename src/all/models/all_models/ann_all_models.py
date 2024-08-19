@@ -181,9 +181,25 @@ def load_data(model_name, input_type, pLDDT_threshold):
         
         if input_type == '3Di':
 
-            X_train = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
-            X_val = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
-            X_test = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0'] 
+            X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
+            X_val_3Di = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
+            X_test_3Di = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0'] 
+
+            train_3Di_id_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
+            val_3Di_id_to_keep =   list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
+            test_3Di_id_to_keep =  list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
+
+            train_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv')['Domain_id'])
+            val_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv')['Domain_id'])
+            test_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv')['Domain_id'])
+
+            train_3Di_id_to_keep = [index for id_value, index in domain_id_generator(train_ids_for_3Di_usage_threshold_0) if id_value in train_ids_for_3Di_usage]
+            val_3Di_id_to_keep =   [index for id_value, index in domain_id_generator(val_ids_for_3Di_usage_threshold_0) if id_value in val_ids_for_3Di_usage]
+            test_3Di_id_to_keep =  [index for id_value, index in domain_id_generator(test_ids_for_3Di_usage_threshold_0) if id_value in test_ids_for_3Di_usage]
+
+            X_train = X_train_3Di[train_3Di_id_to_keep]
+            X_val = X_val_3Di[val_3Di_id_to_keep]
+            X_test = X_test_3Di[test_3Di_id_to_keep]
         
         if input_type == 'AA+3Di':
 
@@ -304,8 +320,6 @@ def load_data(model_name, input_type, pLDDT_threshold):
 
             # filter the train embeddings so that only the ones with pLDDT > threshold are kept
             X_train_3Di_filtered = X_train_3Di[train_3Di_id_to_keep]
-
-            # filter test and val embeddings so that only the the ones corresponding to SF present in filtered train set are kept
             X_val_3Di_filtered = X_val_3Di[val_3Di_id_to_keep]
             X_test_3Di_filtered = X_test_3Di[test_3Di_id_to_keep]
 
@@ -588,7 +602,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
         base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.h5'
 
         classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.csv'
         confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}'
@@ -785,6 +799,15 @@ def main():
         layer_size_values = [layer_size_tag]
 
     all_model_names = ['ProtT5', 'ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+
+    print("\033[93mHyperparameters\033[0m")
+    print(f"\033[93mModel Name: {model_name}\033[0m")
+    print(f"\033[93mInput Type: {input_type}\033[0m")
+    print(f"\033[93mNumber of Layer Blocks: {nb_layer_block}\033[0m")
+    print(f"\033[93mDropout: {dropout_tag}\033[0m")
+    print(f"\033[93mLayer Size: {layer_size_tag}\033[0m")
+    print(f"\033[93mpLDDT Threshold: {pLDDT_threshold}\033[0m")
+    print("\n")
 
     if model_name == 'all':
         for model_name in tqdm(all_model_names, desc="Models"):
