@@ -166,9 +166,9 @@ def load_data(model_name, input_type, pLDDT_threshold):
         if input_type == 'AA':
             if model_name not in prot_sequence_embeddings_paths:
                 raise ValueError("Invalid model name")
-        else:
+        elif input_type == '3Di':
             if model_name not in prot_3Di_embeddings_paths:
-                raise ValueError("Invalid model name")
+                raise ValueError("Invalid model name, if input type is 3Di, only ProstT5 models are available")
         
         Train_file_name_seq_embed, Val_file_name_seq_embed, Test_file_name_seq_embed = prot_sequence_embeddings_paths[model_name]
         Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed = prot_3Di_embeddings_paths[model_name]
