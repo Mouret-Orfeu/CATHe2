@@ -3,12 +3,12 @@ import itertools
 from tqdm import tqdm
 
 # Define the possible values for each parameter
-dropout_values = [0.3]
-layer_size_values = [2048]
+dropout_values = [0.1]
+layer_size_values = [1024]
 nb_layer_block_values = ['two']
-input_type = ['AA+3Di']
-pLDDT_threshold = [24]
-model = ['ESM2', 'Ankh_large', 'Ankh_base', 'TM_Vec']
+input_type = ['AA']
+pLDDT_threshold = [0]
+model = ['ESM2', 'Ankh_large', 'Ankh_base', 'TM_Vec', 'ProtT5']
 script_path = './src/all/models/all_models/ann_all_models.py'
 
 # Create all possible combinations of parameters
