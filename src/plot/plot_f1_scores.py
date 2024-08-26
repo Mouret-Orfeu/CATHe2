@@ -141,8 +141,8 @@ models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', '
 # # Plot F1 score evolution along 'Nb_Layer_Block' with Dropout = 0 for all models
 # plot_f1_score_evolution(df, 'Nb_Layer_Block', models_to_plot, Dropout=0, Nb_Layer_Block=1)
 
-# list_model_to_show = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-list_model_to_show = ['ProstT5_full']
+list_model_to_show = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+# list_model_to_show = ['ProstT5_full']
 
 # Plot all F1 scores in the dataframe
 plot_all_f1_scores(df, list_model_to_show)
