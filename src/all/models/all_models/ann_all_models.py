@@ -742,24 +742,24 @@ def create_arg_parser():
                         help="Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train")
     
     parser.add_argument('--dropout', type=str, 
-                        default='0.3', 
+                        default='0.1', 
                         help="Whether to use dropout in the model layers or not, and if so, what value, put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value, and 'all' to test every values in [0,0.2,0.4]")
     
     parser.add_argument('--layer_size', type=str, 
-                        default='2048', 
+                        default='128', 
                         help="To choose the size of the dens layers in the classifier, choose a values in [64,128,256,512, 1024, 2048] or 'all' to test every values")
 
 
     parser.add_argument('--nb_layer_block', type=str, 
-                        default='two',
+                        default='one',
                         help="Number of layer block {Dense, LeakyReLU, BatchNormalization, Dropout} in the classifier. Choose between 'one', 'two', 'three', or 'all'")
     
     parser.add_argument('--model', type=str, 
-                        default='ProstT5_full', 
+                        default='ProtT5', 
                         help="What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
     
     parser.add_argument('--classifier_input', type=str, 
-                        default='AA+3Di', 
+                        default='AA', 
                         help="Whether to use Amino Acids, 3Di or a concatenation of both to train the classifier, put 'AA' for Amino Acids, '3Di' for 3Di, 'AA+3Di' for the concatenation of the 2")
     
     

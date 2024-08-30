@@ -6,6 +6,8 @@ matplotlib.use('Agg')  # Use the 'Agg' backend for environments without a displa
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import numpy as np
+
 
 # Function to plot all F1 scores in the dataframe on the same plot as a bar plot
 def plot_all_f1_scores(dataframe, list_model_to_show):
@@ -106,10 +108,25 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, **conditions):
         models_str = '_'.join(sorted(models_in_plot))
 
     plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df_filtered, x=x_param, y='F1_Score', hue='Model', marker='o')
-    plot_title = f'F1 Score Evolution along {x_param}'
+    sns.lineplot(data=df_filtered, x=x_param, y='F1_Score', hue='Model', marker='o', errorbar=None)
+    plot_title = f'F1 Score Evolution along {x_param}: '
+    condition_str = ''
+    for param, value in conditions.items():
+        if value is not None:
+            
+            condition_str += f'{param}={value}, '
+
+    # Remove the trailing comma and space
+    condition_str = condition_str.rstrip(', ')
+
+    # Construct the plot title
+    plot_title = f'F1 Score Evolution along {x_param}: '
     if condition_str:
-        plot_title += condition_str.replace('_', ' ').replace('=', ' = ')
+        plot_title += condition_str  # Directly use the formatted condition_str
+
+    # DEBUG
+    print(f'Plotting: {plot_title}')
+
     plt.title(plot_title)
     plt.xlabel(x_param)
     plt.ylabel('F1 Score')
@@ -132,32 +149,172 @@ df = pd.read_csv(df_results_path)
 # Example usage
 models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
-# # Plot F1 score evolution along 'Nb_Layer_Block' with Dropout = 0.1 for all models
-# plot_f1_score_evolution(df, 'Nb_Layer_Block', models_to_plot, Dropout=0.5)
-
-# # Plot F1 score evolution along 'Nb_Layer_Block' with Dropout = 0.1 for all models
-# plot_f1_score_evolution(df, 'Nb_Layer_Block', models_to_plot, Dropout=0.1, Nb_Layer_Block=1)
-
-# # Plot F1 score evolution along 'Nb_Layer_Block' with Dropout = 0 for all models
-# plot_f1_score_evolution(df, 'Nb_Layer_Block', models_to_plot, Dropout=0, Nb_Layer_Block=1)
-
 list_model_to_show = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 # list_model_to_show = ['ProstT5_full']
 
 # Plot all F1 scores in the dataframe
-plot_all_f1_scores(df, list_model_to_show)
+# plot_all_f1_scores(df, list_model_to_show)
 
-# # Plot F1 score evolution along 'Dropout' for ProstT5_half with 1 Layer block
-# plot_f1_score_evolution(df, 'Dropout', ['ProstT5_half'], Nb_Layer_Block=1)
+# Dropout analysis set up
+input_type = 'AA'
+nb_layer_block = 2
+layer_size = 1024
+plddt_threshold = 0
+x_param='Dropout'
+plot_f1_score_evolution(
+    dataframe=df,
+    x_param=x_param,
+    models_to_plot=models_to_plot,
+    Input_Type=input_type,
+    Nb_Layer_Block=nb_layer_block,
+    Layer_size=layer_size,
+    pLDDT_threshold=plddt_threshold
+)
 
-# # Plot F1 score evolution along 'Dropout' for ProstT5_full with 1 Layer block
-# plot_f1_score_evolution(df, 'Dropout', ['ProstT5_full'], Nb_Layer_Block=1)
+# Layer size analysis set up
+# input_type = 'AA'
+# nb_layer_block = 2
+# plddt_threshold = 0
+# Dropout = 0.1
+# x_param='Layer_size'
+# plot_f1_score_evolution(
+#     dataframe=df,
+#     x_param=x_param,
+#     models_to_plot=models_to_plot,
+#     Input_Type=input_type,
+#     Nb_Layer_Block=nb_layer_block,
+#     Dropout=Dropout,
+#     pLDDT_threshold=plddt_threshold
+# )
 
-# # Plot F1 score evolution along 'Dropout' for Ankh_base with 1 Layer block
-# plot_f1_score_evolution(df, 'Dropout', ['Ankh_base'], Nb_Layer_Block=1)
+# Nb layer block analysis set up
+# input_type = 'AA'
+# layer_size = 1024
+# plddt_threshold = 0
+# Dropout = 0.1
+# x_param='Nb_Layer_Block'
+# plot_f1_score_evolution(
+#     dataframe=df,
+#     x_param=x_param,
+#     models_to_plot=models_to_plot,
+#     Input_Type=input_type,
+#     Layer_size=layer_size,
+#     Dropout=Dropout,
+#     pLDDT_threshold=plddt_threshold
+# )
 
-# # Plot F1 score evolution along 'Dropout' for Ankh_large with 1 Layer block
-# plot_f1_score_evolution(df, 'Dropout', ['Ankh_large'], Nb_Layer_Block=1)
+# ProstT5_full: pLDDT threshold analysis set up 
+# input_type = 'AA+3Di'
+# layer_size = 2048
+# Dropout = 0.3
+# x_param='pLDDT_threshold'
+# models_to_plot = ['ProstT5_full']
+# plot_f1_score_evolution(
+#     dataframe=df,
+#     x_param=x_param,
+#     models_to_plot=models_to_plot,
+#     Input_Type=input_type,
+#     Layer_size=layer_size,
+#     Dropout=Dropout
+# )
 
-# # Plot F1 score evolution along 'Dropout' for TM_Vec with 1 Layer block
-# plot_f1_score_evolution(df, 'Dropout', ['TM_Vec'], Nb_Layer_Block=1)
+# ProstT5_full: input_type analysis set up 
+
+# Plot the F1 score evolution along 'Dropout' for all models with the specified conditions
+
+models_to_plot = ['ProstT5_full']
+
+
+# Example usage:
+input_types = 'AA+3Di'
+x_param = 'pLDDT_threshold'
+Dropout = 0.3
+layer_size = 2048
+nb_layer_block = 3
+
+# Plot F1 score evolution
+plot_f1_score_evolution(
+    dataframe=df, 
+    x_param=x_param, 
+    models_to_plot=models_to_plot, 
+    Input_Type=input_type, 
+    Dropout=Dropout,
+    Layer_size=layer_size, 
+    Nb_Layer_Block=nb_layer_block
+)
+
+def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, **conditions):
+    """
+    Plots the F1 score evolution for a selected model along a specified parameter,
+    with different curves for each input type.
+
+    :param dataframe: pandas DataFrame containing the results.
+    :param x_param: The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout', 'Input_Type').
+    :param model: The model to plot (single model name as a string).
+    :param input_types: List of input types to plot (e.g., ['AA', '3Di', 'AA+3Di']).
+    :param conditions: Dictionary of additional conditions to filter the data (optional).
+    """
+    # Filter the dataframe for the selected model
+    df_filtered = dataframe[dataframe['Model'] == model]
+    
+    # Apply the condition filters with a special case for 'AA'
+    condition_str = ''
+    filtered_dfs = []
+    for input_type in input_types:
+        df_subset = df_filtered[df_filtered['Input_Type'] == input_type]
+        for param, value in conditions.items():
+            if value is not None:
+                if input_type == 'AA' and param == 'pLDDT_threshold':
+                    # Force pLDDT_threshold to be 0 for 'AA'
+                    df_subset = df_subset[df_subset[param] == 0]
+                else:
+                    df_subset = df_subset[df_subset[param] == value]
+                condition_str += f'_{param}_{value}'
+        filtered_dfs.append(df_subset)
+    
+    # Concatenate all the filtered subsets
+    df_filtered = pd.concat(filtered_dfs)
+    
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df_filtered, x=x_param, y='F1_Score', hue='Input_Type', marker='o')
+    
+    # Construct the plot title
+    plot_title = f'F1 Score Evolution along {x_param} for {model}: '
+    if condition_str:
+        plot_title += condition_str.replace('_', ', ').replace('=', '=')
+
+    plt.title(plot_title)
+    plt.xlabel(x_param)
+    plt.ylabel('F1 Score')
+    plt.legend(title='Input_Type')
+    plt.grid(True)
+    
+    # Save the plot with the model name in the filename
+    plot_filename = f'./results/f1_score_plots/f1_score_evolution_{x_param}_{model}{condition_str}.png'
+
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(plot_filename), exist_ok=True)
+
+    plt.savefig(plot_filename)
+    plt.close()  # Use plt.close() instead of plt.show() for 'Agg' backend
+
+# Example usage:
+# input_types = ['AA', '3Di']
+# model = 'ProstT5_full'
+# x_param = 'Dropout'
+# plddt_threshold = 24
+# layer_size = 1024
+# dropout = 0.1
+# nb_layer_block = 2
+
+# plot_f1_score_evolution_unique_model(
+#     dataframe=df, 
+#     x_param=x_param, 
+#     model=model, 
+#     input_types=input_types, 
+#     Layer_size=layer_size, 
+#     Dropout=dropout,
+#     pLDDT_threshold=plddt_threshold  # Apply pLDDT_threshold=24 except for 'AA'
+# )
+
+

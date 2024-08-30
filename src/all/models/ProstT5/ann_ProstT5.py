@@ -39,10 +39,10 @@ dropout = True
 dropout_value = 0.2
 nb_layer_block = 1
 
-model_type = "half"
+# model_type = "half"
 # model_type = "full"
 
-# model_type = "half_CL"
+model_type = "half_CL"
 # model_type = "full_CL"
 
 def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
@@ -188,6 +188,8 @@ def evaluate_model(model_type, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
             save_confusion_matrix(y_test, y_pred, confusion_matrix_path)
 
+            print("F1 score: ", f1_score_test)
+
             print("\033[92mModel evaluation done\033[0m")
 
 # dataset import #################################################################################
@@ -322,8 +324,8 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
-    # model = load_model(model_path)
+    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    model = load_model(model_path)
 
     if dropout :
         plot_path = f'results/Loss/ProstT5_{model_type}_{nb_layer_block}_dropout_{dropout_value}.png'
@@ -331,18 +333,18 @@ with tf.device('/gpu:0'):
         plot_path = f'results/Loss/ProstT5_{model_type}_{nb_layer_block}_no_dropout.png'
 
     # Plot the training and validation loss
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    epochs = range(1, len(loss) + 1)
-    plt.figure()
-    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
-    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
-    plt.title('Training and Validation Loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.savefig(plot_path)  # Save the plot
-    plt.close()
+    # loss = history.history['loss']
+    # val_loss = history.history['val_loss']
+    # epochs = range(1, len(loss) + 1)
+    # plt.figure()
+    # plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    # plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
+    # plt.title('Training and Validation Loss')
+    # plt.xlabel('Epochs')
+    # plt.ylabel('Loss')
+    # plt.legend()
+    # plt.savefig(plot_path)  # Save the plot
+    # plt.close()
 
     evaluate_model(model_type, X_val, y_val, X_test, y_test, nb_layer_block, dropout, dropout_value)
 
