@@ -22,8 +22,8 @@ else:
 
 # Parse command-line arguments for the FASTA file path, model, input type, and pdb_path
 parser = argparse.ArgumentParser(description="Run predictions pipeline with FASTA file")
-parser.add_argument('--model', type=str, required=True, choices=['ProtT5', 'ProstT5'], help="Model to use: ProtT5 (original one) or ProstT5 (new one)")
-parser.add_argument('--input_type', type=str, required=True, choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)")
+parser.add_argument('--model', type=str,default='ProtT5', choices=['ProtT5', 'ProstT5'], help="Model to use: ProtT5 (original one) or ProstT5 (new one)")
+parser.add_argument('--input_type', type=str,default='AA', choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)")
 parser.add_argument('--pdb_path', type=str, default=None, help="Path to the input PDB file with protein structure (required if input_type=AA+3Di)")
 args = parser.parse_args()
 
@@ -38,7 +38,7 @@ if args.input_type == 'AA+3Di' and not args.pdb_path:
 cmd = 'mkdir -p Embeddings'
 os.system(cmd)
 
-# Pass the FASTA path, model, input_type, and pdb_path (if applicable) to fasta_to_ds.py
+# Converts a FASTA file containing protein sequences into a CSV dataset
 cmd = f'python3 fasta_to_ds.py'
 os.system(cmd)
 

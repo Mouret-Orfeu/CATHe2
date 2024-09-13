@@ -1,7 +1,7 @@
 import pandas as pd 
 from Bio import SeqIO
 
-fasta_file_path = ""
+fasta_file_path = "/home/ku76797/Documents/internship/code/CATHe/rcsb_pdb_2VSQ.fasta"
 
 seq = []
 desc = []

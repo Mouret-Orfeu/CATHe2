@@ -5,6 +5,7 @@ pytorch_scatter/
 pytorch_sparse/
 pytorch_spline_conv/
 /data
+/foldseek
 /saved_models
 /manuscript
 /papers
