@@ -1,7 +1,7 @@
 import pandas as pd 
 from Bio import SeqIO
 
-fasta_file_path = "/home/ku76797/Documents/internship/code/CATHe/rcsb_pdb_2VSQ.fasta"
+fasta_file_path = "/home/ku76797/Documents/internship/code/CATHe/src/cathe-predict/rcsb_pdb_2VSQ.fasta"
 
 seq = []
 desc = []
@@ -15,6 +15,6 @@ df = pd.DataFrame(list(zip(desc, seq)),
                columns =['Record', 'Sequence'])
 
 print(df)
-df.to_csv('Dataset.csv')
+df.to_csv('./src/cathe-predict/Dataset.csv')
 
 

@@ -20,11 +20,10 @@ if gpus:
 else:
     print(f"{yellow}No GPUs available. Running on CPU.{reset}")
 
-# Parse command-line arguments for the FASTA file path, model, input type, and pdb_path
+# Parse command-line arguments for the model and the input type
 parser = argparse.ArgumentParser(description="Run predictions pipeline with FASTA file")
 parser.add_argument('--model', type=str,default='ProtT5', choices=['ProtT5', 'ProstT5'], help="Model to use: ProtT5 (original one) or ProstT5 (new one)")
-parser.add_argument('--input_type', type=str,default='AA', choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)")
-parser.add_argument('--pdb_path', type=str, default=None, help="Path to the input PDB file with protein structure (required if input_type=AA+3Di)")
+parser.add_argument('--input_type', type=str,default='AA', choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5). If you select AA+3Di, ensure to provide pdb files in ./src/cathe-predict/pdb_folder, from which 3Di sequences will be extracted.")
 args = parser.parse_args()
 
 # Validate the arguments
@@ -34,26 +33,26 @@ if args.model == 'ProtT5' and args.input_type == 'AA+3Di':
 if args.input_type == 'AA+3Di' and not args.pdb_path:
     raise ValueError(f"{red}Error: --pdb_path is required when input_type is AA+3Di, please provide the path to the input PDB file if you want to use AA+3Di{reset}")
 
+# DEBUG
+print(f"{yellow}Model: {args.model}")
+print(f"Input Type: {args.input_type}{reset}")
+
 # Create Embeddings directory if not already present
-cmd = 'mkdir -p Embeddings'
+cmd = 'mkdir -p ./src/cathe-predict/Embeddings'
 os.system(cmd)
 
 # Converts a FASTA file containing protein sequences into a CSV dataset
-cmd = f'python3 fasta_to_ds.py'
+cmd = f'python3 ./src/cathe-predict/fasta_to_ds.py'
 os.system(cmd)
 
 # Pass the model, input_type, and pdb_path arguments to predict_embed.py
-cmd = f'python3 predict_embed.py --model {args.model} --input_type {args.input_type}'
-if args.pdb_path:
-    cmd += f' --pdb_path {args.pdb_path}'
+cmd = f'python3 ./src/cathe-predict/predict_embed.py --model {args.model} --input_type {args.input_type}'
 os.system(cmd)
 
 # Pass the model argument to append_embed.py (input_type and pdb_path not needed for this step)
-cmd = f'python3 append_embed.py --model {args.model}'
+cmd = f'python3 ./src/cathe-predict/append_embed.py'
 os.system(cmd)
 
 # Pass the model, input_type, and pdb_path arguments to make_predictions.py
-cmd = f'python3 make_predictions.py --model {args.model} --input_type {args.input_type}'
-if args.pdb_path:
-    cmd += f' --pdb_path {args.pdb_path}'
+cmd = f'python3 ./src/cathe-predict/make_predictions.py --model {args.model} --input_type {args.input_type}'
 os.system(cmd)

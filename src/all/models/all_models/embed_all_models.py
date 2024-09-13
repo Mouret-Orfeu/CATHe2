@@ -339,21 +339,41 @@ def create_arg_parser():
                         default=0,
                         help="1 if you want to embed 3Di, 0 if you want to embed AA sequences. Default: 0")
     
+    parser.add_argument('--seq_path', type=str,
+                        default='default',
+                        help="""If is_3Di==0: This argument contains the path of a personalized CSV file with sequences to embed 
+                            (this CSV must have the same structure as the CATHe datasets). 
+                            By default, the script will embed the sequences from the CATHe datasets.
+
+                            If is_3Di==1: This argument contains the path of a FASTA file with 3Di sequences to embed 
+                            (this FASTA must have the same structure as the ones produced by get_3Di_sequences.py).
+                            """)
+    
+    parser.add_argument('--embed_path', type=str,
+                        default='default',
+                        help="This argument contain the path where to put the computed embeddings")
+    
     return parser
 
 
-def process_datasets(model_name, is_3Di):
+def process_datasets(model_name, is_3Di, embed_path, seq_path):
     print(f"Embedding with {model_name}")
 
     datasets = ["Test", "Val", "Train"]
     for dataset in datasets:
         if is_3Di:
-            seq_path = f"./data/Dataset/3Di/{dataset}.fasta"
-            emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz"
+            if embed_path == 'default':
+                emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz"
+            if seq_path == 'default':  
+                seq_path = f"./data/Dataset/3Di/{dataset}.fasta"
+            
 
         else:
-            seq_path = f"./data/Dataset/csv/{dataset}.csv"
-            emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
+            if embed_path == 'default':
+                emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
+            if seq_path == 'default':
+                seq_path = f"./data/Dataset/csv/{dataset}.csv"
+            
         
 
         get_embeddings(
@@ -371,6 +391,8 @@ def main():
 
     model_name = args.model
     is_3Di = False if int(args.is_3Di) == 0 else True
+    embed_path = args.embed_path
+    seq_path = args.seq_path
 
     if is_3Di:
         if model_name not in ['ProstT5_full', 'ProstT5_half']:
@@ -381,11 +403,11 @@ def main():
         print("Embedding with all models")
         model_names = ['ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
         for model in model_names:
-            process_datasets(model, is_3Di)
+            process_datasets(model, is_3Di, embed_path, seq_path)
     else:
         
         print(f"Embedding with {model_name}")
-        process_datasets(model_name, is_3Di)
+        process_datasets(model_name, is_3Di, embed_path, seq_path)
 
 
 
