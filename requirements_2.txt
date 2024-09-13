@@ -308,11 +308,11 @@ tokenizers<0.20,>=0.19
 toml==0.10.1
 toolz==0.10.0
 #torch
-torch-cluster
+#torch-cluster
 torch-geometric
-torch-scatter
-torch-sparse
-torch-spline-conv
+#torch-scatter
+#torch-sparse
+#torch-spline-conv
 #torchvision==0.10.1
 tornado
 tqdm<5.0.0,>=4.64.0
@@ -340,7 +340,7 @@ whitenoise==5.1.0
 widgetsnbextension==3.5.1
 word2number==1.1
 wrapt==1.12.1
-xgboost==1.2.0
+xgboost==2.1.1
 #xkit==0.0.0
 xlrd==1.2.0
 yellowbrick

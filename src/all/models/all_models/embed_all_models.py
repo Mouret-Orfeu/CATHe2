@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-# part of the code from 
-# run with ```python ./src/all/models/ProstT5/AA_embed_with_ESM2.py --input ./data/CATHe\ Dataset/csv/Test.csv --output ./data/CATHe\ Dataset/embeddings/Test_ESM2.npz --model large```
 
 
 import argparse
@@ -333,7 +331,7 @@ def create_arg_parser():
                         'Compute embeddings with one or all pLMs')
     
     parser.add_argument('--model', type=str, 
-                        default='all', 
+                        default='ProstT5_full', 
                         help="What model to use between ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
     
     
