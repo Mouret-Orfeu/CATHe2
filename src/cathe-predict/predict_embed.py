@@ -7,8 +7,12 @@ import subprocess
 import os
 import shutil
 
+yellow = "\033[93m"
+reset = "\033[0m"
 
 def embed_sequence():
+
+    print(f"{yellow}Loading ProtT5 model. (can take a few minutes){reset}")
 
     embedder = ProtTransT5BFDEmbedder()
     ds = pd.read_csv('./src/cathe-predict/Dataset.csv')
@@ -112,7 +116,7 @@ def embed_3Di(pdb_path):
 
     try:
         subprocess.run(
-            f"python ./src/all/models/all_models/embed_all_models.py --model ProstT5_full --is_3Di 1 --embed_path ./src/cathe-predict/Embeddings/3Di --seq_path {output_dir}",
+            f"python ./src/all/models/all_models/embed_all_models.py --model ProstT5_full --is_3Di 1 --embed_path ./src/cathe-predict/Embeddings/3Di_embeddings.npz --seq_path {output_dir}",
             shell=True,
             check=True,
             stdout=subprocess.PIPE,  

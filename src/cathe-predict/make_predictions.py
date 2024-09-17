@@ -24,9 +24,15 @@ parser.add_argument('--input_type', type=str,default='AA', choices=['AA', 'AA+3D
 args = parser.parse_args()
 
 st = time.time()
-# load data
-filename = 'Embeddings_T5.npz'
+# load data	
+filename = './src/cathe-predict/Embeddings/Embeddings_T5.npz'
 embeds = np.load(filename)['arr_0']
+
+if args.input_type == 'AA+3Di':
+	filename = './src/cathe-predict/Embeddings/3Di_embeddings'
+	embeds_3Di = np.load(filename)['arr_0']
+
+	embeds = np.concatenate((embeds, embeds_3Di), axis=1)
 # print(len(embeds))
 
 # # annotations
@@ -61,7 +67,12 @@ le.fit(y_tot)
 
 classes = le.classes_
 
-model = load_model('./src/cathe-predict/CATHe.h5', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
+if args.model == 'ProtT5' and args.input_type == 'AA':
+	model = load_model('./src/cathe-predict/CATHe.h5', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
+elif args.model == 'ProstT5' and args.input_type == 'AA':
+	model = load_model('...', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
+elif args.model == 'ProstT5' and args.input_type == 'AA+3Di':
+	model = load_model('...', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
 
 y_pred = model.predict(embeds)
 

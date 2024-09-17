@@ -45,11 +45,11 @@ os.system(cmd)
 cmd = f'python3 ./src/cathe-predict/fasta_to_ds.py'
 os.system(cmd)
 
-# Pass the model, input_type, and pdb_path arguments to predict_embed.py
+# Pass the model and input_type to predict_embed.py
 cmd = f'python3 ./src/cathe-predict/predict_embed.py --model {args.model} --input_type {args.input_type}'
 os.system(cmd)
 
-# Pass the model argument to append_embed.py (input_type and pdb_path not needed for this step)
+# Concatenates all individual embedding files into a single file
 cmd = f'python3 ./src/cathe-predict/append_embed.py'
 os.system(cmd)
 
