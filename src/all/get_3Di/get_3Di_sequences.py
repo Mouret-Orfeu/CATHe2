@@ -254,10 +254,12 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_train
 
     print(f"Download completed and results saved to {output_csv}")
 
+    foldseek_path = './foldseek/bin/foldseek' 
+    
     try:
-        run_command(f"foldseek createdb {output_dir} {query_db}")
-        run_command(f"foldseek lndb {query_db}_h {query_db}_ss_h")
-        run_command(f"foldseek convert2fasta {query_db}_ss {query_db_ss_fasta}")
+        run_command(f"{foldseek_path} createdb {output_dir} {query_db}")
+        run_command(f"{foldseek_path} lndb {query_db}_h {query_db}_ss_h")
+        run_command(f"{foldseek_path} convert2fasta {query_db}_ss {query_db_ss_fasta}")
         print(f"FASTA file created at {query_db_ss_fasta}")
 
     except Exception as e:
