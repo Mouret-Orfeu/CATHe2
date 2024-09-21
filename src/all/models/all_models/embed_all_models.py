@@ -13,6 +13,7 @@ import ankh
 from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
 import re
 import gc
+import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -146,6 +147,7 @@ def read_fasta(file):
             sequence.append(line)
     if header:
         fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
+
     return fasta_entries
 
 def get_sequences(seq_path, dataset, is_3Di):
@@ -158,21 +160,49 @@ def get_sequences(seq_path, dataset, is_3Di):
         # Determine the correct CSV file path based on the dataset
         usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage_0.csv'
 
+        # DEBUG
+        print(f"\033[93mUsage CSV path: {usage_csv_path}\033[0m")
+
+        if not os.path.exists(usage_csv_path):
+            raise FileNotFoundError(f"CSV file not found: {usage_csv_path}")
+
         # Load the IDs that should be kept
         df_domains_for_3Di_usage = pd.read_csv(usage_csv_path)
         sequence_ids_to_use = set(df_domains_for_3Di_usage['Domain_id'])
+
+        # DEBUG
+        print(f"\033[93mLength of df_domains_for_3Di_usage: {len(df_domains_for_3Di_usage)}\033[0m")
+        print(f"\033[93mNumber of sequence IDs to use: {len(sequence_ids_to_use)}\033[0m")
+
+        # DEBUG
+        if not sequence_ids_to_use:
+            print(f"\033[91mNo sequence IDs found in the CSV file: {usage_csv_path}\033[0m")
+            raise ValueError("No sequence IDs found in the CSV file.")
+
+        
 
         # Read the FASTA file and filter based on sequence_ids_to_use
         with open(seq_path, 'r') as fasta_file:
             fasta_entries = read_fasta(fasta_file)
             fasta_entries.sort(key=lambda entry: int(entry[0]))
         for entry in fasta_entries:
+            # DEBUG
+            # print(f"\033[92mEntry: {entry[0]}\033[0m")
+            # exit()
+
             if int(entry[0]) in sequence_ids_to_use:
                 sequences[int(entry[0])] = entry[2]
         
         # 3Di-sequences need to be lower-case
         for key in sequences.keys():
             sequences[key] = sequences[key].lower()
+
+        # DEBUG
+        print(f"\033[93mProcessing FASTA file: {seq_path}\033[0m")
+
+        if not sequences:
+            print(f"\033[91mNo sequences found in the FASTA file: {fasta_file}\033[0m")
+            raise ValueError("No sequences found in the FASTA file.")
         
     else:
         # If not 3Di, simply load the sequences from the CSV
@@ -336,7 +366,7 @@ def create_arg_parser():
     
     
     parser.add_argument('--is_3Di', type=int,
-                        default=0,
+                        default=1,
                         help="1 if you want to embed 3Di, 0 if you want to embed AA sequences. Default: 0")
     
     parser.add_argument('--seq_path', type=str,
@@ -353,13 +383,16 @@ def create_arg_parser():
                         default='default',
                         help="This argument contain the path where to put the computed embeddings")
     
+    parser.add_argument('--dataset', type=str,
+                        default='all',
+                        help="The dataset to embed (Val, Test, Train). Default: all")
+    
     return parser
 
 
-def process_datasets(model_name, is_3Di, embed_path, seq_path):
+def process_datasets(model_name, is_3Di, embed_path, seq_path, datasets):
     print(f"Embedding with {model_name}")
 
-    datasets = ["Test", "Val", "Train"]
     for dataset in datasets:
         if is_3Di:
             if embed_path == 'default':
@@ -394,6 +427,16 @@ def main():
     embed_path = args.embed_path
     seq_path = args.seq_path
 
+    datasets = args.dataset
+
+    if datasets not in ['Val', 'Test', 'Train', 'all']:
+        raise ValueError("The dataset should be 'Val', 'Test', 'Train' or 'all'")
+    
+    if datasets == 'all':
+        datasets = ['Val', 'Test', 'Train']
+    else:
+        datasets = [datasets]
+
     if is_3Di:
         if model_name not in ['ProstT5_full', 'ProstT5_half']:
             raise ValueError("For 3Di sequences, the model should be 'ProstT5_full' or 'ProstT5_half'")
@@ -403,11 +446,11 @@ def main():
         print("Embedding with all models")
         model_names = ['ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
         for model in model_names:
-            process_datasets(model, is_3Di, embed_path, seq_path)
+            process_datasets(model, is_3Di, embed_path, seq_path, datasets)
     else:
         
         print(f"Embedding with {model_name}")
-        process_datasets(model_name, is_3Di, embed_path, seq_path)
+        process_datasets(model_name, is_3Di, embed_path, seq_path, datasets)
 
 
 

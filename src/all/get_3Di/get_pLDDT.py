@@ -245,8 +245,8 @@ def sort_csv_by_id_as_int(input_csv, output_csv):
 
     
 def main():
-    # get_pLDDT()
-    # verify_pLDDT_and_get_missing_ones(output_csv, fasta_file)
+    get_pLDDT()
+    verify_pLDDT_and_get_missing_ones(output_csv, fasta_file)
     sort_csv_by_id_as_int(output_csv, output_csv)
     
 
