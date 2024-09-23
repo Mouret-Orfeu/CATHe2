@@ -45,49 +45,49 @@ def run_script_with_combinations(script_path, dropout_values, layer_size_values,
 script_path = './src/all/models/all_models/ann_all_models.py'
 
 
-# Initialize the progress bar
-total_runs = 3  # Number of different configurations/runs we have
-progress_bar = tqdm(total=total_runs, desc="Overall Progress")
+# # Initialize the progress bar
+# total_runs = 3  # Number of different configurations/runs we have
+# progress_bar = tqdm(total=total_runs, desc="Overall Progress")
 
 # Run each configuration setup and update the progress bar
 # 1. Dropout analysis setup
-dropout_values = [0.1,0.5,0.7]
-layer_size_values = [1024]
-nb_layer_block_values = ['two']
-input_type = ['3Di']
-pLDDT_threshold = [0]
-model = ['ProstT5_full']
-
-run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model)
-progress_bar.update(1)
-print(f"{progress_bar.n} run(s) have terminated.")
-
-# 2. Layer size analysis setup
-dropout_values = [0, 0.7]
-layer_size_values = [1024]
-nb_layer_block_values = ['two']
-input_type = ['AA']
-pLDDT_threshold = [0]
-model = ['ProstT5_full']
-
-run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model)
-progress_bar.update(1)
-print(f"{progress_bar.n} run(s) have terminated.")
-
-# 3. Nb layer block analysis setup
-dropout_values = [0,0.1, 0.2]
-layer_size_values = [1024]
+dropout_values = [0.3]
+layer_size_values = [2048]
 nb_layer_block_values = ['two']
 input_type = ['AA+3Di']
-pLDDT_threshold = [0]
+pLDDT_threshold = [0, 4, 14, 24, 34, 44, 54, 64, 74, 84]
 model = ['ProstT5_full']
 
 run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model)
-progress_bar.update(1)
-print(f"{progress_bar.n} run(s) have terminated.")
+# progress_bar.update(1)
+# print(f"{progress_bar.n} run(s) have terminated.")
 
-# Close the progress bar after all runs
-progress_bar.close()
+# # 2. Layer size analysis setup
+# dropout_values = [0, 0.7]
+# layer_size_values = [1024]
+# nb_layer_block_values = ['two']
+# input_type = ['AA']
+# pLDDT_threshold = [0]
+# model = ['ProstT5_full']
+
+# run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model)
+# progress_bar.update(1)
+# print(f"{progress_bar.n} run(s) have terminated.")
+
+# # 3. Nb layer block analysis setup
+# dropout_values = [0,0.1, 0.2]
+# layer_size_values = [1024]
+# nb_layer_block_values = ['two']
+# input_type = ['AA+3Di']
+# pLDDT_threshold = [0]
+# model = ['ProstT5_full']
+
+# run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model)
+# progress_bar.update(1)
+# print(f"{progress_bar.n} run(s) have terminated.")
+
+# # Close the progress bar after all runs
+# progress_bar.close()
 
 
 

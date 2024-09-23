@@ -137,7 +137,7 @@ keras-preprocessing>=1.1.1
 keras-self-attention==0.49.0
 keyring==18.0.1
 kiwisolver>=1.3.1
-kombu<6.0,>=5.3.4
+kombu==5.3.7
 #language-selector==0.1
 launchpadlib==1.10.13
 lazr.restfulclient==0.14.2
