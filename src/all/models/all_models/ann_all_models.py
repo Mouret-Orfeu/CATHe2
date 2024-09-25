@@ -1,3 +1,6 @@
+Nouveau ! Raccourcis clavier … 
+Les raccourcis clavier de Drive ont été mis à jour pour vous permettre de naviguer à l'aide des premières lettres
+
 # the light attention part is inspired from  https://github.com/HannesStark/protein-localization/blob/master/models/light_attention.py
 
 import argparse
@@ -36,6 +39,14 @@ config.gpu_options.allow_growth = True
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+# Print in orange if a GPU is used or not
+gpu_status = "GPU is being used!" if torch.cuda.is_available() else "No GPU is available."
+# ANSI escape code for orange text
+orange_color = '\033[33m'
+reset_color = '\033[0m'
+
+print(f"{orange_color}{gpu_status}{reset_color}")
 
 nb_layer_block_dict = {
         "one": 1,
@@ -445,7 +456,7 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
     
     for _ in range(nb_layer_block):
         x = Dense(layer_size, kernel_initializer='glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
-        x = LeakyReLU(alpha=0.05)(x)
+        x = LeakyReLU(negative_slope=0.05)(x)
         x = BatchNormalization()(x)
         if dropout:
             x = Dropout(dropout)(x)
@@ -496,6 +507,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
         # callbacks
+        save_model_path = save_model_path.replace(".h5", ".keras") # change file extention for google collab run
         mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1)
         reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
         early_stop = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=30)
@@ -505,7 +517,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         train_gen = bm_generator(X_train, y_train, batch_size, num_classes)
         val_gen = bm_generator(X_val, y_val, batch_size, num_classes)
         # test_gen = bm_generator(X_test, y_test, batch_size, num_classes)
-        history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(batch_size)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/batch_size, workers = 0, shuffle = True, callbacks = callbacks_list)
+        history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(batch_size)), verbose=1, validation_data = val_gen, validation_steps = math.ceil(len(X_val)/batch_size), shuffle = True, callbacks = callbacks_list)
 
         # Plot the training and validation loss
         loss = history.history['loss']
@@ -593,7 +605,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
         base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.keras'
 
 
         classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.csv'
@@ -604,7 +616,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
         base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.h5'
+        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.keras'
 
         classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}.csv'
         confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}'
@@ -612,14 +624,14 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
     
     if input_type == '3Di':
             
-        model_path = model_path.replace('.h5', '_3Di.h5')
+        model_path = model_path.replace('.keras', '_3Di.keras')
         classification_report_path = classification_report_path.replace('.csv', '_3Di.csv')
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_3Di.png')
         results_file = results_file.replace('.csv', '_3Di.csv')
     
     if input_type == 'AA+3Di':
                 
-        model_path = model_path.replace('.h5', '_AA+3Di.h5')
+        model_path = model_path.replace('.keras', '_AA+3Di.keras')
         classification_report_path = classification_report_path.replace('.csv', '_AA+3Di.csv')
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_AA+3Di.png')
         results_file = results_file.replace('.csv', '_AA+3Di.csv')
