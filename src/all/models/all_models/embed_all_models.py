@@ -19,6 +19,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 print("Using device: {}".format(device))
 
+# Print in orange if a GPU is used or not
+gpu_status = "GPU is being used!" if torch.cuda.is_available() else "No GPU is available."
+# ANSI escape code for orange text
+orange_color = '\033[33m'
+reset_color = '\033[0m'
+
+print(f"{orange_color}{gpu_status}{reset_color}")
+
 # TM_Vec functions ##########################################################################
 
 # Function to extract ProtTrans embedding for a sequence
@@ -268,7 +276,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
         start = time.time()
         batch = list()
         processed_sequences = 0
-        for seq_idx, (pdb_id, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
+        for seq_idx, (seq_key, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
             if model_name == 'ProtT5_new':
                 # add a spaces between AA
                 seq = " ".join(seq)
@@ -278,13 +286,13 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
             seq_len = len(seq)
             if model_name in ['ProstT5_full', 'ProstT5_half']:
                 seq = prefix + ' ' + ' '.join(list(seq))
-            batch.append((pdb_id, seq, seq_len))
+            batch.append((seq_key, seq, seq_len))
 
             # count residues in current batch and add the last sequence length to
             # avoid that batches with (n_res_batch > max_residues) get processed 
             n_res_batch = sum([s_len for _, _, s_len in batch])
             if len(batch) >= nb_seq_max_in_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
-                pdb_ids, seqs, seq_lens = zip(*batch)
+                seq_keys, seqs, seq_lens = zip(*batch)
                 batch = list()
 
 
@@ -306,12 +314,12 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
                         embedding_repr = model(token_encoding.input_ids, 
                                             attention_mask=token_encoding.attention_mask)
                 except RuntimeError:
-                    print("RuntimeError during embedding for {} (L={})".format(pdb_id, seq_len))
+                    print("RuntimeError during embedding for {} (L={})".format(seq_key, seq_len))
                     continue
                 
                 # batch-size x seq_len x embedding_dim
                 # extra token is added at the end of the seq
-                for batch_idx, identifier in enumerate(pdb_ids):
+                for batch_idx, domaine_id in enumerate(seq_keys):
                     s_len = seq_lens[batch_idx]
                     # account for prefix in offset
                     emb = embedding_repr.last_hidden_state[batch_idx, 1:s_len+1]
@@ -322,7 +330,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
                     emb = emb.mean(dim=0)
                     
 
-                    emb_dict[identifier] = emb.detach().cpu().numpy().squeeze()
+                    emb_dict[domaine_id] = emb.detach().cpu().numpy().squeeze()
                     processed_sequences += 1
                     
                     # DEBUG
@@ -336,20 +344,28 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
     sorted_keys = sorted(emb_dict.keys())
 
     # Create a list of embeddings in the sorted order
-    sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
+    # sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
 
-    if len(sorted_embeddings) != len(seq_dict):
+    keys = np.array(sorted_keys)  # Convert sorted_keys to a NumPy array
+    embeddings = np.array([emb_dict[key] for key in sorted_keys])  # Create the embeddings array
+
+
+
+    if len(embeddings) != len(seq_dict):
         print("Number of embeddings does not match number of sequences!")
-        print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
+        print('Total number of embeddings: {}'.format(len(embeddings)))
         raise ValueError(f"Stopping execution due to mismatch. processed_sequences: {processed_sequences}, sequence to be processed: {len(seq_dict)}")
     
-    np.savez(emb_path, sorted_embeddings)
+    # np.savez(emb_path, sorted_embeddings)
+
+    # Save the keys and embeddings separately
+    np.savez(emb_path, keys=keys, embeddings=embeddings)
 
     #DEBUG
     print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
     
-    print('Total number of embeddings: {}'.format(len(sorted_embeddings)))
-    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(sorted_embeddings), avg_length))
+    print('Total number of embeddings: {}'.format(len(embeddings)))
+    print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(embeddings), avg_length))
 
     return True
 
@@ -384,7 +400,7 @@ def create_arg_parser():
                         help="This argument contain the path where to put the computed embeddings")
     
     parser.add_argument('--dataset', type=str,
-                        default='all',
+                        default='Val',
                         help="The dataset to embed (Val, Test, Train). Default: all")
     
     return parser
