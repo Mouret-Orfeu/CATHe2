@@ -156,20 +156,20 @@ list_model_to_show = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full
 # plot_all_f1_scores(df, list_model_to_show)
 
 # Dropout analysis set up
-input_type = 'AA'
-nb_layer_block = 2
-layer_size = 1024
-plddt_threshold = 0
-x_param='Dropout'
-plot_f1_score_evolution(
-    dataframe=df,
-    x_param=x_param,
-    models_to_plot=models_to_plot,
-    Input_Type=input_type,
-    Nb_Layer_Block=nb_layer_block,
-    Layer_size=layer_size,
-    pLDDT_threshold=plddt_threshold
-)
+# input_type = 'AA'
+# nb_layer_block = 2
+# layer_size = 1024
+# plddt_threshold = 0
+# x_param='Dropout'
+# plot_f1_score_evolution(
+#     dataframe=df,
+#     x_param=x_param,
+#     models_to_plot=models_to_plot,
+#     Input_Type=input_type,
+#     Nb_Layer_Block=nb_layer_block,
+#     Layer_size=layer_size,
+#     pLDDT_threshold=plddt_threshold
+# )
 
 # Layer size analysis set up
 # input_type = 'AA'
@@ -230,14 +230,14 @@ input_types = 'AA+3Di'
 x_param = 'pLDDT_threshold'
 Dropout = 0.3
 layer_size = 2048
-nb_layer_block = 3
+nb_layer_block = 2
 
 # Plot F1 score evolution
 plot_f1_score_evolution(
     dataframe=df, 
     x_param=x_param, 
     models_to_plot=models_to_plot, 
-    Input_Type=input_type, 
+    Input_Type=input_types, 
     Dropout=Dropout,
     Layer_size=layer_size, 
     Nb_Layer_Block=nb_layer_block
