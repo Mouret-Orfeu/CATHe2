@@ -402,7 +402,7 @@ def data_preparation(X_train, y_train, y_val, y_test):
 
     print("\033[92mData preparation done\033[0m")
 
-    return X_train, y_train, y_val, y_test, num_classes
+    return X_train, y_train, y_val, y_test, num_classes, le
 
 
 def bm_generator(X_t, y_t, batch_size, num_classes):
@@ -616,7 +616,7 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     plt.close()
 
 # @profile
-def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold):
+def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le):
     """Evaluates the trained model."""
 
     print("\033[92mModel evaluation \033[0m")
@@ -748,8 +748,16 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             
             warnings.filterwarnings("default")
 
+            # y_pred = model.predict(X_test)
+            # cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True, zero_division=1)
+            # df = pd.DataFrame(cr).transpose()
+            # df.to_csv(classification_report_path)
+
+            # save Classification report with the actual labels
             y_pred = model.predict(X_test)
-            cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True, zero_division=1)
+            y_pred_labels = le.inverse_transform(y_pred.argmax(axis=1))
+            y_test_labels = le.inverse_transform(y_test)
+            cr = classification_report(y_test_labels, y_pred_labels, output_dict=True, zero_division=1)
             df = pd.DataFrame(cr).transpose()
             df.to_csv(classification_report_path)
 
@@ -851,10 +859,10 @@ def main():
                     for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                         for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
                             X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
-                            X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                            X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                             if do_training:
                                 train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
                             # Clear memory after evaluation
                             del X_train, y_train, X_val, y_val, X_test, y_test
                             gc.collect()
@@ -862,10 +870,10 @@ def main():
                 for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                     for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
                         X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
-                        X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                        X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
                             train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
                         # Clear memory after evaluation
                         del X_train, y_train, X_val, y_val, X_test, y_test
                         gc.collect()
@@ -875,10 +883,10 @@ def main():
                 for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                     for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
                         X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
-                        X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                        X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
                             train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
                         # Clear memory after evaluation
                         del X_train, y_train, X_val, y_val, X_test, y_test
                         gc.collect()
@@ -886,10 +894,10 @@ def main():
             for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                 for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
                     X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
-                    X_train, y_train, y_val, y_test, num_classes = data_preparation(X_train, y_train, y_val, y_test)
+                    X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                     if do_training:
                         train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold)
+                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
                     # Clear memory after evaluation
                     del X_train, y_train, X_val, y_val, X_test, y_test
                     gc.collect()

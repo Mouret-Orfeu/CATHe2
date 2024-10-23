@@ -56,7 +56,7 @@ def get_3di_sequences(pdb_folder_path, output_dir):
     pdb_files = [f for f in os.listdir(pdb_folder_path) if f.endswith(".pdb")]
     if not pdb_files:
         raise FileNotFoundError(
-            "No PDB files found. If the selected input_type is AA+3Di, provide PDB files in ./src/cathe-predict/pdb_folder, from which 3Di sequences will be extracted."
+            f"No PDB files found. If the selected input_type is AA+3Di, provide PDB files at the folder path given ({pdb_folder_path}) from which 3Di sequences will be extracted."
         )
 
     # Output FASTA file that will contain all 3Di sequences
@@ -130,6 +130,12 @@ def embed_3Di(pdb_path):
 
 def main():
 
+    pdb_path = 'path_to_folder_with_pdb_files' 
+
+    if pdb_path == 'path_to_folder_with_pdb_files':
+        raise ValueError("pdb_path must be changed to a folder path containing the pdb files for the domains to compute 3Di embeddings with.")
+    
+
     parser = argparse.ArgumentParser(description="Run predictions pipeline with FASTA file")
     parser.add_argument('--model', type=str, default='ProtT5', choices=['ProtT5', 'ProstT5'], help="Model to use: ProtT5 (original one) or ProstT5 (new one)")
     parser.add_argument('--input_type', type=str, default='AA', choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)")
@@ -138,10 +144,11 @@ def main():
     if args.input_type == 'AA':
         
         embed_sequence()
+
     elif args.input_type == 'AA+3Di':
 
         embed_sequence()
-        embed_3Di(args.pdb_path)
+        embed_3Di(pdb_path)
     else:
         # raise error here
 
