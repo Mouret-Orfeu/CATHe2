@@ -759,6 +759,10 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             y_test_labels = le.inverse_transform(y_test)
             cr = classification_report(y_test_labels, y_pred_labels, output_dict=True, zero_division=1)
             df = pd.DataFrame(cr).transpose()
+
+            # Rename the index to 'SF' so that it becomes the first column in the CSV
+            df.index.name = 'SF'
+
             df.to_csv(classification_report_path)
 
             save_confusion_matrix(y_test, y_pred, confusion_matrix_path)
