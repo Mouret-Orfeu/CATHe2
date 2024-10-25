@@ -1,8 +1,3 @@
-Nouveau ! Raccourcis clavier … 
-Les raccourcis clavier de Drive ont été mis à jour pour vous permettre de naviguer à l'aide des premières lettres
-
-# the light attention part is inspired from  https://github.com/HannesStark/protein-localization/blob/master/models/light_attention.py
-
 import argparse
 import pandas as pd 
 import os
@@ -61,7 +56,7 @@ nb_layer_block_dict = {
 #         yield id_value, index
 
 # @profile
-def load_data(model_name, input_type, pLDDT_threshold):
+def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF):
     """Loads data for the specified model."""
 
     if model_name == 'ProtT5':
@@ -123,9 +118,15 @@ def load_data(model_name, input_type, pLDDT_threshold):
         if input_type == '3Di' or input_type == 'AA+3Di':
             # Load the domain IDs for which 3Di data is available
 
-            train_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
-            val_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
-            test_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+            if only_50_largest_SF:
+                train_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+                val_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+                test_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+
+            else:
+                train_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+                val_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+                test_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
 
             # Ensure that 'Unnamed: 0' is integer
             df_train['Unnamed: 0'] = df_train['Unnamed: 0'].astype(int)
@@ -293,9 +294,14 @@ def load_data(model_name, input_type, pLDDT_threshold):
             X_test_embedding_dict_AA = dict(zip(X_test_seq_embeddings_df['keys'], X_test_seq_embeddings_df['embeddings']))
 
             # Load list of domain ids to keep
-            train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
-            val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
-            test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+            if only_50_largest_SF:
+                train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+                val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+                test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+            else:
+                train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+                val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
+                test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['Domain_id'])
 
 
             # AA seq embedding filtering
@@ -488,13 +494,18 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
     return classifier
 
 # @profile
-def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold):
+def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold, only_50_largest_SF):
     """Trains the model."""
 
     print("\033[92mModel training \033[0m")
 
-    base_model_path = f'saved_models/ann_{model_name}'
-    base_loss_path = f'results/Loss/ann_{model_name}'
+    if only_50_largest_SF:
+        base_model_path = f'saved_models/ann_{model_name}_top_50_SF'
+        base_loss_path = f'results/Loss/ann_{model_name}_top_50_SF'
+
+    else:
+        base_model_path = f'saved_models/ann_{model_name}'
+        base_loss_path = f'results/Loss/ann_{model_name}'
 
     if dropout:
 
@@ -616,10 +627,13 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     plt.close()
 
 # @profile
-def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le):
+def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF):
     """Evaluates the trained model."""
 
     print("\033[92mModel evaluation \033[0m")
+
+    if only_50_largest_SF:
+        model_name = f'{model_name}_top_50_SF'
     
     if dropout:
         base_model_path = f'saved_models/ann_{model_name}'
@@ -812,6 +826,10 @@ def create_arg_parser():
                         default='0', 
                         help="Threshold for pLDDT to filter the trining set of 3Di from hight structure quality, choose from [0, 4, 14, 24, 34, 44, 54, 64, 74, 84] (only useful for 3Di input)")
     
+    parser.add_argument('--only_50_largest_SF', type=int, 
+                        default=0,
+                        help="Whether to train only with the 50 most represented superfamilies or not, put 0 to use all the superfamilies, 1 to use only the 50 largest")
+    
     return parser
 
 def main():
@@ -824,6 +842,7 @@ def main():
     nb_layer_block = args.nb_layer_block
     input_type = args.classifier_input
     pLDDT_threshold = args.pLDDT_threshold
+    only_50_largest_SF = args.only_50_largest_SF
 
     if input_type == 'AA':
         pLDDT_threshold = 0
@@ -854,6 +873,8 @@ def main():
     print(f"\033[93mDropout: {dropout_tag}\033[0m")
     print(f"\033[93mLayer Size: {layer_size_tag}\033[0m")
     print(f"\033[93mpLDDT Threshold: {pLDDT_threshold}\033[0m")
+    print(f"\033[93mOnly 50 Largest SF: {only_50_largest_SF}\033[0m")
+    print(f"\033[93mDo Training: {do_training}\033[0m")
     print("\n")
 
     if model_name == 'all':
@@ -862,22 +883,22 @@ def main():
                 for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
                     for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                         for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
+                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF)
                             X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                             if do_training:
-                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
+                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF)
+                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF)
                             # Clear memory after evaluation
                             del X_train, y_train, X_val, y_val, X_test, y_test
                             gc.collect()
             else:
                 for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                     for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF)
                         X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF)
                         # Clear memory after evaluation
                         del X_train, y_train, X_val, y_val, X_test, y_test
                         gc.collect()
@@ -886,22 +907,22 @@ def main():
             for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
                 for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                     for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
+                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF)
                         X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                         if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
+                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF)
+                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF)
                         # Clear memory after evaluation
                         del X_train, y_train, X_val, y_val, X_test, y_test
                         gc.collect()
         else:
             for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
                 for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold)
+                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF)
                     X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
                     if do_training:
-                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold)
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le)
+                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF)
+                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF)
                     # Clear memory after evaluation
                     del X_train, y_train, X_val, y_val, X_test, y_test
                     gc.collect()
