@@ -699,6 +699,10 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             writer.writerow(["Test MCC", mcc_score])
             writer.writerow(["Test Balanced Accuracy", bal_acc])
 
+            # Remove "_top_50_SF" suffix from model_name if it's present, there is already a column for this information
+            model_name = model_name.replace('_top_50_SF', '')
+
+
             # Save the test F1 score in a DataFrame
             df_results = pd.DataFrame({
                 'Model': [model_name],
@@ -707,12 +711,14 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 'Input_Type': [input_type],
                 'Layer_size': [layer_size],
                 'pLDDT_threshold': [pLDDT_threshold],
+                'is_top_50_SF': [bool(only_50_largest_SF)],
                 'F1_Score': [f1_score_test]
             })
             df_results_path = './results/perf_dataframe.csv'
 
             if os.path.exists(df_results_path):
                 df_existing = pd.read_csv(df_results_path)
+                print("Columns in df_existing:", df_existing.columns.tolist())
                 # Create a mask to find rows that match the current combination of parameters
                 mask = (
                     (df_existing['Model'].astype(type(model_name)) == model_name) &
@@ -720,7 +726,8 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                     (df_existing['Dropout'].astype(type(dropout)) == dropout) &
                     (df_existing['Input_Type'].astype(type(input_type)) == input_type) &
                     (df_existing['Layer_size'].astype(type(layer_size)) == layer_size) &
-                    (df_existing['pLDDT_threshold'].astype(type(pLDDT_threshold)) == pLDDT_threshold) 
+                    (df_existing['pLDDT_threshold'].astype(type(pLDDT_threshold)) == pLDDT_threshold) &
+                    (df_existing['is_top_50_SF'].astype(bool) == bool(only_50_largest_SF))
 
                 )
                 # If a matching row exists, update its F1_Score
@@ -762,10 +769,6 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             
             warnings.filterwarnings("default")
 
-            # y_pred = model.predict(X_test)
-            # cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict=True, zero_division=1)
-            # df = pd.DataFrame(cr).transpose()
-            # df.to_csv(classification_report_path)
 
             # save Classification report with the actual labels
             y_pred = model.predict(X_test)

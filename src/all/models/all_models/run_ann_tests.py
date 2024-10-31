@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 
 
-def run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type_values, pLDDT_threshold_values, model_values, do_training, combinations_to_skip=None):
+def run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type_values, pLDDT_threshold_values, model_values, do_training, only_50_largest_SF, combinations_to_skip=None):
     """
     Function to create all possible combinations of parameters and run a script for each combination.
 
@@ -16,16 +16,17 @@ def run_script_with_combinations(script_path, dropout_values, layer_size_values,
     :param pLDDT_threshold_values: List of possible pLDDT_threshold values.
     :param model_values: List of model names to use.
     :param do_training: Boolean to decide if training is necessary (1), or if the goal is to evaluate a already trained model (0)
+    :param only_50_largest_SF: Boolean to decide if the model should be trained on the 50 largest SF (1), or on all SF (0)
     :param combinations_to_skip: List of tuples representing parameter combinations to skip (optional).
     """
     if combinations_to_skip is None:
         combinations_to_skip = []
 
     # Create all possible combinations of parameters
-    combinations = list(itertools.product(dropout_values, layer_size_values, nb_layer_block_values, input_type_values, pLDDT_threshold_values, model_values, do_training))
+    combinations = list(itertools.product(dropout_values, layer_size_values, nb_layer_block_values, input_type_values, pLDDT_threshold_values, model_values, do_training, only_50_largest_SF))
 
     # Iterate over each combination and run the script with a progress bar
-    for dropout, layer_size, nb_layer_block, input_type, pLDDT_threshold, model, do_training in tqdm(combinations, desc="Running configurations"):
+    for dropout, layer_size, nb_layer_block, input_type, pLDDT_threshold, model, do_training, only_50_largest_SF in tqdm(combinations, desc="Running configurations"):
         
         # Skip the specified combinations
         if (dropout, layer_size, nb_layer_block, input_type, pLDDT_threshold, model) in combinations_to_skip:
@@ -35,7 +36,8 @@ def run_script_with_combinations(script_path, dropout_values, layer_size_values,
         command = (f"python {script_path} --classifier_input {input_type} --dropout {dropout} "
                    f"--layer_size {layer_size} --nb_layer_block {nb_layer_block} "
                    f"--pLDDT_threshold {pLDDT_threshold} --model {model} "
-                   f"--do_training {do_training}")
+                   f"--do_training {do_training} "
+                   f"--only_50_largest_SF {only_50_largest_SF}")
         
         # Print the command (optional)
         print(f"Running: {command}")
@@ -60,8 +62,9 @@ input_type = ['AA+3Di']
 pLDDT_threshold = [4, 14, 24, 34, 44, 54, 64, 74, 84]
 model = ['ProstT5_full']
 do_training = [0]
+only_50_largest_SF = [1]
 
-run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model, do_training)
+run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model, do_training, only_50_largest_SF)
 # progress_bar.update(1)
 # print(f"{progress_bar.n} run(s) have terminated.")
 

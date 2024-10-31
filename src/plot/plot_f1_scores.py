@@ -80,13 +80,14 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
 
 
 # Function to plot the evolution of F1 scores
-def plot_f1_score_evolution(dataframe, x_param, models_to_plot, **conditions):
+def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **conditions):
     """
     Plots the F1 score evolution for selected models along a specified parameter.
     
     :param dataframe: pandas DataFrame containing the results.
     :param x_param: The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout', 'Input_Type').
     :param models_to_plot: List of models to include in the plot.
+    :param title: Optional title for the graph. If not provided, a title will be generated based on conditions.
     :param conditions: Dictionary of conditions to filter the data (optional).
     """
     # Filter the dataframe for the selected models
@@ -97,7 +98,7 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, **conditions):
     for param, value in conditions.items():
         if value is not None:
             df_filtered = df_filtered[df_filtered[param] == value]
-            condition_str += f'_{param}_{value}'
+            condition_str += f'_{param}_{value}'    
     
     # Determine the models being plotted
     all_models = {'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec'}
@@ -109,20 +110,16 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, **conditions):
 
     plt.figure(figsize=(10, 6))
     sns.lineplot(data=df_filtered, x=x_param, y='F1_Score', hue='Model', marker='o', errorbar=None)
-    plot_title = f'F1 Score Evolution along {x_param}: '
-    condition_str = ''
-    for param, value in conditions.items():
-        if value is not None:
-            
-            condition_str += f'{param}={value}, '
 
-    # Remove the trailing comma and space
-    condition_str = condition_str.rstrip(', ')
-
-    # Construct the plot title
-    plot_title = f'F1 Score Evolution along {x_param}: '
-    if condition_str:
-        plot_title += condition_str  # Directly use the formatted condition_str
+    # If a title is provided, use it; otherwise, construct the title
+    if title:
+        plot_title = title
+    else:
+        # Construct the title based on conditions
+        plot_title = f'F1 Score Evolution along {x_param}: '
+        condition_str = ', '.join(f'{param}={value}' for param, value in conditions.items() if value is not None)
+        if condition_str:
+            plot_title += condition_str  # Directly use the formatted condition_str
 
     # DEBUG
     print(f'Plotting: {plot_title}')
@@ -142,6 +139,7 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, **conditions):
     plt.savefig(plot_filename)
     plt.close()  # Use plt.close() instead of plt.show() for 'Agg' backend
 
+
 # Load the dataframe
 df_results_path = './results/perf_dataframe.csv'
 df = pd.read_csv(df_results_path)
@@ -150,75 +148,6 @@ df = pd.read_csv(df_results_path)
 models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
 list_model_to_show = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-# list_model_to_show = ['ProstT5_full']
-
-# Plot all F1 scores in the dataframe
-# plot_all_f1_scores(df, list_model_to_show)
-
-# Dropout analysis set up
-# input_type = 'AA'
-# nb_layer_block = 2
-# layer_size = 1024
-# plddt_threshold = 0
-# x_param='Dropout'
-# plot_f1_score_evolution(
-#     dataframe=df,
-#     x_param=x_param,
-#     models_to_plot=models_to_plot,
-#     Input_Type=input_type,
-#     Nb_Layer_Block=nb_layer_block,
-#     Layer_size=layer_size,
-#     pLDDT_threshold=plddt_threshold
-# )
-
-# Layer size analysis set up
-# input_type = 'AA'
-# nb_layer_block = 2
-# plddt_threshold = 0
-# Dropout = 0.1
-# x_param='Layer_size'
-# plot_f1_score_evolution(
-#     dataframe=df,
-#     x_param=x_param,
-#     models_to_plot=models_to_plot,
-#     Input_Type=input_type,
-#     Nb_Layer_Block=nb_layer_block,
-#     Dropout=Dropout,
-#     pLDDT_threshold=plddt_threshold
-# )
-
-# Nb layer block analysis set up
-# input_type = 'AA'
-# layer_size = 1024
-# plddt_threshold = 0
-# Dropout = 0.1
-# x_param='Nb_Layer_Block'
-# plot_f1_score_evolution(
-#     dataframe=df,
-#     x_param=x_param,
-#     models_to_plot=models_to_plot,
-#     Input_Type=input_type,
-#     Layer_size=layer_size,
-#     Dropout=Dropout,
-#     pLDDT_threshold=plddt_threshold
-# )
-
-# ProstT5_full: pLDDT threshold analysis set up 
-# input_type = 'AA+3Di'
-# layer_size = 2048
-# Dropout = 0.3
-# x_param='pLDDT_threshold'
-# models_to_plot = ['ProstT5_full']
-# plot_f1_score_evolution(
-#     dataframe=df,
-#     x_param=x_param,
-#     models_to_plot=models_to_plot,
-#     Input_Type=input_type,
-#     Layer_size=layer_size,
-#     Dropout=Dropout
-# )
-
-# ProstT5_full: input_type analysis set up 
 
 # Plot the F1 score evolution along 'Dropout' for all models with the specified conditions
 
@@ -231,16 +160,20 @@ x_param = 'pLDDT_threshold'
 Dropout = 0.3
 layer_size = 2048
 nb_layer_block = 2
+is_top_50_SF = True
+
 
 # Plot F1 score evolution
 plot_f1_score_evolution(
     dataframe=df, 
     x_param=x_param, 
     models_to_plot=models_to_plot, 
+    title = 'F1 Score relatively to pLDDT threshold, top 50 SF training',
     Input_Type=input_types, 
     Dropout=Dropout,
     Layer_size=layer_size, 
-    Nb_Layer_Block=nb_layer_block
+    Nb_Layer_Block=nb_layer_block,
+    is_top_50_SF = is_top_50_SF
 )
 
 def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, **conditions):
@@ -269,6 +202,10 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
                     df_subset = df_subset[df_subset[param] == 0]
                 else:
                     df_subset = df_subset[df_subset[param] == value]
+
+                    # DEBUG
+                    print(f'Filtering: {param}={value}')
+
                 condition_str += f'_{param}_{value}'
         filtered_dfs.append(df_subset)
     
