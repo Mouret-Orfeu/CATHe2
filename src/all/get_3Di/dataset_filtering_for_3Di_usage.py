@@ -3,6 +3,42 @@ import os
 import csv
 from tqdm import tqdm
 
+def save_SF_lost_csv(pLDDT_threshold, total_lost_SF, nb_SF_remaining, Training_set_size, top_50_filtering, support_threshold):
+    # Path to the CSV file
+    lost_SF_csv_path = "./data/Dataset/csv/Lost_SF_and_Train_size.csv"
+    
+    # Create a DataFrame with the new data
+    update_df = pd.DataFrame({
+        'pLDDT_threshold': [pLDDT_threshold],
+        'Lost_SF_count': [total_lost_SF],
+        'Nb_SF_remaining': [nb_SF_remaining],
+        'Training_set_size': [Training_set_size],
+        'Top_50_filtering': [top_50_filtering],
+        'Support_threshold': [support_threshold]
+    })
+
+    # Check if the CSV file already exists
+    if os.path.exists(lost_SF_csv_path):
+        # Load existing CSV
+        df = pd.read_csv(lost_SF_csv_path)
+        # Check if there is a matching row for both pLDDT_threshold and top_50_filtering
+        condition = (df['pLDDT_threshold'] == pLDDT_threshold) & (df['Top_50_filtering'] == top_50_filtering) & (df['Support_threshold'] == support_threshold)
+        
+        if condition.any():
+            # Update the row where the conditions match
+            df.loc[condition, ['Lost_SF_count', 'Nb_SF_remaining', 'Training_set_size']] = [total_lost_SF, nb_SF_remaining, Training_set_size]
+        else:
+            # Append the new row if no match is found
+            df = pd.concat([df, update_df], ignore_index=True)
+    else:
+        # Create a new DataFrame if the CSV does not exist
+        df = update_df
+
+    # Save the updated CSV
+    df.to_csv(lost_SF_csv_path, index=False)
+
+
+
 def read_fasta(file):
     """Reads a FASTA file and returns a list of tuples (id, header, sequence)."""
     fasta_entries = []
@@ -21,7 +57,26 @@ def read_fasta(file):
         fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
     return fasta_entries
 
-def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold):
+def remove_lost_and_unrepresented_sf(filtered_sf, val_ids_with_3Di, test_ids_with_3Di, df_val, df_test):
+    
+    # Identify SFs not represented in Train threshold 0
+    unique_SF_val = df_val['SF'].unique().tolist()  
+    unique_SF_test = df_test['SF'].unique().tolist()
+    sf_to_remove_for_val = set(unique_SF_val) - set(filtered_sf)
+    sf_to_remove_for_test = set(unique_SF_test) - set(filtered_sf)
+    
+    
+    # Filter Val IDs to remove lost and unrepresented SFs
+    df_val_filtered_train_based = df_val[~df_val['SF'].isin(sf_to_remove_for_val)]
+    val_filtered_ids = df_val_filtered_train_based[df_val_filtered_train_based['Unnamed: 0'].isin(val_ids_with_3Di)]['Unnamed: 0'].tolist()
+
+    # Filter Test IDs to remove lost and unrepresented SFs
+    df_test_filtered_train_based = df_test[~df_test['SF'].isin(sf_to_remove_for_test)]
+    test_filtered_ids = df_test_filtered_train_based[df_test_filtered_train_based['Unnamed: 0'].isin(test_ids_with_3Di)]['Unnamed: 0'].tolist()
+
+    return val_filtered_ids, test_filtered_ids  # Include the count of lost SFs
+
+def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold, top_50_filtering, support_threshold):
     # Load the Train_pLDDT.csv file
     df_plddt = pd.read_csv('./data/Dataset/csv/Train_pLDDT.csv')
 
@@ -31,241 +86,135 @@ def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold):
     # Get the IDs that satisfy the pLDDT threshold
     valid_train_ids = set(df_plddt_filtered['ID'])
 
-    # DEBUG
-    # print("number of domains in Train for which pLDDT > 0:", len(valid_train_ids))
-
-    # Train
-
     # Read the Train.fasta file and extract domain IDs
-    with open('./data/Dataset/3Di/Train.fasta', 'r') as Train_fasta:
+    with open('./data/Dataset/3Di/Train.fasta', 'r') as Train_fasta, open('./data/Dataset/3Di/Val.fasta', 'r') as Val_fasta, open('./data/Dataset/3Di/Test.fasta', 'r') as Test_fasta:
         fasta_train_entries = read_fasta(Train_fasta)
-
-    # Get Train domain IDs that are in valid_train_ids and have 3Di data
-    Train_domain_ids_for_which_I_have_3Di = [int(entry[0]) for entry in fasta_train_entries if int(entry[0]) in valid_train_ids]
-    Train_domain_ids_for_which_I_have_3Di.sort()  # Sort the list in place
-
-    # print("number of domains in Train for which I have 3Di:", len(Train_domain_ids_for_which_I_have_3Di))
-
-    # Save the domain IDs for 3Di usage in a CSV file
-    df_train_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Train_domain_ids_for_which_I_have_3Di})
-
-    # to create the 0 threshold id csv, we add the order ids to be able to get theses ids for other threshold id csv
-    if pLDDT_threshold == 0:
-        # add the "order_id" to df_train_ids_for_which_I_have_3Di with id from 0
-        df_train_ids_for_which_I_have_3Di['order_id'] = range(len(df_train_ids_for_which_I_have_3Di))
-
-    # to create n!=0 threshold id csv, we add the order ids from the 0 threshold id csv to be able to filter the 3Di embeddings in the future (which are in the same order)
-    else:
-        # Iterate through each row in df_train_ids_for_which_I_have_3Di to find the corresponding order_id
-        order_ids = []
-        with open('./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv', 'r') as unfiltered_id_csv_file:
-            reader = pd.read_csv(unfiltered_id_csv_file)
-            for domain_id in tqdm(df_train_ids_for_which_I_have_3Di['Domain_id'], desc=f"Processing Train IDs, threshold {pLDDT_threshold}"):
-                # Find the matching row for the current domain_id and extract the order_id
-                order_id_row = reader[reader['Domain_id'] == domain_id]
-                if not order_id_row.empty:
-                    order_id = order_id_row['order_id'].values[0]
-                    order_ids.append(order_id)
-                else:
-                    raise ValueError(f"No order_id found for domain_id {domain_id}")
-
-        # Add the order_id column to df_train_ids_for_which_I_have_3Di
-        df_train_ids_for_which_I_have_3Di['order_id'] = order_ids
-
-    df_train_ids_for_which_I_have_3Di.to_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv', index=False)
-
-    
-
-    # Val and Test
-    
-    # I get the list of ids of the Val and Test domains for which I have the 3Di sequence
-    with open('./data/Dataset/3Di/Val.fasta', 'r') as Val_fasta, open('./data/Dataset/3Di/Test.fasta', 'r') as Test_fasta:
         fasta_val_entries = read_fasta(Val_fasta)
         fasta_test_entries = read_fasta(Test_fasta)
+    
+    df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
 
-    # Get Val and Test domain IDs that are in valid_train_ids and have 3Di data
+    # Load Val and Test data
+    csv_val = './data/Dataset/csv/Val.csv'
+    csv_test = './data/Dataset/csv/Test.csv'
+    df_val = pd.read_csv(csv_val)
+    df_test = pd.read_csv(csv_test)
+
     Val_domain_ids_for_which_I_have_3Di = [int(entry[0]) for entry in fasta_val_entries]
-    Val_domain_ids_for_which_I_have_3Di.sort()  # Sort the list in place
+    Val_domain_ids_for_which_I_have_3Di.sort()
 
     Test_domain_ids_for_which_I_have_3Di = [int(entry[0]) for entry in fasta_test_entries]
-    Test_domain_ids_for_which_I_have_3Di.sort()  # Sort the list in place
+    Test_domain_ids_for_which_I_have_3Di.sort()
+    test_sf_with_3Di = set(df_test[df_test['Unnamed: 0'].isin(Test_domain_ids_for_which_I_have_3Di)]['SF'].tolist())
 
     # DEBUG
-    # print("number of domains in Val for which I have 3Di:", len(Val_domain_ids_for_which_I_have_3Di))
-    # print("number of domains in Test for which I have 3Di:", len(Test_domain_ids_for_which_I_have_3Di))
+    all_test_sf = set(df_test['SF'].tolist())
+    print(f"lost sf using 3Di for Test: {len(all_test_sf - test_sf_with_3Di)}")
 
-    # I remove from these ids, the ids of the domains for which the SF is not represented by any domains in the Train domains for which I have 3Di
 
-    # Read the Train.csv file and filter to get SF for the domains that have 3Di data
-    df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
-    filtered_Train_df = df_train[df_train['Unnamed: 0'].isin(Train_domain_ids_for_which_I_have_3Di)]
-    threshold_filtered_Train_df = filtered_Train_df[filtered_Train_df['Unnamed: 0'].isin(valid_train_ids)]
-    SF_for_Train_domains_with_3Di = set(threshold_filtered_Train_df['SF'].tolist())   
 
-    # Read the Val.csv and Test.csv files
-    df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
-    df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
+    # Training dataset processing ############################################################
 
-    # Get the indices where the SF is not in SF_for_Train_domains_with_3Di
-    indices_in_val_not_in_train = df_val.index[~df_val['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
-    indices_in_test_not_in_train = df_test.index[~df_test['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
+    # Compute the Train Domain_ids of the 50 largest SF (if top_50_filtering is enabled)
+    if top_50_filtering:
+        # Count the support for each SF and get the top 50 SFs by support
+        sf_support_counts = df_train['SF'].value_counts()
+        top_sf_support = sf_support_counts.head(50)
 
-    # Remove the indices from the Val and Test domain ids
-    Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Val_domain_ids_for_which_I_have_3Di if id not in indices_in_val_not_in_train]
-    Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Test_domain_ids_for_which_I_have_3Di if id not in indices_in_test_not_in_train]
+        # Get the top SF labels based on support
+        top_sf_labels = top_sf_support.index.tolist()
 
-    #DEBUG
-    # print("number of domains in Val for which I have 3Di for this threshold:", len(Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train))
-    # print("number of domains in Test for which I have 3Di for this threshold:", len(Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train))
+        # Filter Domain_ids in Train.csv where the SF label is in the top SFs
+        top_sf_domain_ids = df_train[df_train['SF'].isin(top_sf_labels)]['Unnamed: 0'].tolist()
 
-    # Save the domain IDs for 3Di usage in CSV files
-    df_val_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
-    if pLDDT_threshold == 0:
-        # add the "order_id" to df_val_ids_for_which_I_have_3Di with id from 0
-        df_val_ids_for_which_I_have_3Di['order_id'] = range(len(df_val_ids_for_which_I_have_3Di))
+    # Compute the Train Domain_ids for SF labels that have a support <= support_threshold (if support_threshold is not 0)
+    if support_threshold:
+        # Count the support for each SF
+        sf_support_counts = df_train['SF'].value_counts()
+
+        # Get the SF labels with support <= support_threshold
+        low_support_sf_labels = sf_support_counts[sf_support_counts <= support_threshold].index.tolist()
+
+        # Filter Domain_ids in Train.csv where the SF label is in the low support SFs
+        low_support_sf_domain_ids = df_train[df_train['SF'].isin(low_support_sf_labels)]['Unnamed: 0'].tolist()
+
+    # pLDDT filtering for Train: Get Train domain IDs that are in valid_train_ids and have 3Di data
+    fully_filtered_Train_Domain_ids = [int(entry[0]) for entry in fasta_train_entries if int(entry[0]) in valid_train_ids]
+
+    # If top 50 filtering is enabled, intersect with the top 50 SFs IDs
+    if top_50_filtering:
+        fully_filtered_Train_Domain_ids = list(set(fully_filtered_Train_Domain_ids) & set(top_sf_domain_ids))
+    
+    # If support filtering is enabled, remove the low support SFs from the fully filtered Train IDs
+    if support_threshold:
+        fully_filtered_Train_Domain_ids = list(set(fully_filtered_Train_Domain_ids) - set(low_support_sf_domain_ids))
+
+    # Sort the list in place
+    fully_filtered_Train_Domain_ids.sort()  
+
+    # Save the domain IDs for 3Di usage in a CSV file
+    df_fully_filtered_Domain_ids = pd.DataFrame({'Domain_id': fully_filtered_Train_Domain_ids})
+
+    if top_50_filtering:
+        Train_csv_path = f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv'
+    elif support_threshold:
+        Train_csv_path = f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
     else:
-        # Iterate through each row in df_val_ids_for_which_I_have_3Di to find the corresponding order_id
-        order_ids = []
-        with open('./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv', 'r') as unfiltered_id_csv_file:
-            reader = pd.read_csv(unfiltered_id_csv_file)
-            for domain_id in tqdm(df_val_ids_for_which_I_have_3Di['Domain_id'], desc=f"Processing Val IDs, threshold {pLDDT_threshold}"):
-                # Find the matching row for the current domain_id and extract the order_id
-                order_id_row = reader[reader['Domain_id'] == domain_id]
-                if not order_id_row.empty:
-                    order_id = order_id_row['order_id'].values[0]
-                    order_ids.append(order_id)
-                else:
-                    raise ValueError(f"No order_id found for domain_id {domain_id}")
-        
-        # Add the order_id column to df_val_ids_for_which_I_have_3Di
-        df_val_ids_for_which_I_have_3Di['order_id'] = order_ids
+        Train_csv_path = f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv'
 
-    df_val_ids_for_which_I_have_3Di.to_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv', index=False)
+    # Save filtered Train IDs 
+    df_fully_filtered_Domain_ids.to_csv(Train_csv_path, index=False)
 
-    
+    # Get the set of SFs remaining in the fully filtered train set
+    filtered_Train_df = df_train[df_train['Unnamed: 0'].isin(df_fully_filtered_Domain_ids['Domain_id'])]
+    SF_filtered_Train = set(filtered_Train_df['SF'].tolist())
 
-    df_test_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
-    if pLDDT_threshold == 0:
-        # add the "order_id" to df_test_ids_for_which_I_have_3Di with id from 0
-        df_test_ids_for_which_I_have_3Di['order_id'] = range(len(df_test_ids_for_which_I_have_3Di))
+    # Save information about lost SFs and the size of the training set
+    total_lost_SF = len(df_train['SF'].unique()) - len(SF_filtered_Train)
+    nb_SF_remaining = len(SF_filtered_Train)
+    Training_set_size = len(fully_filtered_Train_Domain_ids)
+
+    save_SF_lost_csv(pLDDT_threshold, total_lost_SF, nb_SF_remaining, Training_set_size, top_50_filtering, support_threshold)
+
+
+    # Val and Test datasets processing ############################################################
+
+    # Filter and save Val and Test data
+    val_filtered_ids, test_filtered_ids = remove_lost_and_unrepresented_sf(SF_filtered_Train, Val_domain_ids_for_which_I_have_3Di, Test_domain_ids_for_which_I_have_3Di, df_val, df_test)
+
+    # Prepare DataFrame for Val and Test with idc_3Di_embed and idc_AA_embed
+    df_val_filtered = pd.DataFrame({'Domain_id': val_filtered_ids})
+    df_test_filtered = pd.DataFrame({'Domain_id': test_filtered_ids})
+
+    if top_50_filtering:
+        Test_csv_path = f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv'
+        Val_csv_path = f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv'
+    elif support_threshold:
+        Test_csv_path = f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
+        Val_csv_path = f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
     else:
-        # Iterate through each row in df_test_ids_for_which_I_have_3Di to find the corresponding order_id
-        order_ids = []
-        with open('./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv', 'r') as unfiltered_id_csv_file:
-            reader = pd.read_csv(unfiltered_id_csv_file)
-            for domain_id in tqdm(df_test_ids_for_which_I_have_3Di['Domain_id'], desc=f"Processing Test IDs, threshold {pLDDT_threshold}"):
-                # Find the matching row for the current domain_id and extract the order_id
-                order_id_row = reader[reader['Domain_id'] == domain_id]
-                if not order_id_row.empty:
-                    order_id = order_id_row['order_id'].values[0]
-                    order_ids.append(order_id)
-                else:
-                    raise ValueError(f"No order_id found for domain_id {domain_id}")
-        
-        # Add the order_id column to df_test_ids_for_which_I_have_3Di
-        df_test_ids_for_which_I_have_3Di['order_id'] = order_ids
-    df_test_ids_for_which_I_have_3Di.to_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv', index=False)
+        Test_csv_path = f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv'
+        Val_csv_path = f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv'
 
-    
-
-    # Calculate the number of removed superfamilies in test set
-    SF_removed_in_test = len(Test_domain_ids_for_which_I_have_3Di) - len(Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train)
-
-    # Total removed SF
-    total_lost_SF = SF_removed_in_test
-
-    # Get the number of rows in df_plddt_filtered (which gives the training set size)
-    training_set_size = len(df_plddt_filtered)
-
-    # Save the lost SF count, threshold, and training set size in Lost_SF_and_Train_size.csv
-    lost_sf_filename = './data/Dataset/csv/Lost_SF_and_Train_size.csv'
-    if not os.path.exists(lost_sf_filename):
-        with open(lost_sf_filename, 'w', newline='') as csvfile:
-            csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(['pLDDT_threshold', 'Lost_SF_count', 'Training_set_size'])
-    
-    with open(lost_sf_filename, 'a', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow([pLDDT_threshold, total_lost_SF, training_set_size])
+    # Save Val and Test filtered IDs 
+    df_val_filtered.to_csv(Val_csv_path, index=False)
+    df_test_filtered.to_csv(Test_csv_path, index=False)
 
 
-
-    # # Val and Test
-    
-    # # I get the list of ids of the Val and Test domains for which I have the 3Di sequence
-    # with open('./data/Dataset/3Di/Val.fasta', 'r') as Val_fasta, open('./data/Dataset/3Di/Test.fasta', 'r') as Test_fasta:
-    #     fasta_val_entries = read_fasta(Val_fasta)
-    #     fasta_test_entries = read_fasta(Test_fasta)
-
-    # Val_domain_ids_for_which_I_have_3Di = [int(entry[0]) for entry in fasta_val_entries]
-    # Val_domain_ids_for_which_I_have_3Di.sort()  # Sort the list in place
-
-    # Test_domain_ids_for_which_I_have_3Di = [int(entry[0]) for entry in fasta_test_entries]
-    # Test_domain_ids_for_which_I_have_3Di.sort()  # Sort the list in place
-
-    # # I remove from these ids, the ids of the domains for which the SF is not represented by any domains in the Train domains for which I have 3Di
-
-    # # Read the Train.csv file and filter to get SF for the domains that have 3Di data
-    # df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
-    # filtered_Train_df = df_train[df_train['Unnamed: 0'].isin(Train_domain_ids_for_which_I_have_3Di)]
-    # SF_for_Train_domains_with_3Di = set(filtered_Train_df['SF'].tolist())   
-
-    
-
-    # print("len SF_for_Train_domains_with_3Di:", len(SF_for_Train_domains_with_3Di))
-
-    # # Read the Val.csv and Test.csv files
-    # df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
-    # df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
-
-    # # Get the indices where the SF is not in SF_for_Train_domains_with_3Di
-    # indices_in_val_not_in_train = df_val.index[~df_val['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
-    # indices_in_test_not_in_train = df_test.index[~df_test['SF'].isin(SF_for_Train_domains_with_3Di)].tolist()
-
-    # # Remove the indices from the Val and Test domain ids
-    # Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Val_domain_ids_for_which_I_have_3Di if id not in indices_in_val_not_in_train]
-    # Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [id for id in Test_domain_ids_for_which_I_have_3Di if id not in indices_in_test_not_in_train]
-
-    # ####################################################################################
-
-
-    # # Read the Val.csv and Test.csv files
-    # df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
-    # df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
-
-    # # Get the indices where the SF are in SF_for_Train_domains_with_3Di
-    # filtered_df_val= df_val[~df_val['SF'].isin(SF_for_Train_domains_with_3Di)]
-    # filtered_df_test= df_test[df_test['SF'].isin(SF_for_Train_domains_with_3Di)]
-
-    # ids_filtered_df_val = filtered_df_val['Unnamed: 0'].tolist()
-    # ids_filtered_df_test = filtered_df_test['Unnamed: 0'].tolist()
-
-    # # DEBUG
-    # # print("number of removed SF in Val:", len(indices_in_val_not_in_train))
-    # # print("number of removed SF in Test:", len(indices_in_test_not_in_train))
-
-    # # Remove the indices from the Val and Test domain ids
-    # Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [int(id) for id in Val_domain_ids_for_which_I_have_3Di if int(id) in ids_filtered_df_val]
-    # Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train = [int(id) for id in Test_domain_ids_for_which_I_have_3Di if int(id) in ids_filtered_df_test]
-
-    # ####################################################################################
-
-
-    # # Save the domain IDs for 3Di usage in CSV files
-    # df_val_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Val_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
-    # df_val_ids_for_which_I_have_3Di.to_csv('./data/Dataset/csv/Val_ids_for_3Di_usage.csv', index=False)
-
-    # df_test_ids_for_which_I_have_3Di = pd.DataFrame({'Domain_id': Test_domain_ids_for_which_I_have_3Di_and_which_are_in_Train})
-    # df_test_ids_for_which_I_have_3Di.to_csv('./data/Dataset/csv/Test_ids_for_3Di_usage.csv', index=False)
-
-
-    
 
 def main():
-    # save_dataset_ids_for_3Di_usage_in_classification(0)
 
+    top_50_filtering = False
+    support_threshold = 10
+
+    # Validate support_threshold
+    if not isinstance(support_threshold, int) or support_threshold < 0:
+        raise ValueError("support_threshold must be a non-negative integer")
+    
+        
+    # Iterate over thresholds and filter Val and Test datasets
     for pLDDT_threshold in [0, 4, 14, 24, 34, 44, 54, 64, 74, 84]:
-        save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold)
+        save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold, top_50_filtering, support_threshold)
 
 if __name__ == "__main__":
     main()

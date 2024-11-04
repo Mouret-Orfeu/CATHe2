@@ -160,7 +160,8 @@ x_param = 'pLDDT_threshold'
 Dropout = 0.3
 layer_size = 2048
 nb_layer_block = 2
-is_top_50_SF = True
+is_top_50_SF = False
+Support_threshold = 10
 
 
 # Plot F1 score evolution
@@ -168,12 +169,13 @@ plot_f1_score_evolution(
     dataframe=df, 
     x_param=x_param, 
     models_to_plot=models_to_plot, 
-    title = 'F1 Score relatively to pLDDT threshold, top 50 SF training',
+    title = 'F1 Score relatively to pLDDT threshold, Support_threshold = 10',
     Input_Type=input_types, 
     Dropout=Dropout,
     Layer_size=layer_size, 
     Nb_Layer_Block=nb_layer_block,
-    is_top_50_SF = is_top_50_SF
+    is_top_50_SF = is_top_50_SF,
+    Support_threshold=Support_threshold
 )
 
 def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, **conditions):
