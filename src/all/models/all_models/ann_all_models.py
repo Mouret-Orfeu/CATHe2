@@ -1,3 +1,6 @@
+# DEBUG
+print("\033[92mann_all_models: library imports in progress, may take a few minutes\033[0m")
+
 import argparse
 import pandas as pd 
 import os
@@ -176,10 +179,14 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed = prot_3Di_embeddings_paths[model_name]
 
         if input_type == 'AA':
+
+            X_train_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')
+            X_val_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')
+            X_test_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')
             
-            X_train = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
-            X_val = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
-            X_test = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
+            X_train = X_train_seq_embeddings_df['embeddings']
+            X_val = X_val_seq_embeddings_df['embeddings']
+            X_test = X_test_seq_embeddings_df['embeddings']
         
         if input_type == '3Di':
 
@@ -213,9 +220,9 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             X_val = X_val_3Di_df['embeddings']
             X_test = X_test_3Di_df['embeddings']
             
-            X_train = X_train_3Di[train_idc_3Di_emb]
-            X_val = X_val_3Di[val_idc_3Di_emb]
-            X_test = X_test_3Di[test_idc_3Di_emb]
+            # X_train = X_train_3Di[train_idc_3Di_emb]
+            # X_val = X_val_3Di[val_idc_3Di_emb]
+            # X_test = X_test_3Di[test_idc_3Di_emb]
         
         if input_type == 'AA+3Di':
 
@@ -492,7 +499,7 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
     
     for _ in range(nb_layer_block):
         x = Dense(layer_size, kernel_initializer='glorot_uniform', kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5))(x)
-        x = LeakyReLU(negative_slope=0.05)(x)
+        x = LeakyReLU(alpha=0.05)(x)
         x = BatchNormalization()(x)
         if dropout:
             x = Dropout(dropout)(x)
@@ -518,21 +525,21 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
 
     if dropout:
 
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.h5'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.keras'
         save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.png'
     else:
         
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.h5'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.keras'
         save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.png'
     
     if input_type == '3Di':
 
-        save_model_path  = save_model_path.replace('.h5', '_3Di.h5')
+        save_model_path  = save_model_path.replace('.keras', '_3Di.keras')
         save_loss_path = save_loss_path.replace('.png', '_3Di.png')
     
     if input_type == 'AA+3Di':
             
-        save_model_path  = save_model_path.replace('.h5', '_AA+3Di.h5')
+        save_model_path  = save_model_path.replace('.keras', '_AA+3Di.keras')
         save_loss_path = save_loss_path.replace('.png', '_AA+3Di.png')
 
     num_epochs = 200
@@ -548,8 +555,9 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
         # callbacks
-        save_model_path = save_model_path.replace(".h5", ".keras") # change file extention for google collab run
-        mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1)
+        save_model_path = save_model_path.replace(".keras", "")  # Remove '.keras' to save as a directory in 'tf' format
+        # mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1)
+        mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1, save_format='tf')
         reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
         early_stop = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=30)
         callbacks_list = [reduce_lr, mcp_save, early_stop]
@@ -679,6 +687,10 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         classification_report_path = classification_report_path.replace('.csv', '_AA+3Di.csv')
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_AA+3Di.png')
         results_file = results_file.replace('.csv', '_AA+3Di.csv')
+
+    # Fix this properly later
+    model_path = model_path.replace(".keras", "") 
+
 
     with open(results_file, mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -852,6 +864,9 @@ def create_arg_parser():
     return parser
 
 def main():
+
+    # DEBUG
+    print("\033[92mann_all_models main running\033[0m")
 
     parser = create_arg_parser()
     args = parser.parse_args()

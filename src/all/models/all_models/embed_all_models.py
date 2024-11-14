@@ -222,7 +222,7 @@ def get_sequences(seq_path, dataset, is_3Di):
 
 
 
-def embedding_set_up(seq_path, model_name, is_3Di, dataset, max_seq_len=3263):
+def embedding_set_up(seq_path, model_name, is_3Di, dataset):
     emb_dict = dict()
     seq_dict = get_sequences(seq_path, dataset, is_3Di)
     model_deep, model, tokenizer = get_model(model_name)
@@ -239,21 +239,19 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset, max_seq_len=3263):
     print('Total number of sequences: {}'.format(len(seq_dict)))
 
     avg_length = sum([len(seq) for seq in seq_dict.values()]) / len(seq_dict)
-    n_long = sum([1 for seq in seq_dict.values() if len(seq) > max_seq_len])
     # sort sequences by length to trigger OOM at the beginning
     seq_dict = sorted(seq_dict.items(), key=lambda kv: len(kv[1]), reverse=True)
     
     print("Average sequence length: {}".format(avg_length))
-    print("Number of sequences >{}: {}".format(max_seq_len, n_long))
 
     return emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix
     
 
 
 def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
-                   max_residues=4096, max_seq_len=3263, nb_seq_max_in_batch=4096):
+                   max_residues=4096, nb_seq_max_in_batch=4096):
                                                                                            
-    emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, dataset, max_seq_len)
+    emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, dataset)
 
     if model_name == 'TM_Vec':
         start = time.time()
@@ -265,7 +263,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
             batch_keys.append(seq_key)
 
             n_res_batch = sum([len(s) for s in batch])
-            if len(batch) >= nb_seq_max_in_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
+            if len(batch) >= nb_seq_max_in_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict):
                 embedded_batch = encode(batch, model_deep, model, tokenizer, device)
                 for i, seq_key in enumerate(batch_keys):
                     emb_dict[seq_key] = embedded_batch[i]
@@ -291,7 +289,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
             # count residues in current batch and add the last sequence length to
             # avoid that batches with (n_res_batch > max_residues) get processed 
             n_res_batch = sum([s_len for _, _, s_len in batch])
-            if len(batch) >= nb_seq_max_in_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
+            if len(batch) >= nb_seq_max_in_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict):
                 seq_keys, seqs, seq_lens = zip(*batch)
                 batch = list()
 
@@ -362,7 +360,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
     np.savez(emb_path, keys=keys, embeddings=embeddings)
 
     #DEBUG
-    print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
+    #print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
     
     print('Total number of embeddings: {}'.format(len(embeddings)))
     print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(embeddings), avg_length))
@@ -412,14 +410,14 @@ def process_datasets(model_name, is_3Di, embed_path, seq_path, datasets):
     for dataset in datasets:
         if is_3Di:
             if embed_path == 'default':
-                emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz"
+                embed_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz"
             if seq_path == 'default':  
                 seq_path = f"./data/Dataset/3Di/{dataset}.fasta"
             
 
         else:
             if embed_path == 'default':
-                emb_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
+                embed_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
             if seq_path == 'default':
                 seq_path = f"./data/Dataset/csv/{dataset}.csv"
             
@@ -427,7 +425,7 @@ def process_datasets(model_name, is_3Di, embed_path, seq_path, datasets):
 
         get_embeddings(
             seq_path,
-            emb_path,
+            embed_path,
             model_name,
             is_3Di,
             dataset

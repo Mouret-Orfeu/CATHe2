@@ -1,6 +1,5 @@
 # libraries
 import numpy as np
-from bio_embeddings.embed import ProtTransT5BFDEmbedder
 import pandas as pd 
 import argparse
 import subprocess
@@ -10,35 +9,54 @@ import shutil
 yellow = "\033[93m"
 reset = "\033[0m"
 
-def embed_sequence():
+def embed_sequence(model):
 
-    print(f"{yellow}Loading ProtT5 model. (can take a few minutes){reset}")
+    if model == 'ProtT5':
+        from bio_embeddings.embed import ProtTransT5BFDEmbedder
 
-    embedder = ProtTransT5BFDEmbedder()
-    ds = pd.read_csv('./src/cathe-predict/Dataset.csv')
+        print(f"{yellow}Loading ProtT5 model. (can take a few minutes){reset}")
 
-    sequences_Example = list(ds["Sequence"])
-    num_seq = len(sequences_Example)
+        embedder = ProtTransT5BFDEmbedder()
+        ds = pd.read_csv('./src/cathe-predict/Dataset.csv')
 
-    i = 0
-    length = 1000
-    while i < num_seq:
-        print("Doing", i, num_seq)
-        start = i 
-        end = i + length
+        sequences_Example = list(ds["Sequence"])
+        num_seq = len(sequences_Example)
 
-        sequences = sequences_Example[start:end]
+        i = 0
+        length = 1000
+        while i < num_seq:
+            print("Doing", i, num_seq)
+            start = i 
+            end = i + length
 
-        embeddings = []
-        for seq in sequences:
-            embeddings.append(np.mean(np.asarray(embedder.embed(seq)), axis=0))
+            sequences = sequences_Example[start:end]
 
-        s_no = start / length
-        filename = './src/cathe-predict/Embeddings/' + 'T5_' + str(s_no) + '.npz'
+            embeddings = []
+            for seq in sequences:
+                embeddings.append(np.mean(np.asarray(embedder.embed(seq)), axis=0))
 
-        embeddings = np.asarray(embeddings)
-        np.savez_compressed(filename, embeddings)
-        i += length
+            s_no = start / length
+            filename = './src/cathe-predict/Embeddings/' + 'ProtT5_' + str(s_no) + '.npz'
+
+            embeddings = np.asarray(embeddings)
+            np.savez_compressed(filename, embeddings)
+            i += length
+    
+    if model == 'ProstT5':
+
+        print("Embedding sequences with ProstT5")
+
+        # Define the arguments for embed_all_models.py
+        args = [
+            'python3', './src/all/models/all_models/embed_all_models.py',
+            '--model', 'ProstT5_full',
+            '--is_3Di', '0',  
+            '--seq_path', './src/cathe-predict/Dataset.csv',  
+            '--embed_path', './src/cathe-predict/Embeddings/Embeddings_ProstT5_AA.npz',  # Path where embeddings will be saved
+        ]
+
+        # Run embed_all_models.py with the specified arguments
+        subprocess.run(args)
 
         
         
@@ -130,29 +148,34 @@ def embed_3Di(pdb_path):
 
 def main():
 
-    pdb_path = 'path_to_folder_with_pdb_files' 
-
-    if pdb_path == 'path_to_folder_with_pdb_files':
-        raise ValueError("pdb_path must be changed to a folder path containing the pdb files for the domains to compute 3Di embeddings with.")
-    
-
     parser = argparse.ArgumentParser(description="Run predictions pipeline with FASTA file")
     parser.add_argument('--model', type=str, default='ProtT5', choices=['ProtT5', 'ProstT5'], help="Model to use: ProtT5 (original one) or ProstT5 (new one)")
     parser.add_argument('--input_type', type=str, default='AA', choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)")
     args = parser.parse_args()
 
+    # Create the folder for embeddings if it doesn't exist
+    os.makedirs('./src/cathe-predict/Embeddings', exist_ok=True)
+
     if args.input_type == 'AA':
         
-        embed_sequence()
+        embed_sequence(args.model)
 
     elif args.input_type == 'AA+3Di':
 
-        embed_sequence()
+        pdb_path = 'path_to_folder_with_pdb_files' 
+
+        if pdb_path == 'path_to_folder_with_pdb_files':
+            raise ValueError("pdb_path must be changed to a folder path containing the pdb files for the domains to compute 3Di embeddings with.")
+
+        if args.model == 'ProtT5':
+            raise ValueError("ProtT5 model does not support 3Di embeddings. Please use ProstT5 if you want the input_type to be AA+3Di.")
+
+        embed_sequence(args.model)
         embed_3Di(pdb_path)
     else:
         # raise error here
 
-        print("Invalid input type")
+        raise ValueError("Invalid input_type. Please choose 'AA' or 'AA+3Di'.")
 
 
 if __name__ == '__main__':

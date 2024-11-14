@@ -49,9 +49,10 @@ os.system(cmd)
 cmd = f'python3 ./src/cathe-predict/predict_embed.py --model {args.model} --input_type {args.input_type}'
 os.system(cmd)
 
-# Concatenates all individual embedding files into a single file
-cmd = f'python3 ./src/cathe-predict/append_embed.py'
-os.system(cmd)
+if args.model == 'ProtT5':
+    # Concatenates all individual embedding files into a single file
+    cmd = f'python3 ./src/cathe-predict/append_embed.py'
+    os.system(cmd)
 
 # Pass the model, input_type, and pdb_path arguments to make_predictions.py
 cmd = f'python3 ./src/cathe-predict/make_predictions.py --model {args.model} --input_type {args.input_type}'

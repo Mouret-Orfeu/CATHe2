@@ -2,6 +2,9 @@ myenv/
 myenv_2/
 venv_1/
 venv_2/
+venv_1.zip
+100d.pdb
+Sequences.fasta
 pytorch_cluster/
 pytorch_scatter/
 pytorch_sparse/

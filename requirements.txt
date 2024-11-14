@@ -88,7 +88,7 @@ flatbuffers>=23.5.26
 fsspec>=2023.5.0
 ftfy==5.9
 future==0.18.2
-gast~=0.5.0
+gast~=0.6.0
 #gensim==4.3.2
 gevent
 google-auth>=2.15.0
@@ -114,7 +114,7 @@ ipympl==0.5.6
 ipython==7.15.0
 ipython-genutils==0.2.0
 ipywidgets==7.5.1
-isodate==0.6.0
+isodate<1.0.0,>=0.7.2
 itsdangerous>=2.0
 jax==0.1.77
 jax-unirep==1.0.3
@@ -305,7 +305,7 @@ tf-estimator-nightly==2.8.0.dev2021122109
 tflearn==0.3.1
 thinc==7.4.5
 threadpoolctl>=3.1.0
-tokenizers<0.20,>=0.19
+tokenizers<0.21,>=0.20
 toml==0.10.1
 toolz==0.10.0
 torch>=1.8.0,<=1.9.1

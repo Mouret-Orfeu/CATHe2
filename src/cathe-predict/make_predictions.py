@@ -25,14 +25,37 @@ args = parser.parse_args()
 
 st = time.time()
 # load data	
-filename = './src/cathe-predict/Embeddings/Embeddings_T5.npz'
-embeds = np.load(filename)['arr_0']
+if args.model == 'ProtT5':
+    filename = './src/cathe-predict/Embeddings/Embeddings_ProtT5.npz'
+    embeds = np.load(filename)['arr_0']
+elif args.model == 'ProstT5':
+    filename = './src/cathe-predict/Embeddings/Embeddings_ProstT5_AA.npz'
+    data = np.load(filename)  # Load the .npz file
+    keys = data['keys']  # Adjust if 'keys' is the correct key in the file
+    embeddings = data['embeddings']  # Adjust if 'embeddings' is the correct key
+    embeds_dict_AA = dict(zip(keys, embeddings))
+    embeds = np.array([embeds_dict_AA[i] for i in embeds_dict_AA.keys()])
+else:
+    raise ValueError("Invalid model. Please choose 'ProtT5' or 'ProstT5'.")
 
 if args.input_type == 'AA+3Di':
-	filename = './src/cathe-predict/Embeddings/3Di_embeddings'
-	embeds_3Di = np.load(filename)['arr_0']
+    if args.model == 'ProtT5':
+        raise ValueError("AA+3Di input type is only available with ProstT5 model.")
+    
+    # Load 3Di embeddings
+    filename = './src/cathe-predict/Embeddings/3Di_embeddings.npz'
+    data = np.load(filename)
+    keys_3Di = data['keys']  # Adjust if 'keys' is the correct key in the file
+    embeddings_3Di = data['embeddings']  # Adjust if 'embeddings' is the correct key
+    embeds_dict_3Di = dict(zip(keys_3Di, embeddings_3Di))
+    
+    # Verify that keys match exactly
+    if set(embeds_dict_AA.keys()) != set(embeds_dict_3Di.keys()):
+        raise ValueError("The keys in the AA and 3Di embeddings do not match.")
+    
+    # Concatenate embeddings where keys match
+    embeds = np.array([np.concatenate((embeds_dict_AA[key], embeds_dict_3Di[key])) for key in embeds_dict_AA.keys()])
 
-	embeds = np.concatenate((embeds, embeds_3Di), axis=1)
 # print(len(embeds))
 
 # # annotations
@@ -70,7 +93,10 @@ classes = le.classes_
 if args.model == 'ProtT5' and args.input_type == 'AA':
 	model = load_model('./src/cathe-predict/CATHe.h5', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
 elif args.model == 'ProstT5' and args.input_type == 'AA':
-	model = load_model('...', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
+	# model = load_model('./src/cathe-predict/ann_ProstT5_full_2_blocks_dropout_0.1_layer_size_1024_pLDDT_0_support_threshold_0.keras', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
+    model_path = './src/cathe-predict/ann_ProstT5_full_2_blocks_dropout_0.1_layer_size_1024_pLDDT_0_support_threshold_0'
+    model = load_model(model_path, custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
+
 elif args.model == 'ProstT5' and args.input_type == 'AA+3Di':
 	model = load_model('...', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
 
