@@ -88,7 +88,7 @@ def plot_plddt_scores(plddt_scores, output_dir):
     plt.savefig(os.path.join(output_dir, 'aggregated_plddt_boxplot.png'))
     plt.close()
 
-def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id):
+def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id, trimmed_pdb_file_path):
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('structure', pdb_file_path)
 
@@ -115,11 +115,22 @@ def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id
                     break
             break
 
+    
+    #DEBUG
+    reset = "\033[0m"
+    red = "\033[91m"
+    print(f"{red}get 3Di debug prints:")
+    print(f"{red}CSV sequence: {sequence}")
+    print(f"{red}pdb_sequence: {pdb_sequence}")
+    print(f"{red}used_chain_id: {used_chain_id}")
+    print(f"{red}model_id: {model_id}{reset}")
+    
+
 
     if not chain_model_found:
         raise ValueError(f"Chain {used_chain_id} in model {model_id} not found in PDB file {pdb_file_path}")
     if len(pdb_sequence) == 0:
-        raise ValueError(f"No amino acids found in chain {used_chain_id} in model {model_id} in PDB file {pdb_file_path}")
+        raise ValueError(f"{red} No amino acids found in chain {used_chain_id} in model {model_id} in PDB file {pdb_file_path}")
 
     # Perform sequence alignment using PairwiseAligner
     aligner = PairwiseAligner()
@@ -153,10 +164,8 @@ def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id
     # Write out the trimmed structure
     io = PDBIO()
     io.set_structure(structure)
-    trimmed_pdb_file_path = pdb_file_path.replace('.pdb', '_trimmed.pdb')
     io.save(trimmed_pdb_file_path, select=TrimSelect(pdb_residues_to_keep))
 
-    return trimmed_pdb_file_path
 
 
 
@@ -188,7 +197,8 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
         if process_training_set:
             plddt_scores = extract_global_plddt(pdb_file_path)
         
-        trimmed_pdb_file_path = trim_pdb(pdb_file_path, sequence, best_chain, model, expected_chain)
+        trimmed_pdb_file_path = pdb_file_path.replace('.pdb', '_trimmed.pdb')
+        trim_pdb(pdb_file_path, sequence, best_chain, model, expected_chain, trimmed_pdb_file_path)
     
         os.remove(pdb_file_path)
         

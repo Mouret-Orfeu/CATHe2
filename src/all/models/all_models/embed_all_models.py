@@ -1,19 +1,59 @@
 # -*- coding: utf-8 -*-
 
+# DEBUG
+print("\033[92membedding code running: library imports in progress, it may take a few minutes\033[0m")
+
+import time
+
+start_time = time.time()
+print("Starting imports...")
 
 import argparse
-import time
+print(f"argparse imported in {time.time() - start_time:.2f}s")
+
 import torch
+print(f"torch imported in {time.time() - start_time:.2f}s")
+
 import numpy as np
+print(f"numpy imported in {time.time() - start_time:.2f}s")
+
 import pandas as pd
+print(f"pandas imported in {time.time() - start_time:.2f}s")
+
 from transformers import AutoModel, AutoTokenizer, T5Tokenizer, T5EncoderModel
+print(f"transformers imported in {time.time() - start_time:.2f}s")
+
+import ankh
+print(f"ankh imported in {time.time() - start_time:.2f}s")
+
+from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
+print(f"tm_vec imported in {time.time() - start_time:.2f}s")
+
+import re
+print(f"re imported in {time.time() - start_time:.2f}s")
+
+import gc
+print(f"gc imported in {time.time() - start_time:.2f}s")
+
+import os
+print(f"os imported in {time.time() - start_time:.2f}s")
+
 from tqdm import tqdm
 import sys
-import ankh
-from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
-import re
-import gc
-import os
+
+# import argparse
+# import time
+# import torch
+# import numpy as np
+# import pandas as pd
+# from transformers import AutoModel, AutoTokenizer, T5Tokenizer, T5EncoderModel
+
+
+# import ankh
+# from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
+# import re
+# import gc
+# import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -23,6 +63,7 @@ print("Using device: {}".format(device))
 gpu_status = "GPU is being used!" if torch.cuda.is_available() else "No GPU is available."
 # ANSI escape code for orange text
 orange_color = '\033[33m'
+yellow = "\033[93m"
 reset_color = '\033[0m'
 
 print(f"{orange_color}{gpu_status}{reset_color}")
@@ -165,27 +206,30 @@ def get_sequences(seq_path, dataset, is_3Di):
     sequences = {}
 
     if is_3Di:
-        # Determine the correct CSV file path based on the dataset
-        usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage_0.csv'
 
-        # DEBUG
-        print(f"\033[93mUsage CSV path: {usage_csv_path}\033[0m")
+        # dataset='other' means the programme is used to embed a custom dataset, not the CATHe datasets, so no filtering is needed
+        if dataset != "other":
+            # Determine the correct CSV file path based on the dataset
+            usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage_0.csv'
 
-        if not os.path.exists(usage_csv_path):
-            raise FileNotFoundError(f"CSV file not found: {usage_csv_path}")
+            # DEBUG
+            print(f"\033[93mUsage CSV path: {usage_csv_path}\033[0m")
 
-        # Load the IDs that should be kept
-        df_domains_for_3Di_usage = pd.read_csv(usage_csv_path)
-        sequence_ids_to_use = set(df_domains_for_3Di_usage['Domain_id'])
+            if not os.path.exists(usage_csv_path):
+                raise FileNotFoundError(f"CSV file not found: {usage_csv_path}")
 
-        # DEBUG
-        print(f"\033[93mLength of df_domains_for_3Di_usage: {len(df_domains_for_3Di_usage)}\033[0m")
-        print(f"\033[93mNumber of sequence IDs to use: {len(sequence_ids_to_use)}\033[0m")
+            # Load the IDs that should be kept
+            df_domains_for_3Di_usage = pd.read_csv(usage_csv_path)
+            sequence_ids_to_use = set(df_domains_for_3Di_usage['Domain_id'])
 
-        # DEBUG
-        if not sequence_ids_to_use:
-            print(f"\033[91mNo sequence IDs found in the CSV file: {usage_csv_path}\033[0m")
-            raise ValueError("No sequence IDs found in the CSV file.")
+            # DEBUG
+            print(f"\033[93mLength of df_domains_for_3Di_usage: {len(df_domains_for_3Di_usage)}\033[0m")
+            print(f"\033[93mNumber of sequence IDs to use: {len(sequence_ids_to_use)}\033[0m")
+
+            # DEBUG
+            if not sequence_ids_to_use:
+                print(f"\033[91mNo sequence IDs found in the CSV file: {usage_csv_path}\033[0m")
+                raise ValueError("No sequence IDs found in the CSV file.")
 
         
 
@@ -197,8 +241,10 @@ def get_sequences(seq_path, dataset, is_3Di):
             # DEBUG
             # print(f"\033[92mEntry: {entry[0]}\033[0m")
             # exit()
-
-            if int(entry[0]) in sequence_ids_to_use:
+            if dataset != "other":
+                if int(entry[0]) in sequence_ids_to_use:
+                    sequences[int(entry[0])] = entry[2]
+            else:
                 sequences[int(entry[0])] = entry[2]
         
         # 3Di-sequences need to be lower-case
@@ -356,11 +402,16 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
     
     # np.savez(emb_path, sorted_embeddings)
 
+    # DEBUG
+    print(f"len keys: {len(keys)}")
+    print(f"len embeddings: {len(embeddings)}")
+
     # Save the keys and embeddings separately
     np.savez(emb_path, keys=keys, embeddings=embeddings)
 
     #DEBUG
     #print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
+    
     
     print('Total number of embeddings: {}'.format(len(embeddings)))
     print('Total time: {:.2f}[s]; time/prot: {:.4f}[s]; avg. len= {:.2f}'.format(end-start, (end-start)/len(embeddings), avg_length))
@@ -399,7 +450,7 @@ def create_arg_parser():
     
     parser.add_argument('--dataset', type=str,
                         default='Val',
-                        help="The dataset to embed (Val, Test, Train). Default: all")
+                        help="The dataset to embed (Val, Test, Train, all, other). 'all' will embed the Val, Test, and Train datasets.")
     
     return parser
 
@@ -443,8 +494,8 @@ def main():
 
     datasets = args.dataset
 
-    if datasets not in ['Val', 'Test', 'Train', 'all']:
-        raise ValueError("The dataset should be 'Val', 'Test', 'Train' or 'all'")
+    if datasets not in ['Val', 'Test', 'Train', 'all', 'other']:
+        raise ValueError("The dataset should be 'Val', 'Test', 'Train', 'all' or 'other'")
     
     if datasets == 'all':
         datasets = ['Val', 'Test', 'Train']

@@ -1,11 +1,17 @@
+# ANSI escape code for colored text
+yellow = "\033[93m"
+green = "\033[92m"
+reset = "\033[0m"
+red = "\033[91m"
+
+
+print(f"{green}cathe_prediction running, library imports in progress{reset}")
+
 import os
 import argparse
 import tensorflow as tf
 
-# ANSI escape code for colored text
-yellow = "\033[93m"
-reset = "\033[0m"
-red = "\033[91m"
+
 
 # Check and set up GPUs
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -30,9 +36,6 @@ args = parser.parse_args()
 if args.model == 'ProtT5' and args.input_type == 'AA+3Di':
     raise ValueError(f"{red}Error: Model ProtT5 does not support input type AA+3Di, please select ProstT5 for AA+3Di{reset}")
 
-if args.input_type == 'AA+3Di' and not args.pdb_path:
-    raise ValueError(f"{red}Error: --pdb_path is required when input_type is AA+3Di, please provide the path to the input PDB file if you want to use AA+3Di{reset}")
-
 # DEBUG
 print(f"{yellow}Model: {args.model}")
 print(f"Input Type: {args.input_type}{reset}")
@@ -42,7 +45,7 @@ cmd = 'mkdir -p ./src/cathe-predict/Embeddings'
 os.system(cmd)
 
 # Converts a FASTA file containing protein sequences into a CSV dataset
-cmd = f'python3 ./src/cathe-predict/fasta_to_ds.py'
+cmd = f'python3 ./src/cathe-predict/fasta_to_ds.py --model {args.model}'
 os.system(cmd)
 
 # Pass the model and input_type to predict_embed.py
@@ -54,6 +57,6 @@ if args.model == 'ProtT5':
     cmd = f'python3 ./src/cathe-predict/append_embed.py'
     os.system(cmd)
 
-# Pass the model, input_type, and pdb_path arguments to make_predictions.py
+# Pass the model and input_type to make_predictions.py
 cmd = f'python3 ./src/cathe-predict/make_predictions.py --model {args.model} --input_type {args.input_type}'
 os.system(cmd)

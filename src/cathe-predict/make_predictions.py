@@ -16,6 +16,8 @@ from tensorflow import keras
 import time
 import argparse
 
+yellow = "\033[93m"
+reset = "\033[0m"
 
 # Parse command-line arguments for the model and the input type
 parser = argparse.ArgumentParser(description="Run predictions pipeline with FASTA file")
@@ -45,7 +47,15 @@ if args.input_type == 'AA+3Di':
     # Load 3Di embeddings
     filename = './src/cathe-predict/Embeddings/3Di_embeddings.npz'
     data = np.load(filename)
+
+    # DEBUG
+    print(f"3Di df shape: {data}")
+
     keys_3Di = data['keys']  # Adjust if 'keys' is the correct key in the file
+
+    # DEBUG
+    print(f"3Di keys: {keys_3Di}")
+
     embeddings_3Di = data['embeddings']  # Adjust if 'embeddings' is the correct key
     embeds_dict_3Di = dict(zip(keys_3Di, embeddings_3Di))
     
@@ -98,7 +108,7 @@ elif args.model == 'ProstT5' and args.input_type == 'AA':
     model = load_model(model_path, custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
 
 elif args.model == 'ProstT5' and args.input_type == 'AA+3Di':
-	model = load_model('...', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
+	model = load_model('./src/cathe-predict/ann_ProstT5_full_2_blocks_dropout_0.3_layer_size_2048_pLDDT_24_support_threshold_0_AA+3Di', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
 
 y_pred = model.predict(embeds)
 
