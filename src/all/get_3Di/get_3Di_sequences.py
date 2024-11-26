@@ -1,5 +1,7 @@
 # run "all" with internet connection with 720 Mbps download speed: took around  
 
+print("\033[92m3Di computing code running (get_3Di_sequences.py), make sure you set up and activated venv_2\033[0m")
+
 import pandas as pd
 import requests
 import subprocess

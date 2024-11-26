@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+print("\033[92membedding code running (embed_all_models.py), make sure you set up and activated venv_2\033[0m")
+
 # DEBUG
 print("\033[92membedding code running: library imports in progress, it may take a few minutes\033[0m")
 

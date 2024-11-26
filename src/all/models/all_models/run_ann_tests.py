@@ -1,3 +1,5 @@
+print("\033[92mtest code running (run_ann_tests.py), make sure you set up and activated venv_2\033[0m")
+
 import os
 import itertools
 from tqdm import tqdm

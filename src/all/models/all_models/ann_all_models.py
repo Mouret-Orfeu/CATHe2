@@ -1,5 +1,7 @@
-# DEBUG
-print("\033[92mann_all_models: library imports in progress, may take a few minutes\033[0m")
+
+print("\033[92mmodel training code running (ann_all_models.py), make sure you set up and activated venv_2\033[0m")
+
+print("\033[92m ann_all_models.py: library imports in progress, may take a few minutes\033[0m")
 
 import argparse
 import pandas as pd 
@@ -46,23 +48,67 @@ reset_color = '\033[0m'
 
 print(f"{orange_color}{gpu_status}{reset_color}")
 
-nb_layer_block_dict = {
-        "one": 1,
-        "two": 2,
-        "three": 3
-    }
 
 
+def load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold):
+    # Load list of domain ids to keep
+    if only_50_largest_SF:
+        train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+        val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+        test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
+    
+    elif support_threshold!=0:
+        train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv')['Domain_id'])
+        val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv')['Domain_id'])
+        test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv')['Domain_id'])
+    else:
+        train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv')['Domain_id'])
+        val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv')['Domain_id'])
+        test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv')['Domain_id'])
+    
+    return train_ids_to_keep, val_ids_to_keep, test_ids_to_keep
 
-# def domain_id_generator(domain_ids):
-#     for index, id_value in enumerate(domain_ids):
-#         yield id_value, index
+def load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed, train_ids_to_keep, val_ids_to_keep, test_ids_to_keep):
+    # load 3Di embedding df
+    X_train_3Di_df = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')
+    X_val_3Di_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')
+    X_test_3Di_df = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')
+
+    X_train_embedding_dict_3Di = dict(zip(X_train_3Di_df['keys'], X_train_3Di_df['embeddings']))
+    X_val_embedding_dict_3Di = dict(zip(X_val_3Di_df['keys'], X_val_3Di_df['embeddings']))
+    X_test_embedding_dict_3Di = dict(zip(X_test_3Di_df['keys'], X_test_3Di_df['embeddings']))
+
+    # 3Di embedding filtering
+    # For train embeddings
+    train_embeddings_to_keep_3Di = []
+    for domain_id in train_ids_to_keep:
+        if domain_id not in X_train_embedding_dict_3Di:
+            raise KeyError(f"Train domain ID {domain_id} not found in the train embeddings dictionary!")
+        train_embeddings_to_keep_3Di.append(X_train_embedding_dict_3Di[domain_id])
+    
+    # For validation embeddings
+    val_embeddings_to_keep_3Di = []
+    for domain_id in val_ids_to_keep:
+        if domain_id not in X_val_embedding_dict_3Di:
+            raise KeyError(f"Validation domain ID {domain_id} not found in the validation embeddings dictionary!")
+        val_embeddings_to_keep_3Di.append(X_val_embedding_dict_3Di[domain_id])
+    
+    # For test embeddings
+    test_embeddings_to_keep_3Di = []
+    for domain_id in test_ids_to_keep:
+        if domain_id not in X_test_embedding_dict_3Di:
+            raise KeyError(f"Test domain ID {domain_id} not found in the test embeddings dictionary!")
+        test_embeddings_to_keep_3Di.append(X_test_embedding_dict_3Di[domain_id])
+    
+    return train_embeddings_to_keep_3Di, val_embeddings_to_keep_3Di, test_embeddings_to_keep_3Di
 
 # @profile
 def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold):
     """Loads data for the specified model."""
 
     if model_name == 'ProtT5':
+        # For ProtT5, the former code and embeddings datasets are used here, see ./src/all/models/ProstT5/ann_ProstT5.py
+
         # using the original CATHe datasets for ProtT5
         ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
         y_train = list(ds_train["SF"])
@@ -90,7 +136,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
 
         X_val = np.concatenate((X_val, X_val_other), axis=0)
 
-        for i in range(len(X_val_other)):
+        for _ in range(len(X_val_other)):
             y_val.append('other')
 
         # test
@@ -160,23 +206,19 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             'TM_Vec': ('Train_TM_Vec_per_protein.npz', 'Val_TM_Vec_per_protein.npz', 'Test_TM_Vec_per_protein.npz')
         }
 
-        prot_3Di_embeddings_paths = {
-            'ProstT5_full': ('Train_ProstT5_full_per_protein_3Di.npz', 'Val_ProstT5_full_per_protein_3Di.npz', 'Test_ProstT5_full_per_protein_3Di.npz'),
-            'ProstT5_half': ('Train_ProstT5_half_per_protein_3Di.npz', 'Val_ProstT5_half_per_protein_3Di.npz', 'Test_ProstT5_half_per_protein_3Di.npz')
-            
-        }
-
         if input_type == 'AA':
             if model_name not in prot_sequence_embeddings_paths:
-                raise ValueError("Invalid model name")
+                raise ValueError("Invalid model name, choose between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec")
         elif input_type == '3Di':
-            if model_name not in prot_3Di_embeddings_paths:
-                raise ValueError("Invalid model name, if input type is 3Di, only ProstT5 models are available")
+            if model_name != 'ProstT5_full':
+                raise ValueError("Invalid model name, if input type is 3Di, only ProstT5_full is available")
         
         Train_file_name_seq_embed, Val_file_name_seq_embed, Test_file_name_seq_embed = prot_sequence_embeddings_paths[model_name]
 
         if input_type == '3Di' or input_type == 'AA+3Di':
-            Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed = prot_3Di_embeddings_paths[model_name]
+            Train_file_name_3Di_embed = 'Train_ProstT5_full_per_protein_3Di.npz'
+            Val_file_name_3Di_embed = 'Val_ProstT5_full_per_protein_3Di.npz'
+            Test_file_name_3Di_embed = 'Test_ProstT5_full_per_protein_3Di.npz'
 
         if input_type == 'AA':
 
@@ -184,116 +226,24 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             X_val_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')
             X_test_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')
             
-            X_train = X_train_seq_embeddings_df['embeddings']
-            X_val = X_val_seq_embeddings_df['embeddings']
-            X_test = X_test_seq_embeddings_df['embeddings']
+            X_train = np.array(X_train_seq_embeddings_df['embeddings'])
+            X_val = np.array(X_val_seq_embeddings_df['embeddings'])
+            X_test = np.array(X_test_seq_embeddings_df['embeddings'])
         
         if input_type == '3Di':
 
-            # X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
-            # X_val_3Di = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
-            # X_test_3Di = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0'] 
-
-            # train_3Di_id_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-            # val_3Di_id_to_keep =   list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-            # test_3Di_id_to_keep =  list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-
-            # train_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv')['Domain_id'])
-            # val_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv')['Domain_id'])
-            # test_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv')['Domain_id'])
-
-            # train_3Di_id_to_keep = [index for id_value, index in domain_id_generator(train_ids_for_3Di_usage_threshold_0) if id_value in train_ids_for_3Di_usage]
-            # val_3Di_id_to_keep =   [index for id_value, index in domain_id_generator(val_ids_for_3Di_usage_threshold_0) if id_value in val_ids_for_3Di_usage]
-            # test_3Di_id_to_keep =  [index for id_value, index in domain_id_generator(test_ids_for_3Di_usage_threshold_0) if id_value in test_ids_for_3Di_usage]
-
-            # 2nd try 
-            # train_idc_3Di_emb = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_3Di_embed'])
-            # val_idc_3Di_emb = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_3Di_embed'])
-            # test_idc_3Di_emb = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_3Di_embed'])
-
-            # 3rd try
-            X_train_3Di_df = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')
-            X_val_3Di_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')
-            X_test_3Di_df = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')
-
-            X_train = X_train_3Di_df['embeddings'] 
-            X_val = X_val_3Di_df['embeddings']
-            X_test = X_test_3Di_df['embeddings']
+            # Get doman ids of the sequences to keep
+            train_ids_to_keep, val_ids_to_keep, test_ids_to_keep = load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold)
             
-            # X_train = X_train_3Di[train_idc_3Di_emb]
-            # X_val = X_val_3Di[val_idc_3Di_emb]
-            # X_test = X_test_3Di[test_idc_3Di_emb]
+            # Load and filter 3Di embeddings based on the domain ids to keep
+            train_embeddings_to_keep_3Di, val_embeddings_to_keep_3Di, test_embeddings_to_keep_3Di = load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed, train_ids_to_keep, val_ids_to_keep, test_ids_to_keep)
+
+            X_train = np.array(train_embeddings_to_keep_3Di)
+            X_val = np.array(val_embeddings_to_keep_3Di)
+            X_test = np.array(test_embeddings_to_keep_3Di)
         
         if input_type == 'AA+3Di':
 
-            # AA seq embedding processing
-
-            # Load sequence embeddings
-            # X_train_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')['arr_0']
-            # X_val_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')['arr_0']
-            # X_test_seq_embeddings = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')['arr_0']
-
-            # old
-            # Get the indices of the rows that should be kept, (not the seq id but the actual row in the csv file, for example the first id of the test set is 0, but the first sequence id is 1035679)
-            # Find the row numbers (positions) for train, val, and test IDs in their respective DataFrames
-            # train_domain_id_to_keep = df_train[df_train['Unnamed: 0'].isin(train_ids_for_3Di_usage)].index.tolist()
-            # val_domain_id_to_keep = df_val[df_val['Unnamed: 0'].isin(val_ids_for_3Di_usage)].index.tolist()
-            # test_domain_id_to_keep = df_test[df_test['Unnamed: 0'].isin(test_ids_for_3Di_usage)].index.tolist()
-
-            # 2nd try
-            # train_idc_AA_emb = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_AA_embed'])
-            # val_idc_AA_emb = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_AA_embed'])
-            # test_idc_AA_emb = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_AA_embed'])
-
-            # # Only keep AA embeddings at the right indices (the indices that correspond to the esquence with 3Di and with pLDDT > pLDDT_threshold)
-            # X_train_seq_embeddings_filtered = X_train_seq_embeddings[train_idc_AA_emb]
-            # X_val_seq_embeddings_filtered = X_val_seq_embeddings[val_idc_AA_emb]
-            # X_test_seq_embeddings_filtered = X_test_seq_embeddings[test_idc_AA_emb]
-            
-            # del X_train_seq_embeddings, X_val_seq_embeddings, X_test_seq_embeddings  # Immediately delete to free memory
-            # gc.collect()
-
-            # 3Di embedding processing
-
-            # Load 3Di embeddings
-            # X_train_3Di = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')['arr_0']
-            # X_val_3Di = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')['arr_0']
-            # X_test_3Di = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')['arr_0']
-
-            # 1rst try
-            # train_3Di_id_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-            # val_3Di_id_to_keep =   list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-            # test_3Di_id_to_keep =  list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['order_id'])
-
-             # train_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_0.csv')['Domain_id'])
-            # val_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_0.csv')['Domain_id'])
-            # test_ids_for_3Di_usage_threshold_0 = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_0.csv')['Domain_id'])
-            
-
-            # Get the corresponding 3Di ids to keep
-            # train_3Di_id_to_keep = [index for id_value, index in domain_id_generator(train_ids_for_3Di_usage_threshold_0) if id_value in train_ids_for_3Di_usage]
-            # val_3Di_id_to_keep =   [index for id_value, index in domain_id_generator(val_ids_for_3Di_usage_threshold_0) if id_value in val_ids_for_3Di_usage]
-            # test_3Di_id_to_keep =  [index for id_value, index in domain_id_generator(test_ids_for_3Di_usage_threshold_0) if id_value in test_ids_for_3Di_usage]
-
-
-            # 2nd try
-            # train_idc_3Di_emb = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_3Di_embed'])
-            # val_idc_3Di_emb = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_3Di_embed'])
-            # test_idc_3Di_emb = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_{pLDDT_threshold}.csv')['idc_3Di_embed'])
-
-            
-            # # DEBUG
-            # print(f"Sample indices for train: {train_idc_3Di_emb[:5]}")
-            # print(f"Sample indices for val: {val_idc_3Di_emb[:5]}")
-            # print(f"Sample indices for test: {test_idc_3Di_emb[:5]}")
-
-            
-            # # filter the train embeddings so that only the ones with pLDDT > threshold are kept
-            # X_train_3Di_filtered = X_train_3Di[train_idc_3Di_emb]
-            # X_val_3Di_filtered = X_val_3Di[val_idc_3Di_emb]
-            # X_test_3Di_filtered = X_test_3Di[test_idc_3Di_emb]
-
-            # 3rd try
 
             # Load sequence embeddings
             X_train_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')
@@ -305,20 +255,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             X_test_embedding_dict_AA = dict(zip(X_test_seq_embeddings_df['keys'], X_test_seq_embeddings_df['embeddings']))
 
             # Load list of domain ids to keep
-            if only_50_largest_SF:
-                train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
-                val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
-                test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
-            
-            elif support_threshold!=0:
-                train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv')['Domain_id'])
-                val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv')['Domain_id'])
-                test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_support_threshold_{support_threshold}.csv')['Domain_id'])
-            else:
-                train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv')['Domain_id'])
-                val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv')['Domain_id'])
-                test_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Test_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}.csv')['Domain_id'])
-
+            train_ids_to_keep, val_ids_to_keep, test_ids_to_keep = load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold)
 
             # AA seq embedding filtering
             # For train embeddings
@@ -350,38 +287,8 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             # Force the garbage collector to run
             gc.collect()
 
-
-            # load 3Di embedding df
-            X_train_3Di_df = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')
-            X_val_3Di_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')
-            X_test_3Di_df = np.load(f'./data/Dataset/embeddings/{Test_file_name_3Di_embed}')
-
-            X_train_embedding_dict_3Di = dict(zip(X_train_3Di_df['keys'], X_train_3Di_df['embeddings']))
-            X_val_embedding_dict_3Di = dict(zip(X_val_3Di_df['keys'], X_val_3Di_df['embeddings']))
-            X_test_embedding_dict_3Di = dict(zip(X_test_3Di_df['keys'], X_test_3Di_df['embeddings']))
-
-            # 3Di embedding filtering
-            # For train embeddings
-            train_embeddings_to_keep_3Di = []
-            for domain_id in train_ids_to_keep:
-                if domain_id not in X_train_embedding_dict_3Di:
-                    raise KeyError(f"Train domain ID {domain_id} not found in the train embeddings dictionary!")
-                train_embeddings_to_keep_3Di.append(X_train_embedding_dict_3Di[domain_id])
-            
-            # For validation embeddings
-            val_embeddings_to_keep_3Di = []
-            for domain_id in val_ids_to_keep:
-                if domain_id not in X_val_embedding_dict_3Di:
-                    raise KeyError(f"Validation domain ID {domain_id} not found in the validation embeddings dictionary!")
-                val_embeddings_to_keep_3Di.append(X_val_embedding_dict_3Di[domain_id])
-            
-            # For test embeddings
-            test_embeddings_to_keep_3Di = []
-            for domain_id in test_ids_to_keep:
-                if domain_id not in X_test_embedding_dict_3Di:
-                    raise KeyError(f"Test domain ID {domain_id} not found in the test embeddings dictionary!")
-                test_embeddings_to_keep_3Di.append(X_test_embedding_dict_3Di[domain_id])
-
+            # Load and filter 3Di embeddings based on the domain ids to keep
+            train_embeddings_to_keep_3Di, val_embeddings_to_keep_3Di, test_embeddings_to_keep_3Di = load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed, train_ids_to_keep, val_ids_to_keep, test_ids_to_keep)
 
             # Ensure that lengths match before concatenation
             assert len(train_embeddings_to_keep_AA) == len(train_embeddings_to_keep_3Di), "Train sequence and 3Di embeddings must have the same length"
@@ -396,10 +303,6 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             del train_embeddings_to_keep_3Di, val_embeddings_to_keep_3Di, test_embeddings_to_keep_3Di  
             # Immediately delete to free memory
             gc.collect()
-
-
-            # del X_train_seq_embeddings_filtered, X_val_seq_embeddings_filtered, X_test_seq_embeddings_filtered, X_train_3Di_filtered, X_val_3Di_filtered, X_test_3Di_filtered  # Immediately delete to free memory
-            # gc.collect()
 
         print("\033[92m \nData Loading done\033[0m")
 
@@ -525,21 +428,23 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
 
     if dropout:
 
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.keras'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
         save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.png'
     else:
         
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.keras'
+        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
         save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.png'
     
     if input_type == '3Di':
 
-        save_model_path  = save_model_path.replace('.keras', '_3Di.keras')
+        # save_model_path  = save_model_path.replace('.keras', '_3Di.keras')
+        save_model_path += '_3Di'
         save_loss_path = save_loss_path.replace('.png', '_3Di.png')
     
     if input_type == 'AA+3Di':
             
-        save_model_path  = save_model_path.replace('.keras', '_AA+3Di.keras')
+        # save_model_path  = save_model_path.replace('.keras', '_AA+3Di.keras')
+        save_model_path += '_AA+3Di'
         save_loss_path = save_loss_path.replace('.png', '_AA+3Di.png')
 
     num_epochs = 200
@@ -555,7 +460,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
 
         # callbacks
-        save_model_path = save_model_path.replace(".keras", "")  # Remove '.keras' to save as a directory in 'tf' format
+        # save_model_path = save_model_path.replace(".keras", "")  # Remove '.keras' to save as a directory in 'tf' format
         # mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1)
         mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1, save_format='tf')
         reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
@@ -652,44 +557,40 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
     if only_50_largest_SF:
         model_name = f'{model_name}_top_50_SF'
     
-    if dropout:
-        base_model_path = f'saved_models/ann_{model_name}'
-        base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
-        base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
+    
+    base_model_path = f'./saved_models/ann_{model_name}'
+    base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
+    base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
 
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.keras'
+    model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
 
 
-        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
-        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
-        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
-    else:
-        base_model_path = f'saved_models/ann_{model_name}'
-        base_classification_report_path = f'results/classification_report/CR_ANN_{model_name}'
-        base_confusion_matrix_path = f'results/confusion_matrices/{model_name}'
-
-        model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.keras'
-
-        classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
-        confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
-        results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
+    classification_report_path = f'{base_classification_report_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
+    confusion_matrix_path = f'{base_confusion_matrix_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
+    results_file = f'./results/perf_metrics/ann_{model_name}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.csv'
     
     if input_type == '3Di':
+
+        model_path += '_3Di'
+
+        # DEBUG
+        print(f"{orange_color}Model path: {model_path}{reset_color}")
             
-        model_path = model_path.replace('.keras', '_3Di.keras')
+        # model_path = model_path.replace('.keras', '_3Di.keras')
         classification_report_path = classification_report_path.replace('.csv', '_3Di.csv')
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_3Di.png')
         results_file = results_file.replace('.csv', '_3Di.csv')
     
     if input_type == 'AA+3Di':
                 
-        model_path = model_path.replace('.keras', '_AA+3Di.keras')
+        model_path += '_AA+3Di'
+        # model_path = model_path.replace('.keras', '_AA+3Di.keras')
         classification_report_path = classification_report_path.replace('.csv', '_AA+3Di.csv')
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_AA+3Di.png')
         results_file = results_file.replace('.csv', '_AA+3Di.csv')
 
     # Fix this properly later
-    model_path = model_path.replace(".keras", "") 
+    # model_path = model_path.replace(".keras", "") 
 
 
     with open(results_file, mode='w', newline='') as file:
@@ -703,7 +604,14 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             
         with tf.device('/gpu:0'):
             writer.writerow(["Validation", ""])
-            y_pred_val = model.predict(X_val)
+
+
+            try:
+                y_pred_val = model.predict(X_val)
+            except Exception as e:
+                print(f"Error during model prediction on validation data: {str(e)}")
+                raise e
+
             f1_score_val = f1_score(y_val, y_pred_val.argmax(axis=1), average='weighted')
             acc_score_val = accuracy_score(y_val, y_pred_val.argmax(axis=1))
             writer.writerow(["Validation F1 Score", f1_score_val])
@@ -826,22 +734,22 @@ def create_arg_parser():
                         default=1, 
                         help="Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train")
     
-    parser.add_argument('--dropout', type=str, 
-                        default='0.1', 
-                        help="Whether to use dropout in the model layers or not, and if so, what value, put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value, and 'all' to test every values in [0,0.2,0.4]")
+    parser.add_argument('--dropout', type=float, 
+                        default=0.3, 
+                        help="Whether to use dropout in the model layers or not. Put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value")
     
-    parser.add_argument('--layer_size', type=str, 
-                        default='128', 
-                        help="To choose the size of the dens layers in the classifier, choose a values in [64,128,256,512, 1024, 2048] or 'all' to test every values")
+    parser.add_argument('--layer_size', type=int, 
+                        default=2048, 
+                        help="To choose the size of the dens layers in the classifier, choose a values in [64,128,256,512, 1024, 2048]")
 
 
-    parser.add_argument('--nb_layer_block', type=str, 
-                        default='one',
-                        help="Number of layer block {Dense, LeakyReLU, BatchNormalization, Dropout} in the classifier. Choose between 'one', 'two', 'three', or 'all'")
+    parser.add_argument('--nb_layer_block', type=int, 
+                        default=2,
+                        help="Number of layer block in the classifier ({Dense, LeakyReLU, BatchNormalization, Dropout}= 1 layer block). Choose between 1, 2, or 3")
     
     parser.add_argument('--model', type=str, 
                         default='ProtT5', 
-                        help="What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
+                        help="What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec. Make sure to download the corresponding embeddings or compute them with ./src/all/models/all_models/embed_all_models.py")
     
     parser.add_argument('--classifier_input', type=str, 
                         default='AA', 
@@ -849,7 +757,7 @@ def create_arg_parser():
     
     
     parser.add_argument('--pLDDT_threshold', type=int, 
-                        default='0', 
+                        default=0, 
                         help="Threshold for pLDDT to filter the trining set of 3Di from hight structure quality, choose from [0, 4, 14, 24, 34, 44, 54, 64, 74, 84] (only useful for 3Di input)")
     
     parser.add_argument('--only_50_largest_SF', type=int, 
@@ -878,6 +786,8 @@ def main():
     pLDDT_threshold = args.pLDDT_threshold
     only_50_largest_SF = args.only_50_largest_SF
     support_threshold = args.support_threshold
+    dropout = args.dropout
+    layer_size=  args.layer_size
 
     # Validate support_threshold
     if not isinstance(support_threshold, int) or support_threshold < 0:
@@ -887,86 +797,34 @@ def main():
         pLDDT_threshold = 0
 
     if (input_type == '3Di' or input_type == 'AA+3Di') and model_name == 'ProtT5':
-        raise ValueError("Please use 'ProtT5_new' instead of 'ProtT5' when using classifier_input '3Di' or 'AA+3Di'")
+        raise ValueError("Please use 'ProtT5_new' instead of 'ProtT5' when using classifier_input '3Di' or 'AA+3Di', see ReadMe for more details")
 
     do_training = False if int(args.do_training) == 0 else True
-    dropout_tag = float(args.dropout) if args.dropout != 'all' else args.dropout
-    layer_size_tag = int(args.layer_size) if args.layer_size != 'all' else args.layer_size
-
-    if dropout_tag == 'all':
-        dropout_values = [0, 0.2, 0.4]
-    else:
-        dropout_values = [dropout_tag]
-
-    if layer_size_tag == 'all':
-        layer_size_values = [64, 128, 256, 512]
-    else:
-        layer_size_values = [layer_size_tag]
-
-    all_model_names = ['ProtT5', 'ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
     print("\033[93mHyperparameters\033[0m")
     print(f"\033[93mModel Name: {model_name}\033[0m")
     print(f"\033[93mInput Type: {input_type}\033[0m")
     print(f"\033[93mNumber of Layer Blocks: {nb_layer_block}\033[0m")
-    print(f"\033[93mDropout: {dropout_tag}\033[0m")
-    print(f"\033[93mLayer Size: {layer_size_tag}\033[0m")
+    print(f"\033[93mDropout: {dropout}\033[0m")
+    print(f"\033[93mLayer Size: {layer_size}\033[0m")
     print(f"\033[93mpLDDT Threshold: {pLDDT_threshold}\033[0m")
     print(f"\033[93mOnly 50 Largest SF: {only_50_largest_SF}\033[0m")
     print(f"\033[93mSupport Threshold: {support_threshold}\033[0m")
     print(f"\033[93mDo Training: {do_training}\033[0m")
     print("\n")
 
-    if model_name == 'all':
-        for model_name in tqdm(all_model_names, desc="Models"):
-            if nb_layer_block == 'all':
-                for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
-                    for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
-                        for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                            X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                            X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
-                            if do_training:
-                                train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                            evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold)
-                            # Clear memory after evaluation
-                            del X_train, y_train, X_val, y_val, X_test, y_test
-                            gc.collect()
-            else:
-                for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
-                    for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                        X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
-                        if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold)
-                        # Clear memory after evaluation
-                        del X_train, y_train, X_val, y_val, X_test, y_test
-                        gc.collect()
-    else:
-        if nb_layer_block == 'all':
-            for nb_layer_block in tqdm(['one', 'two', 'three'], desc="Layer Blocks", leave=False):
-                for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
-                    for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                        X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                        X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
-                        if do_training:
-                            train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                        evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold)
-                        # Clear memory after evaluation
-                        del X_train, y_train, X_val, y_val, X_test, y_test
-                        gc.collect()
-        else:
-            for dropout in tqdm(dropout_values, desc="Dropout Values", leave=False):
-                for layer_size in tqdm(layer_size_values, desc="Layer Sizes", leave=False):
-                    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                    X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
-                    if do_training:
-                        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block_dict[nb_layer_block], dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold)
-                    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block_dict[nb_layer_block], dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold)
-                    # Clear memory after evaluation
-                    del X_train, y_train, X_val, y_val, X_test, y_test
-                    gc.collect()
-                                   
+    
+    
+    
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold)
+    X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
+    if do_training:
+        train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold)
+    evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold)
+    # Clear memory after evaluation
+    del X_train, y_train, X_val, y_val, X_test, y_test
+    gc.collect()
+                                
 
 if __name__ == '__main__':
     main()

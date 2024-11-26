@@ -1,3 +1,6 @@
+print("\033[92mpLDDT fetching code running (get_pLDDT.py), make sure you set up and activated venv_2\033[0m")
+
+
 import os
 import csv
 import requests

@@ -5,7 +5,7 @@ reset = "\033[0m"
 red = "\033[91m"
 
 
-print(f"{green}cathe_prediction running, library imports in progress{reset}")
+print(f"{green}cathe_prediction running, library imports in progress, may take a few minutes{reset}")
 
 import os
 import argparse

@@ -1,3 +1,6 @@
+print("\033[92mCATHe dataset filtering preparation code running, make sure you set up and activated venv_2\033[0m")
+
+
 import pandas as pd 
 import os
 import csv
