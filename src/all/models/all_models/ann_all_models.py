@@ -740,12 +740,12 @@ def create_arg_parser():
     
     parser.add_argument('--layer_size', type=int, 
                         default=2048, 
-                        help="To choose the size of the dens layers in the classifier, choose a values in [64,128,256,512, 1024, 2048]")
+                        help="To choose the size of the dens layers in the classifier. The value should be a positive integer, 1024 or 2048 is recommended")
 
 
     parser.add_argument('--nb_layer_block', type=int, 
                         default=2,
-                        help="Number of layer block in the classifier ({Dense, LeakyReLU, BatchNormalization, Dropout}= 1 layer block). Choose between 1, 2, or 3")
+                        help="Number of layer block in the classifier ({Dense, LeakyReLU, BatchNormalization, Dropout}= 1 layer block). The value should be a positive integer, 2 or 3 is recommended")
     
     parser.add_argument('--model', type=str, 
                         default='ProtT5', 
