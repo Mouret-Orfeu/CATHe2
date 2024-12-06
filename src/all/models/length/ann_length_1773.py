@@ -2,6 +2,12 @@
 Train an ANN model based on protein sequence lengths.
 '''
 
+reset = "\033[0m"
+red = "\033[91m"
+
+print(f"{red}This code is part of the previous version of CATHe, it is recommanded to run it with the vam-sin version of this project at https://github.com/vam-sin/CATHe {reset}")
+
+
 # libraries
 import pandas as pd 
 import numpy as np 
@@ -27,6 +33,7 @@ from sklearn.utils import resample
 # GPU config for Vamsi's Laptop
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
+
 
 tf.keras.backend.clear_session()
 config = ConfigProto()

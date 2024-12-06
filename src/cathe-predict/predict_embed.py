@@ -1,21 +1,43 @@
+# ANSI escape code for colored text
+yellow = "\033[93m"
+green = "\033[92m"
+reset = "\033[0m"
+red = "\033[91m"
+
+import sys
+import os
+import argparse
+
+parser = argparse.ArgumentParser(description="Run predictions pipeline with FASTA file")
+parser.add_argument('--model', type=str, default='ProtT5', choices=['ProtT5', 'ProstT5'], help="Model to use: ProtT5 (original one) or ProstT5 (new one)")
+parser.add_argument('--input_type', type=str, default='AA', choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)")
+args = parser.parse_args()
+
+# Check if a virtual environment is active
+if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv first, see ReadMe for more details.{reset}")
+
+# Get the name of the activated virtual environment
+venv_path = os.environ.get('VIRTUAL_ENV')
+if venv_path is None:
+    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the right venv first, see ReadMe for more details.{reset}")
+
+venv_name = os.path.basename(venv_path)
+if args.model == 'ProtT5' and venv_name != "venv_1":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_1'. If you want to use the ProtT5 model, venv_1 must be activated. See ReadMe for more details.{reset}")
+if args.model == 'ProstT5' and venv_name != "venv_2":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. If you want to use the ProstT5 model, venv_2 must be activated. See ReadMe for more details.{reset}")
+if venv_name != "venv_1" and venv_name != "venv_2":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', but it should be 'venv_1' or 'venv_2'. See ReadMe for more details.{reset}")
+
 # libraries
 import numpy as np
 import pandas as pd 
-import argparse
 import subprocess
-import os
 import shutil
-import sys
 sys.path.append('./src')
 from all.get_3Di.get_3Di_sequences import find_best_model, trim_pdb, TrimSelect
 import glob
-
-
-
-
-yellow = "\033[93m"
-red = "\033[91m"
-reset = "\033[0m"
 
 def embed_sequence(model):
 
@@ -204,11 +226,6 @@ def embed_3Di(pdb_path):
 
 
 def main():
-
-    parser = argparse.ArgumentParser(description="Run predictions pipeline with FASTA file")
-    parser.add_argument('--model', type=str, default='ProtT5', choices=['ProtT5', 'ProstT5'], help="Model to use: ProtT5 (original one) or ProstT5 (new one)")
-    parser.add_argument('--input_type', type=str, default='AA', choices=['AA', 'AA+3Di'], help="Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)")
-    args = parser.parse_args()
 
     # Create the folder for embeddings if it doesn't exist
     os.makedirs('./src/cathe-predict/Embeddings', exist_ok=True)

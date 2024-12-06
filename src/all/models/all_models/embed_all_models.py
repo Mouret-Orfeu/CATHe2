@@ -1,47 +1,49 @@
 # -*- coding: utf-8 -*-
 
-print("\033[92membedding code running (embed_all_models.py), make sure you set up and activated venv_2\033[0m")
+# ANSI escape code for colored text
+yellow = "\033[93m"
+green = "\033[92m"
+reset_color = "\033[0m"
+red = "\033[91m"
+orange_color = '\033[33m'
+
+print(f"{green}embedding code running (embed_all_models.py), make sure you set up and activated venv_2{reset_color}")
 
 # DEBUG
-print("\033[92membedding code running: library imports in progress, it may take a few minutes\033[0m")
+print(f"{green}embedding code running: library imports in progress, it may take a few minutes{reset_color}")
+
+
+
+import sys
+import os
+
+# Check if a virtual environment is active
+if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset_color}")
+
+# Get the name of the activated virtual environment
+venv_path = os.environ.get('VIRTUAL_ENV')
+if venv_path is None:
+    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset_color}")
+
+venv_name = os.path.basename(venv_path)
+if venv_name != "venv_2":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset_color}")
+
 
 import time
-
-start_time = time.time()
-print("Starting imports...")
-
 import argparse
-print(f"argparse imported in {time.time() - start_time:.2f}s")
-
 import torch
-print(f"torch imported in {time.time() - start_time:.2f}s")
-
 import numpy as np
-print(f"numpy imported in {time.time() - start_time:.2f}s")
-
 import pandas as pd
-print(f"pandas imported in {time.time() - start_time:.2f}s")
-
 from transformers import AutoModel, AutoTokenizer, T5Tokenizer, T5EncoderModel
-print(f"transformers imported in {time.time() - start_time:.2f}s")
-
 import ankh
-print(f"ankh imported in {time.time() - start_time:.2f}s")
-
 from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
-print(f"tm_vec imported in {time.time() - start_time:.2f}s")
-
 import re
-print(f"re imported in {time.time() - start_time:.2f}s")
-
 import gc
-print(f"gc imported in {time.time() - start_time:.2f}s")
-
-import os
-print(f"os imported in {time.time() - start_time:.2f}s")
-
 from tqdm import tqdm
-import sys
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 # import argparse
 # import time
@@ -63,10 +65,7 @@ print("Using device: {}".format(device))
 
 # Print in orange if a GPU is used or not
 gpu_status = "GPU is being used!" if torch.cuda.is_available() else "No GPU is available."
-# ANSI escape code for orange text
-orange_color = '\033[33m'
-yellow = "\033[93m"
-reset_color = '\033[0m'
+
 
 print(f"{orange_color}{gpu_status}{reset_color}")
 
@@ -218,7 +217,7 @@ def get_sequences(seq_path, dataset, is_3Di):
             usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage_0.csv'
 
             # DEBUG
-            print(f"\033[93mUsage CSV path: {usage_csv_path}\033[0m")
+            print(f"{yellow}Usage CSV path: {usage_csv_path}{reset_color}")
 
             if not os.path.exists(usage_csv_path):
                 raise FileNotFoundError(f"CSV file not found: {usage_csv_path}")
@@ -228,12 +227,12 @@ def get_sequences(seq_path, dataset, is_3Di):
             sequence_ids_to_use = set(df_domains_for_3Di_usage['Domain_id'])
 
             # DEBUG
-            print(f"\033[93mLength of df_domains_for_3Di_usage: {len(df_domains_for_3Di_usage)}\033[0m")
-            print(f"\033[93mNumber of sequence IDs to use: {len(sequence_ids_to_use)}\033[0m")
+            print(f"{yellow}Length of df_domains_for_3Di_usage: {len(df_domains_for_3Di_usage)}{reset_color}")
+            print(f"{yellow}Number of sequence IDs to use: {len(sequence_ids_to_use)}{reset_color}")
 
             # DEBUG
             if not sequence_ids_to_use:
-                print(f"\033[91mNo sequence IDs found in the CSV file: {usage_csv_path}\033[0m")
+                print(f"{red}No sequence IDs found in the CSV file: {usage_csv_path}{reset_color}")
                 raise ValueError("No sequence IDs found in the CSV file.")
 
         
@@ -244,7 +243,7 @@ def get_sequences(seq_path, dataset, is_3Di):
             fasta_entries.sort(key=lambda entry: int(entry[0]))
         for entry in fasta_entries:
             # DEBUG
-            # print(f"\033[92mEntry: {entry[0]}\033[0m")
+            # print(f"{green}Entry: {entry[0]}{reset_color}")
             # exit()
             if dataset != "other":
                 if int(entry[0]) in sequence_ids_to_use:
@@ -257,10 +256,10 @@ def get_sequences(seq_path, dataset, is_3Di):
             sequences[key] = sequences[key].lower()
 
         # DEBUG
-        print(f"\033[93mProcessing FASTA file: {seq_path}\033[0m")
+        print(f"{yellow}Processing FASTA file: {seq_path}{reset_color}")
 
         if not sequences:
-            print(f"\033[91mNo sequences found in the FASTA file: {fasta_file}\033[0m")
+            print(f"{red}No sequences found in the FASTA file: {fasta_file}{reset_color}")
             raise ValueError("No sequences found in the FASTA file.")
         
     else:

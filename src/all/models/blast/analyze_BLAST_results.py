@@ -5,6 +5,12 @@ find the best hits for all the sequences in the query set.
 Output: Performance of the BLAST model. (Bootstrapped) 
 '''
 
+reset = "\033[0m"
+red = "\033[91m"
+
+print(f"{red}This code is part of the previous version of CATHe, it is recommanded to run it with the vam-sin version of this project at https://github.com/vam-sin/CATHe {reset}")
+
+
 # libraries
 import pandas as pd 
 import numpy as np
@@ -12,6 +18,7 @@ import pickle
 from Bio import SeqIO
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, classification_report, matthews_corrcoef, balanced_accuracy_score
 from sklearn.utils import resample 
+
 
 # load data and check
 ds = pd.read_csv('all-vs-all.tsv', sep='\t', header=None)

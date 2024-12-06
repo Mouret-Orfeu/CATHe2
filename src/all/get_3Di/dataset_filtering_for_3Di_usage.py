@@ -1,10 +1,33 @@
-print("\033[92mCATHe dataset filtering preparation code running, make sure you set up and activated venv_2\033[0m")
+# ANSI escape code for colored text
+yellow = "\033[93m"
+green = "\033[92m"
+reset = "\033[0m"
+red = "\033[91m"
 
+print(f"{green}CATHe dataset filtering preparation code running, make sure you set up and activated venv_2{reset}")
+
+import sys
+import os
+
+
+# Check if a virtual environment is active
+if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+
+# Get the name of the activated virtual environment
+venv_path = os.environ.get('VIRTUAL_ENV')
+if venv_path is None:
+    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+
+venv_name = os.path.basename(venv_path)
+if venv_name != "venv_2":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
 
 import pandas as pd 
-import os
 import csv
 from tqdm import tqdm
+
+
 
 def save_SF_lost_csv(pLDDT_threshold, total_lost_SF, nb_SF_remaining, Training_set_size, top_50_filtering, support_threshold):
     # Path to the CSV file

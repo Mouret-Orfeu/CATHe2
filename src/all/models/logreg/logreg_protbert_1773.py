@@ -2,6 +2,12 @@
 Logistic Regression Model trained on the protbert embeddings
 '''
 
+reset = "\033[0m"
+red = "\033[91m"
+
+print(f"{red}This code is part of the previous version of CATHe, it is recommanded to run it with the vam-sin version of this project at https://github.com/vam-sin/CATHe {reset}")
+
+
 # libraries
 import pandas as pd 
 import numpy as np 
@@ -17,6 +23,7 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import resample 
+
 
 # dataset import
 # train 

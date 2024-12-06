@@ -1,11 +1,33 @@
+# ANSI escape code for colored text
+yellow = "\033[93m"
+green = "\033[92m"
+reset = "\033[0m"
+red = "\033[91m"
 
-print("\033[92mmodel training code running (ann_all_models.py), make sure you set up and activated venv_2\033[0m")
+print(f"{green}model training code running (ann_all_models.py){reset}")
 
-print("\033[92m ann_all_models.py: library imports in progress, may take a few minutes\033[0m")
+
+
+import sys
+import os
+
+# Check if a virtual environment is active
+if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+
+# Get the name of the activated virtual environment
+venv_path = os.environ.get('VIRTUAL_ENV')
+if venv_path is None:
+    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+
+venv_name = os.path.basename(venv_path)
+if venv_name != "venv_2":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+
+print(f"{green} ann_all_models.py: library imports in progress, may take a few minutes{reset}")
 
 import argparse
 import pandas as pd 
-import os
 import numpy as np 
 import gc
 from sklearn import preprocessing
@@ -28,7 +50,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from memory_profiler import profile
 
-
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 from tensorflow.compat.v1 import ConfigProto
@@ -44,7 +66,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 gpu_status = "GPU is being used!" if torch.cuda.is_available() else "No GPU is available."
 # ANSI escape code for orange text
 orange_color = '\033[33m'
-reset_color = '\033[0m'
+reset_color = '{reset}'
 
 print(f"{orange_color}{gpu_status}{reset_color}")
 
@@ -304,7 +326,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             # Immediately delete to free memory
             gc.collect()
 
-        print("\033[92m \nData Loading done\033[0m")
+        print(f"{green} \nData Loading done{reset}")
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
@@ -325,7 +347,7 @@ def data_preparation(X_train, y_train, y_val, y_test):
     
     X_train, y_train = shuffle(X_train, y_train, random_state=42)
 
-    print("\033[92mData preparation done\033[0m")
+    print(f"{green}Data preparation done{reset}")
 
     return X_train, y_train, y_val, y_test, num_classes, le
 
@@ -416,7 +438,7 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
 def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold):
     """Trains the model."""
 
-    print("\033[92mModel training \033[0m")
+    print(f"{green}Model training {reset}")
 
     if only_50_largest_SF:
         base_model_path = f'saved_models/ann_{model_name}_top_50_SF'
@@ -487,7 +509,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         plt.savefig(save_loss_path)  # Save the plot
         plt.close()
 
-        print("\033[92mModel training done\033[0m")
+        print(f"{green}Model training done{reset}")
 
         del model, history, loss, val_loss, epochs  # Immediately delete to free memory
         gc.collect()
@@ -552,7 +574,7 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
 def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold):
     """Evaluates the trained model."""
 
-    print("\033[92mModel evaluation \033[0m")
+    print(f"{green}Model evaluation {reset}")
 
     if only_50_largest_SF:
         model_name = f'{model_name}_top_50_SF'
@@ -715,7 +737,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
             save_confusion_matrix(y_test, y_pred, confusion_matrix_path)
 
-            print("\033[92mModel evaluation done\033[0m")
+            print(f"{green}Model evaluation done{reset}")
 
             # free all memory
             del model, y_pred_val, y_pred_test, y_pred, cr, df, df_results, df_existing, df_combined, f1_arr, acc_arr, mcc_arr, bal_arr, num_iter
@@ -774,7 +796,7 @@ def create_arg_parser():
 def main():
 
     # DEBUG
-    print("\033[92mann_all_models main running\033[0m")
+    print(f"{green}ann_all_models main running{reset}")
 
     parser = create_arg_parser()
     args = parser.parse_args()
@@ -801,16 +823,16 @@ def main():
 
     do_training = False if int(args.do_training) == 0 else True
 
-    print("\033[93mHyperparameters\033[0m")
-    print(f"\033[93mModel Name: {model_name}\033[0m")
-    print(f"\033[93mInput Type: {input_type}\033[0m")
-    print(f"\033[93mNumber of Layer Blocks: {nb_layer_block}\033[0m")
-    print(f"\033[93mDropout: {dropout}\033[0m")
-    print(f"\033[93mLayer Size: {layer_size}\033[0m")
-    print(f"\033[93mpLDDT Threshold: {pLDDT_threshold}\033[0m")
-    print(f"\033[93mOnly 50 Largest SF: {only_50_largest_SF}\033[0m")
-    print(f"\033[93mSupport Threshold: {support_threshold}\033[0m")
-    print(f"\033[93mDo Training: {do_training}\033[0m")
+    print(f"{yellow}Hyperparameters{reset}")
+    print(f"{yellow}Model Name: {model_name}{reset}")
+    print(f"{yellow}Input Type: {input_type}{reset}")
+    print(f"{yellow}Number of Layer Blocks: {nb_layer_block}{reset}")
+    print(f"{yellow}Dropout: {dropout}{reset}")
+    print(f"{yellow}Layer Size: {layer_size}{reset}")
+    print(f"{yellow}pLDDT Threshold: {pLDDT_threshold}{reset}")
+    print(f"{yellow}Only 50 Largest SF: {only_50_largest_SF}{reset}")
+    print(f"{yellow}Support Threshold: {support_threshold}{reset}")
+    print(f"{yellow}Do Training: {do_training}{reset}")
     print("\n")
 
     

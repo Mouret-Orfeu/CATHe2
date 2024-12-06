@@ -1,72 +1,55 @@
 #!/bin/bash
 
-# Step 1: Deactivate the current virtual environment if any is active
-if [[ "$VIRTUAL_ENV" != "" ]]; then
-    echo "Deactivating the current virtual environment..."
-    deactivate
-else
-    echo "No virtual environment is currently active."
-fi
+echo "venv_2 Pre requirement set up"
 
-# Step 2: Create a new virtual environment and activate it
-echo "Creating and activating new virtual environment (venv_2)..."
+# Add Python 3.9 repository and update the system
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt update
+sudo apt install python3.9 python3.9-venv -y
+
+# Create a new virtual environment and activate it
 python3.9 -m venv venv_2
 source venv_2/bin/activate
 
-# Step 3: Upgrade pip and install setuptools
-echo "Upgrading pip and installing setuptools..."
+# Upgrade pip and install setuptools
 pip install --upgrade pip
 pip install setuptools==69.5.1
 
-# Step 4: Install gensim, bio-embeddings, wheel, and other packages
-echo "Installing gensim, wheel, lazr.uri..."
+# Install manually gensim, wheel and lazr.uri
 pip install gensim==4.3.2
 pip install wheel lazr.uri
 
-# Step 5: Install PyTorch and its dependencies with CUDA 11.8 support
-echo "Installing PyTorch with CUDA 11.8 support..."
+sudo apt-get install -y brltty command-not-found python3-cups libatlas-base-dev liblapack-dev libblas-dev libsystemd-dev pkg-config python3.9-dev libcairo2-dev libpq-dev libgirepository1.0-dev libdbus-1-dev libhdf5-dev build-essential libssl-dev libffi-dev python3-dev llvm gfortran libopenblas-dev liblapack-dev libcups2-dev
+
+
+# Install PyTorch and its dependencies with CUDA 11.8 support
+
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# Step 6: Set the PyTorch path
-echo "Setting PYTHONPATH for PyTorch..."
+# Set the PyTorch path
 export PYTHONPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
 
-# Step 7: Modify gensim's matutils.py to fix an import issue
-GENSIM_FILE="venv_2/lib/python3.9/site-packages/gensim/matutils.py"
-if [[ -f "$GENSIM_FILE" ]]; then
-    echo "Modifying gensim's matutils.py..."
-    sed -i 's/from scipy.linalg import get_blas_funcs, triu/from scipy.linalg import get_blas_funcs\nfrom numpy import triu/' "$GENSIM_FILE"
-else
-    echo "Could not find gensim's matutils.py at $GENSIM_FILE. Please verify the path."
-fi
+# Modify gensim matutils.y
+sed -i 's/from scipy.linalg import get_blas_funcs, triu/from scipy.linalg import get_blas_funcs\nfrom numpy import triu/' ./venv_2/lib/python3.9/site-packages/gensim/matutils.py
 
-# Step 8: Set environment variables for CUDA in the virtual environment
-echo "Setting CUDA environment variables in venv_2..."
-echo 'export PATH=/usr/local/cuda-11.8/bin${PATH:+:${PATH}}' >> ./venv_2/bin/activate
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ./venv_2/bin/activate
 
-# Step 9: Deactivate and reactivate the virtual environment
-echo "Deactivating and reactivating venv_2..."
+# # Set environment variables for CUDA in the virtual environment
+# echo 'export PATH=/usr/local/cuda-11.8/bin${PATH:+:${PATH}}' >> ./venv_2/bin/activate
+# echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ./venv_2/bin/activate
+
+# Deactivate and reactivate the virtual environment
 deactivate
 source venv_2/bin/activate
 
-# Step 10: Install requirements from requirements_2.txt
-echo "Installing Python requirements from requirements_2.txt..."
+# Install requirements from requirements_2.txt
+echo "Installing Python requirements from requirements_2.txt, this may take a while..."
 pip install --use-deprecated=legacy-resolver -r requirements_2.txt
 
-# Step 11: Install MMseqs2
-echo "Installing MMseqs2..."
+# Install MMseqs2
 sudo apt install -y mmseqs2
 
-# Step 12: Install TM_Vec, Ankh, and FAISS-GPU
-echo "Installing TM_Vec, Ankh, and FAISS-GPU..."
-pip install tm_vec
-pip install ankh
-pip install faiss-gpu
-
-# Step 13: Install foldseek
+# Install foldseek
 echo "Installing foldseek..."
 wget https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz
 tar xvzf foldseek-linux-avx2.tar.gz
-
-echo "All tasks completed successfully."
+rm foldseek-linux-avx2.tar.gz

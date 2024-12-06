@@ -1,11 +1,33 @@
 # run "all" with internet connection with 720 Mbps download speed: took around  
 
-print("\033[92m3Di computing code running (get_3Di_sequences.py), make sure you set up and activated venv_2\033[0m")
+# ANSI escape code for colored text
+yellow = "\033[93m"
+green = "\033[92m"
+reset = "\033[0m"
+red = "\033[91m"
+
+print(f"{green}3Di computing code running (get_3Di_sequences.py), make sure you set up and activated venv_2{reset}")
+
+import sys
+import os
+
+# Check if a virtual environment is active
+if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+
+# Get the name of the activated virtual environment
+venv_path = os.environ.get('VIRTUAL_ENV')
+if venv_path is None:
+    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+
+venv_name = os.path.basename(venv_path)
+if venv_name != "venv_2":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+
 
 import pandas as pd
 import requests
 import subprocess
-import os
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib
@@ -17,8 +39,6 @@ import warnings
 from Bio import BiopythonWarning
 from Bio.Align import PairwiseAligner
 import argparse
-
-
 
 warnings.simplefilter('ignore', BiopythonWarning)
 
@@ -351,6 +371,7 @@ def create_arg_parser():
     return parser
 
 def main():
+
     # Parse arguments
     parser = create_arg_parser()
     args = parser.parse_args()
