@@ -507,6 +507,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         plt.ylabel('Loss')
         plt.legend()
         plt.savefig(save_loss_path)  # Save the plot
+        plt.show()
         plt.close()
 
         print(f"{green}Model training done{reset}")
