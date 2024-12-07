@@ -1,3 +1,9 @@
+
+reset = "\033[0m"
+red = "\033[91m"
+
+print(f"{red}This code is part of the previous version of CATHe, it is recommanded to run it with the vam-sin version of this project at https://github.com/vam-sin/CATHe {reset}")
+
 import pandas as pd 
 import random
 import pickle

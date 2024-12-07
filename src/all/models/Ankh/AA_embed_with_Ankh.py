@@ -2,6 +2,31 @@
 # part of the code from https://github.com/agemagician/Ankh/blob/main/README.md
 # run with ```python ./src/all/models/Ankh/AA_embed_with_Ankh.py --input ./data/Dataset/csv/Val.csv --output ./data/Dataset/embeddings/Val_Ankh.npz --model large```
 
+
+# ANSI escape code for colored text
+yellow = "\033[93m"
+green = "\033[92m"
+reset = "\033[0m"
+red = "\033[91m"
+
+
+import sys
+import os
+
+# Check if a virtual environment is active
+if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+
+# Get the name of the activated virtual environment
+venv_path = os.environ.get('VIRTUAL_ENV')
+if venv_path is None:
+    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+
+venv_name = os.path.basename(venv_path)
+if venv_name != "venv_2":
+    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+
+
 import argparse
 import time
 from pathlib import Path
@@ -11,7 +36,6 @@ import pandas as pd
 from transformers import T5Tokenizer
 from tqdm import tqdm
 import ankh
-import sys
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')

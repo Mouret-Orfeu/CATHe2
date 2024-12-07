@@ -5,6 +5,11 @@ find the best hits for all the sequences in the query set.
 Output: Performance of the BLAST model. (Bootstrapped) 
 '''
 
+reset = "\033[0m"
+red = "\033[91m"
+
+print(f"{red}This code is part of the previous version of CATHe, it is recommanded to run it with the vam-sin version of this project at https://github.com/vam-sin/CATHe {reset}")
+
 # libraries
 import pandas as pd 
 import numpy as np
