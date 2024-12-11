@@ -1,3 +1,5 @@
+For 3Di usage, I need to obtain the PDB file corresponding to the sequence in the CATHe Train, Test, and Validation datasets. However, the sequences in the PDB files are not exactly the same as those in the dataset. Here are a few examples of the possible differences.
+(To solve this problem, PDB files are trimmed in get_3Di_sequences.py)
 
 Problem: X instead of AA at the end
 CSV sequence:           MNTEELQVAAFEIILNSGNARSIVHEAFDAMREKNYILAEQKLQEANDELLKAHQAQTDLLQEYASGTEIKIEIIMVHAQDHLMTTMTLREVAIEMLELYKK S

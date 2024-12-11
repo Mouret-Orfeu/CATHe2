@@ -1,28 +1,28 @@
-# run "all" with internet connection with 720 Mbps download speed: took around  
+# run 'all' with internet connection with 720 Mbps download speed: took around  
 
 # ANSI escape code for colored text
-yellow = "\033[93m"
-green = "\033[92m"
-reset = "\033[0m"
-red = "\033[91m"
+yellow = '\033[93m'
+green = '\033[92m'
+reset = '\033[0m'
+red = '\033[91m'
 
-print(f"{green}3Di computing code running (get_3Di_sequences.py), make sure you set up and activated venv_2{reset}")
+print(f'{green}3Di computing code running (get_3Di_sequences.py){reset}')
 
 import sys
 import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
-    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
 venv_name = os.path.basename(venv_path)
-if venv_name != "venv_2":
-    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+if venv_name != 'venv_2':
+    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
 
 import pandas as pd
@@ -60,7 +60,7 @@ def find_best_model(pdb_file_path, sequence):
             for residue in chain:
                 if residue.id[0] == ' ':  # Ensures only standard residues are considered
                     pdb_sequence += seq1(residue.resname)
-            # Calculate match score (e.g., using Hamming distance or another metric)
+            # Calculate match score (using Hamming distance Hamming distance with penalty for length differences.)
             match_score = sum(1 for a, b in zip(sequence, pdb_sequence) if a != b) + abs(len(sequence) - len(pdb_sequence))
             if match_score < best_match_score:
                 best_model_id = model.id
@@ -78,9 +78,9 @@ class TrimSelect(Select):
         return residue in self.residues
 
 def extract_global_plddt(pdb_file_path):
-    """
+    '''
     Extract the global pLDDT score from an AlphaFold PDB file.
-    """
+    '''
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('structure', pdb_file_path)
     plddt_scores = []
@@ -93,17 +93,17 @@ def extract_global_plddt(pdb_file_path):
     return plddt_scores
 
 def save_plddt_scores(plddt_scores, output_path):
-    """
+    '''
     Save pLDDT scores to a file.
-    """
+    '''
     with open(output_path.replace('.pdb', '_plddt_scores.txt'), 'w') as f:
         for score in plddt_scores:
-            f.write(f"{score}\n")
+            f.write(f'{score}\n')
 
 def plot_plddt_scores(plddt_scores, output_dir):
-    """
+    '''
     Create and save a boxplot of the aggregated pLDDT scores.
-    """
+    '''
     plt.boxplot(plddt_scores)
     plt.title('pLDDT Score Distribution')
     plt.ylabel('pLDDT Score')
@@ -139,20 +139,18 @@ def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id
 
     
     #DEBUG
-    reset = "\033[0m"
-    red = "\033[91m"
-    print(f"{red}get 3Di debug prints:")
-    print(f"{red}CSV sequence: {sequence}")
-    print(f"{red}pdb_sequence: {pdb_sequence}")
-    print(f"{red}used_chain_id: {used_chain_id}")
-    print(f"{red}model_id: {model_id}{reset}")
+    # print(f'{red}get 3Di debug prints:')
+    # print(f'{red}CSV sequence: {sequence}')
+    # print(f'{red}pdb_sequence: {pdb_sequence}')
+    # print(f'{red}used_chain_id: {used_chain_id}')
+    # print(f'{red}model_id: {model_id}{reset}')
     
 
 
     if not chain_model_found:
-        raise ValueError(f"Chain {used_chain_id} in model {model_id} not found in PDB file {pdb_file_path}")
+        raise ValueError(f'Chain {used_chain_id} in model {model_id} not found in PDB file {pdb_file_path}')
     if len(pdb_sequence) == 0:
-        raise ValueError(f"{red} No amino acids found in chain {used_chain_id} in model {model_id} in PDB file {pdb_file_path}")
+        raise ValueError(f'{red} No amino acids found in chain {used_chain_id} in model {model_id} in PDB file {pdb_file_path}')
 
     # Perform sequence alignment using PairwiseAligner
     aligner = PairwiseAligner()
@@ -164,11 +162,10 @@ def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id
 
     # Extract aligned sequences and residue indexes
     pdb_residues_to_keep = []
-    seq_index = 0
     trimmed_pdb_sequence = ''
     for i in range(len(aligned_seq1)):
         start1, end1 = aligned_seq1[i]
-        start2, end2 = aligned_seq2[i]
+        start2, _ = aligned_seq2[i]
         for j in range(start1, end1):
             if sequence[j] == pdb_sequence[start2 + (j - start1)]:
                 pdb_residues_to_keep.append(residues[start2 + (j - start1)])
@@ -176,12 +173,12 @@ def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id
 
     # DEBUG
     # Print sequences for verification and write to the file
-    # example_path= './src/all/get_3Di/pdb_sequence_examples_train.txt'
+    # example_path= './src/model_building/get_3Di/pdb_sequence_examples_train.txt'
 
     # with open(example_path, 'a') as file:
-    #     file.write(f"CSV sequence:         {sequence}\n")
-    #     file.write(f"Trimmed PDB sequence: {trimmed_pdb_sequence}\n")
-    #     file.write(f"Untrimmed PDB sequence: {pdb_sequence}\n\n")
+    #     file.write(f'CSV sequence:         {sequence}\n')
+    #     file.write(f'Trimmed PDB sequence: {trimmed_pdb_sequence}\n')
+    #     file.write(f'Untrimmed PDB sequence: {pdb_sequence}\n\n')
 
     # Write out the trimmed structure
     io = PDBIO()
@@ -198,18 +195,18 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
 
     if process_training_set:
         afdb_id = row['Domain']
-        url = f"https://alphafold.ebi.ac.uk/files/AF-{afdb_id}-F1-model_v4.pdb"
+        url = f'https://alphafold.ebi.ac.uk/files/AF-{afdb_id}-F1-model_v4.pdb'
         expected_chain = 'A'
     else:
         domain = row['Domain']
         pdb_id = domain[:4]
         expected_chain = domain[4]
-        url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
+        url = f'https://files.rcsb.org/download/{pdb_id}.pdb'
 
     try:
         response = requests.get(url)
         response.raise_for_status()
-        pdb_file_path = os.path.join(output_dir, f"{sequence_id}_{os.path.basename(url)}")
+        pdb_file_path = os.path.join(output_dir, f'{sequence_id}_{os.path.basename(url)}')
 
         with open(pdb_file_path, 'w') as file:
             file.write(response.text)
@@ -224,16 +221,16 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
     
         os.remove(pdb_file_path)
         
-        return {"sequence_id": sequence_id, "pdb_file": trimmed_pdb_file_path}, plddt_scores
+        return {'sequence_id': sequence_id, 'pdb_file': trimmed_pdb_file_path}, plddt_scores
     except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP request failed: {http_err}")
-        return {"sequence_id": sequence_id, "pdb_file": None}, plddt_scores
+        print(f'HTTP request failed: {http_err}')
+        return {'sequence_id': sequence_id, 'pdb_file': None}, plddt_scores
     except ValueError as val_err:
         print(val_err)
-        return {"sequence_id": sequence_id, "pdb_file": None}, plddt_scores
+        return {'sequence_id': sequence_id, 'pdb_file': None}, plddt_scores
     except Exception as err:
-        print(f"Other error occurred: {err}")
-        return {"sequence_id": sequence_id, "pdb_file": None}, plddt_scores
+        print(f'Other error occurred: {err}')
+        return {'sequence_id': sequence_id, 'pdb_file': None}, plddt_scores
 
    
 
@@ -255,7 +252,7 @@ def extract_sequence_from_pdb(pdb_file_path, chain_id, model_id):
                         sequence += seq1(residue.resname)
 
     if not chain_model_found:
-        raise ValueError(f"Chain {chain_id} in model {model_id} not found in PDB file {pdb_file_path}")
+        raise ValueError(f'Chain {chain_id} in model {model_id} not found in PDB file {pdb_file_path}')
 
     return sequence
 
@@ -263,9 +260,9 @@ def extract_sequence_from_pdb(pdb_file_path, chain_id, model_id):
 def run_command(command):
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"Error running command: {command}")
+        print(f'Error running command: {command}')
         print(result.stderr)
-        raise Exception("Command failed")
+        raise Exception('Command failed')
     return result.stdout
 
 def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_training_set, plddt_scores_list):
@@ -284,18 +281,18 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_train
     output_csv = os.path.join(output_dir, 'directly_saved_pdb_idx.csv')
     results_df.to_csv(output_csv, index=False)
 
-    print(f"Download completed and results saved to {output_csv}")
+    print(f'Download completed and results saved to {output_csv}')
 
     foldseek_path = './foldseek/bin/foldseek' 
     
     try:
-        run_command(f"{foldseek_path} createdb {output_dir} {query_db}")
-        run_command(f"{foldseek_path} lndb {query_db}_h {query_db}_ss_h")
-        run_command(f"{foldseek_path} convert2fasta {query_db}_ss {query_db_ss_fasta}")
-        print(f"FASTA file created at {query_db_ss_fasta}")
+        run_command(f'{foldseek_path} createdb {output_dir} {query_db}')
+        run_command(f'{foldseek_path} lndb {query_db}_h {query_db}_ss_h')
+        run_command(f'{foldseek_path} convert2fasta {query_db}_ss {query_db_ss_fasta}')
+        print(f'FASTA file created at {query_db_ss_fasta}')
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f'An error occurred: {e}')
 
 
 
@@ -336,16 +333,16 @@ def get_missing_domains():
     # Save the filtered data to the output file
     missing_domains_data.to_csv(output_file, index=False)
 
-    print(f"Missing domains data saved to {output_file}")
+    print(f'Missing domains data saved to {output_file}')
 
 def read_fasta(file):
-    """Reads a FASTA file and returns a list of tuples (id, header, sequence)."""
+    '''Reads a FASTA file and returns a list of tuples (id, header, sequence).'''
     fasta_entries = []
     header = None
     sequence = []
     for line in file:
         line = line.strip()
-        if line.startswith(">"):
+        if line.startswith('>'):
             if header:
                 fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
             header = line[1:]
@@ -357,17 +354,17 @@ def read_fasta(file):
     return fasta_entries
 
 def write_fasta(file, fasta_entries):
-    """Writes a list of tuples (id, header, sequence) to a FASTA file."""
+    '''Writes a list of tuples (id, header, sequence) to a FASTA file.'''
     for _, header, sequence in fasta_entries:
-        file.write(f">{header}\n")
-        file.write(f"{sequence}\n")
+        file.write(f'>{header}\n')
+        file.write(f'{sequence}\n')
 
 
 # Create an ArgumentParser
 def create_arg_parser():
     parser = argparse.ArgumentParser(description='Process dataset to extract 3Di sequences.')
     parser.add_argument('--dataset', type=str, choices=['all', 'test', 'train', 'validation', 'train_missing_ones'], default='all',
-                        help="Dataset to process: 'all', 'test', 'train', 'validation' or 'train_missing_ones' ")
+                        help='Dataset to process: all, test, train, validation or train_missing_ones')
     return parser
 
 def main():
@@ -388,25 +385,19 @@ def main():
     else:
         datasets_to_process = [dataset_map[args.dataset]]
 
-    # if args.dataset == 'all':
-    #     datasets_to_process = [dataset for dataset in datasets_to_process if dataset != dataset_map['train_missing_ones']]  
-    # else:
-    #     [dataset_map[args.dataset]]
-
     if len(datasets_to_process) == 1 and datasets_to_process[0] == dataset_map['train_missing_ones']:
         missing_train_domains_id_file = './data/pdb_files/Train/Train_missing_ones/missing_train_domains_id.csv'
         if not os.path.exists(missing_train_domains_id_file):
             get_missing_domains()
 
     for csv_file in datasets_to_process:
-        #DEBUG
-        #data = pd.read_csv(csv_file, nrows=10)
-
         
         data = pd.read_csv(csv_file)
         dataset_name = os.path.basename(csv_file).split('.')[0]
 
         if dataset_name == 'Train':
+            # The training dataset will be processed in two parts to avoid memory issues
+
             process_training_set = True
             plddt_scores_list = []
 
@@ -428,17 +419,7 @@ def main():
             process_dataset(data_second_half, output_dir_second, query_db_second, query_db_ss_fasta_second, process_training_set, plddt_scores_list)
             remove_intermediate_files(output_dir_second)
 
-            # Plot and save aggregated pLDDT scores (it is making the code crash, probably due to memory issues)
-            #plot_plddt_scores(plddt_scores_list, f'./data/pdb_files/{dataset_name}') 
-
-
             final_fasta_path = f'./data/Dataset/3Di/{dataset_name}.fasta'
-            # with open(final_fasta_path, 'w') as final_fasta:
-            #     with open(query_db_ss_fasta_first, 'r') as first_fasta:
-            #         final_fasta.write(first_fasta.read())
-            #     with open(query_db_ss_fasta_second, 'r') as second_fasta:
-            #         final_fasta.write(second_fasta.read())
-
             
             with open(query_db_ss_fasta_first, 'r') as first_fasta, open(query_db_ss_fasta_second, 'r') as second_fasta:
                 fasta_entries = read_fasta(first_fasta) + read_fasta(second_fasta)
@@ -450,12 +431,10 @@ def main():
             with open(final_fasta_path, 'w') as final_fasta:
                 write_fasta(final_fasta, fasta_entries)
                 
-                 
+            os.remove(query_db_ss_fasta_first)
+            os.remove(query_db_ss_fasta_second)
 
-            # os.remove(query_db_ss_fasta_first)
-            # os.remove(query_db_ss_fasta_second)
-
-            print(f"Merged FASTA file created at {final_fasta_path}")
+            print(f'Merged FASTA file created at {final_fasta_path}')
 
         elif dataset_name == 'Test' or dataset_name == 'Val':
             process_training_set = False
@@ -499,13 +478,12 @@ def main():
             with open(final_fasta_path, 'w') as final_fasta:
                 write_fasta(final_fasta, fasta_entries)
                 
-            print(f"{number_of_missing_3Di_found_during_search_rerun} Missing 3Di found during search rerun, added to Train.fasta")
+            print(f'{number_of_missing_3Di_found_during_search_rerun} Missing 3Di found during search rerun, added to Train.fasta')
                  
+            os.remove(query_db_ss_fasta_first)
+            os.remove(query_db_ss_fasta_second)
 
-            # os.remove(query_db_ss_fasta_first)
-            # os.remove(query_db_ss_fasta_second)
-
-            print(f" {final_fasta_path}")
+            print(f' {final_fasta_path}')
             
 
             

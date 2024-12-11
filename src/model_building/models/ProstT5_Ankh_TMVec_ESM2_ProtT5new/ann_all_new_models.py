@@ -1,30 +1,33 @@
 # ANSI escape code for colored text
-yellow = "\033[93m"
-green = "\033[92m"
-reset = "\033[0m"
-red = "\033[91m"
+yellow = '\033[93m'
+green = '\033[92m'
+reset = '\033[0m'
+red = '\033[91m'
+orange = '\033[33m'
 
-print(f"{green}model training code running (ann_all_models.py){reset}")
+print(f'{green}model training code running (ann_all_new_models.py){reset}')
 
 
+num_epochs = 200
+batch_size = 4096
 
 import sys
 import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
-    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
 venv_name = os.path.basename(venv_path)
-if venv_name != "venv_2":
-    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+if venv_name != 'venv_2':
+    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
-print(f"{green} ann_all_models.py: library imports in progress, may take a few minutes{reset}")
+print(f'{green} ann_all_new_models.py: library imports in progress, may take a few minutes{reset}')
 
 import argparse
 import pandas as pd 
@@ -33,7 +36,8 @@ import gc
 from sklearn import preprocessing
 import tensorflow as tf
 from tensorflow import keras  
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU, Conv1D, Softmax, GlobalAveragePooling1D, Concatenate, Lambda
+from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU
+# from tensorflow.keras.layers import Conv1D, Softmax, GlobalAveragePooling1D, Concatenate, Lambda
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import regularizers
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, balanced_accuracy_score, classification_report, confusion_matrix
@@ -48,9 +52,9 @@ import matplotlib
 import matplotlib.colors as mcolors
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from memory_profiler import profile
+# from memory_profiler import profile
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 from tensorflow.compat.v1 import ConfigProto
@@ -63,12 +67,9 @@ config.gpu_options.allow_growth = True
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # Print in orange if a GPU is used or not
-gpu_status = "GPU is being used!" if torch.cuda.is_available() else "No GPU is available."
-# ANSI escape code for orange text
-orange_color = '\033[33m'
-reset_color = '{reset}'
+gpu_status = 'GPU is being used!' if torch.cuda.is_available() else 'No GPU is available.'
 
-print(f"{orange_color}{gpu_status}{reset_color}")
+print(f'{orange}{gpu_status}{reset}')
 
 
 
@@ -105,35 +106,35 @@ def load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_
     train_embeddings_to_keep_3Di = []
     for domain_id in train_ids_to_keep:
         if domain_id not in X_train_embedding_dict_3Di:
-            raise KeyError(f"Train domain ID {domain_id} not found in the train embeddings dictionary!")
+            raise KeyError(f'Train domain ID {domain_id} not found in the train embeddings dictionary!')
         train_embeddings_to_keep_3Di.append(X_train_embedding_dict_3Di[domain_id])
     
     # For validation embeddings
     val_embeddings_to_keep_3Di = []
     for domain_id in val_ids_to_keep:
         if domain_id not in X_val_embedding_dict_3Di:
-            raise KeyError(f"Validation domain ID {domain_id} not found in the validation embeddings dictionary!")
+            raise KeyError(f'Validation domain ID {domain_id} not found in the validation embeddings dictionary!')
         val_embeddings_to_keep_3Di.append(X_val_embedding_dict_3Di[domain_id])
     
     # For test embeddings
     test_embeddings_to_keep_3Di = []
     for domain_id in test_ids_to_keep:
         if domain_id not in X_test_embedding_dict_3Di:
-            raise KeyError(f"Test domain ID {domain_id} not found in the test embeddings dictionary!")
+            raise KeyError(f'Test domain ID {domain_id} not found in the test embeddings dictionary!')
         test_embeddings_to_keep_3Di.append(X_test_embedding_dict_3Di[domain_id])
     
     return train_embeddings_to_keep_3Di, val_embeddings_to_keep_3Di, test_embeddings_to_keep_3Di
 
 # @profile
 def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold):
-    """Loads data for the specified model."""
+    '''Loads data for the specified model.'''
 
     if model_name == 'ProtT5':
-        # For ProtT5, the former code and embeddings datasets are used here, see ./src/all/models/ProstT5/ann_ProstT5.py
+        # For ProtT5, the former code and embeddings datasets are used here, see ./src/model_building/models/ProtT5/ann_ProtT5.py
 
         # using the original CATHe datasets for ProtT5
         ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
-        y_train = list(ds_train["SF"])
+        y_train = list(ds_train['SF'])
 
         filename = './data/Dataset/embeddings/SF_Train_ProtT5_per_protein.npz'
         X_train = np.load(filename)['arr_0']
@@ -142,17 +143,16 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
 
         X_train = np.concatenate((X_train, X_train_other), axis=0)
 
-        for i in range(len(X_train_other)):
+        for _ in range(len(X_train_other)):
             y_train.append('other')
 
         # val
         ds_val = pd.read_csv('./data/Dataset/annotations/Y_Val_SF.csv')
-        y_val = list(ds_val["SF"])
+        y_val = list(ds_val['SF'])
 
         filename = './data/Dataset/embeddings/SF_Val_ProtT5_per_protein.npz'
         X_val = np.load(filename)['arr_0']
 
-        # filename = './data/Dataset/embeddings/Other Class/Other_Val_US_per_protein.npz'
         filename = './data/Dataset/embeddings/Other Class/Other_Val_per_protein.npz'
         X_val_other = np.load(filename)['arr_0']
 
@@ -163,12 +163,11 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
 
         # test
         ds_test = pd.read_csv('./data/Dataset/annotations/Y_Test_SF.csv')
-        y_test = list(ds_test["SF"])
+        y_test = list(ds_test['SF'])
 
         filename = './data/Dataset/embeddings/SF_Test_ProtT5_per_protein.npz'
         X_test = np.load(filename)['arr_0']
 
-        # filename = './data/Dataset/embeddings/Other Class/Other_Test_US_per_protein.npz'
         filename = './data/Dataset/embeddings/Other Class/Other_Test_per_protein.npz'
         X_test_other = np.load(filename)['arr_0']
 
@@ -230,10 +229,10 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
 
         if input_type == 'AA':
             if model_name not in prot_sequence_embeddings_paths:
-                raise ValueError("Invalid model name, choose between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec")
+                raise ValueError('Invalid model name, choose between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec')
         elif input_type == '3Di':
             if model_name != 'ProstT5_full':
-                raise ValueError("Invalid model name, if input type is 3Di, only ProstT5_full is available")
+                raise ValueError('Invalid model name, if input type is 3Di, only ProstT5_full is available')
         
         Train_file_name_seq_embed, Val_file_name_seq_embed, Test_file_name_seq_embed = prot_sequence_embeddings_paths[model_name]
 
@@ -284,21 +283,21 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             train_embeddings_to_keep_AA = []
             for domain_id in train_ids_to_keep:
                 if domain_id not in X_train_embedding_dict_AA:
-                    raise KeyError(f"Train domain ID {domain_id} not found in the train embeddings dictionary!")
+                    raise KeyError(f'Train domain ID {domain_id} not found in the train embeddings dictionary!')
                 train_embeddings_to_keep_AA.append(X_train_embedding_dict_AA[domain_id])
 
             # For validation embeddings
             val_embeddings_to_keep_AA = []
             for domain_id in val_ids_to_keep:
                 if domain_id not in X_val_embedding_dict_AA:
-                    raise KeyError(f"Validation domain ID {domain_id} not found in the validation embeddings dictionary!")
+                    raise KeyError(f'Validation domain ID {domain_id} not found in the validation embeddings dictionary!')
                 val_embeddings_to_keep_AA.append(X_val_embedding_dict_AA[domain_id])
 
             # For test embeddings
             test_embeddings_to_keep_AA = []
             for domain_id in test_ids_to_keep:
                 if domain_id not in X_test_embedding_dict_AA:
-                    raise KeyError(f"Test domain ID {domain_id} not found in the test embeddings dictionary!")
+                    raise KeyError(f'Test domain ID {domain_id} not found in the test embeddings dictionary!')
                 test_embeddings_to_keep_AA.append(X_test_embedding_dict_AA[domain_id])
             
             # Free memory by deleting the dictionaries
@@ -313,9 +312,9 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             train_embeddings_to_keep_3Di, val_embeddings_to_keep_3Di, test_embeddings_to_keep_3Di = load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed, train_ids_to_keep, val_ids_to_keep, test_ids_to_keep)
 
             # Ensure that lengths match before concatenation
-            assert len(train_embeddings_to_keep_AA) == len(train_embeddings_to_keep_3Di), "Train sequence and 3Di embeddings must have the same length"
-            assert len(val_embeddings_to_keep_AA) == len(val_embeddings_to_keep_3Di), "Val sequence and 3Di embeddings must have the same length"
-            assert len(test_embeddings_to_keep_AA) == len(test_embeddings_to_keep_3Di), "Test sequence and 3Di embeddings must have the same length"
+            assert len(train_embeddings_to_keep_AA) == len(train_embeddings_to_keep_3Di), 'Train sequence and 3Di embeddings must have the same length'
+            assert len(val_embeddings_to_keep_AA) == len(val_embeddings_to_keep_3Di), 'Val sequence and 3Di embeddings must have the same length'
+            assert len(test_embeddings_to_keep_AA) == len(test_embeddings_to_keep_3Di), 'Test sequence and 3Di embeddings must have the same length'
 
             # Concatenate the sequence and 3Di embeddings along the feature axis
             X_train = np.concatenate((train_embeddings_to_keep_AA, train_embeddings_to_keep_3Di), axis=1)
@@ -326,13 +325,13 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             # Immediately delete to free memory
             gc.collect()
 
-        print(f"{green} \nData Loading done{reset}")
+        print(f'{green} \nData Loading done{reset}')
 
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 
 def data_preparation(X_train, y_train, y_val, y_test):
-    """Prepares the data for training."""
+    '''Prepares the data for training.'''
     
     y_tot = y_train + y_val + y_test
     le = preprocessing.LabelEncoder()
@@ -343,11 +342,11 @@ def data_preparation(X_train, y_train, y_val, y_test):
     y_test = np.asarray(le.transform(y_test))
 
     num_classes = len(np.unique(y_tot))
-    print("number of classes: ",num_classes)
+    print('number of classes: ',num_classes)
     
     X_train, y_train = shuffle(X_train, y_train, random_state=42)
 
-    print(f"{green}Data preparation done{reset}")
+    print(f'{green}Data preparation done{reset}')
 
     return X_train, y_train, y_val, y_test, num_classes, le
 
@@ -378,7 +377,7 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
 
 # Keras NN Model
 def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, layer_size):
-    """Creates and returns a Keras model based on the specified model name and layer blocks."""
+    '''Creates and returns a Keras model based on the specified model name and layer blocks.'''
     
     
     if input_type == 'AA+3Di':
@@ -413,10 +412,10 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
         }
     
     else:
-        raise ValueError("Invalid input type, must be 'AA', '3Di', or 'AA+3Di'")
+        raise ValueError('Invalid input type, must be AA, 3Di, or AA+3Di')
 
     if model_name not in input_shapes:
-        raise ValueError("Invalid model name")
+        raise ValueError('Invalid model name')
     
     input_shape = input_shapes[model_name]
     input_ = Input(shape=input_shape)
@@ -436,9 +435,9 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
 
 # @profile
 def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold):
-    """Trains the model."""
+    '''Trains the model.'''
 
-    print(f"{green}Model training {reset}")
+    print(f'{green}Model training {reset}')
 
     if only_50_largest_SF:
         base_model_path = f'saved_models/ann_{model_name}_top_50_SF'
@@ -469,21 +468,15 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         save_model_path += '_AA+3Di'
         save_loss_path = save_loss_path.replace('.png', '_AA+3Di.png')
 
-    num_epochs = 200
-    batch_size = 4096
-
 
     with tf.device('/gpu:0'):
         # model
         model = create_model(model_name, num_classes, nb_layer_block, dropout, input_type, layer_size)
 
         # adam optimizer
-        opt = keras.optimizers.Adam(learning_rate = 1e-5)
-        model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
+        model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics=['accuracy'])
 
         # callbacks
-        # save_model_path = save_model_path.replace(".keras", "")  # Remove '.keras' to save as a directory in 'tf' format
-        # mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1)
         mcp_save = keras.callbacks.ModelCheckpoint(save_model_path, save_best_only=True, monitor='val_accuracy', verbose=1, save_format='tf')
         reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy', factor=0.1, patience=10, verbose=1, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
         early_stop = keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=30)
@@ -510,17 +503,17 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         plt.show()
         plt.close()
 
-        print(f"{green}Model training done{reset}")
+        print(f'{green}Model training done{reset}')
 
         del model, history, loss, val_loss, epochs  # Immediately delete to free memory
         gc.collect()
 
 def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
 
-    # print("Confusion Matrix")
+    # print('Confusion Matrix')
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
     size = matrix.shape[0]
-    print(f"Size of confusion matrix: {size}")
+    print(f'Size of confusion matrix: {size}')
 
     # Find the indices and values of the non-zero elements
     non_zero_indices = np.nonzero(matrix)
@@ -530,19 +523,7 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     non_zero_data = np.column_stack((non_zero_indices[0], non_zero_indices[1], non_zero_values))
 
     # Save the non-zero entries to a CSV file
-    np.savetxt(f'{confusion_matrix_path}.csv', non_zero_data, delimiter=",", fmt='%d')
-
-    # # Read the sparse confusion matrix CSV file
-    # df = pd.read_csv(confusion_matrix_path, header=None, names=['row', 'col', 'value'])
-    
-    
-    # # Create an empty confusion matrix
-    # confusion_matrix = np.zeros((size, size), dtype=int)
-    
-    # # Fill the confusion matrix
-    # for _, row in df.iterrows():
-    #     confusion_matrix[row['row'], row['col']] = row['value']
-    
+    np.savetxt(f'{confusion_matrix_path}.csv', non_zero_data, delimiter=',', fmt='%d')
     
     # Create a custom color map that makes zero cells white
     cmap = plt.cm.viridis
@@ -550,7 +531,7 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     
     # Plot the heatmap with logarithmic scaling
     plt.figure(figsize=(12, 10))
-    sns.heatmap(matrix, annot=False, fmt="d", cmap=cmap, vmin=0.01, cbar_kws={'label': 'Log Scale'})
+    sns.heatmap(matrix, annot=False, fmt='d', cmap=cmap, vmin=0.01, cbar_kws={'label': 'Log Scale'})
     
     # Create a purple to yellow color map for the annotations
     norm = mcolors.Normalize(vmin=matrix.min(), vmax=matrix.max())
@@ -573,9 +554,9 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
 
 # @profile
 def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold):
-    """Evaluates the trained model."""
+    '''Evaluates the trained model.'''
 
-    print(f"{green}Model evaluation {reset}")
+    print(f'{green}Model evaluation {reset}')
 
     if only_50_largest_SF:
         model_name = f'{model_name}_top_50_SF'
@@ -595,11 +576,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
     if input_type == '3Di':
 
         model_path += '_3Di'
-
-        # DEBUG
-        print(f"{orange_color}Model path: {model_path}{reset_color}")
             
-        # model_path = model_path.replace('.keras', '_3Di.keras')
         classification_report_path = classification_report_path.replace('.csv', '_3Di.csv')
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_3Di.png')
         results_file = results_file.replace('.csv', '_3Di.csv')
@@ -607,51 +584,47 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
     if input_type == 'AA+3Di':
                 
         model_path += '_AA+3Di'
-        # model_path = model_path.replace('.keras', '_AA+3Di.keras')
         classification_report_path = classification_report_path.replace('.csv', '_AA+3Di.csv')
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_AA+3Di.png')
         results_file = results_file.replace('.csv', '_AA+3Di.csv')
 
-    # Fix this properly later
-    # model_path = model_path.replace(".keras", "") 
-
 
     with open(results_file, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["Metric", "Value"])
+        writer.writerow(['Metric', 'Value'])
 
         try:
             model = load_model(model_path)
         except:
-            raise ValueError(f"Model file '{model_path}' not found, make sure you have trained the model first, to train the model use the --do_training flag")
+            raise ValueError(f'Model file {model_path} not found, make sure you have trained the model first, to train the model use the --do_training flag')
             
         with tf.device('/gpu:0'):
-            writer.writerow(["Validation", ""])
+            writer.writerow(['Validation', ''])
 
 
             try:
                 y_pred_val = model.predict(X_val)
             except Exception as e:
-                print(f"Error during model prediction on validation data: {str(e)}")
+                print(f'Error during model prediction on validation data: {str(e)}')
                 raise e
 
             f1_score_val = f1_score(y_val, y_pred_val.argmax(axis=1), average='weighted')
             acc_score_val = accuracy_score(y_val, y_pred_val.argmax(axis=1))
-            writer.writerow(["Validation F1 Score", f1_score_val])
-            writer.writerow(["Validation Accuracy Score", acc_score_val])
+            writer.writerow(['Validation F1 Score', f1_score_val])
+            writer.writerow(['Validation Accuracy Score', acc_score_val])
 
-            writer.writerow(["Regular Testing", ""])
+            writer.writerow(['Regular Testing', ''])
             y_pred_test = model.predict(X_test)
             f1_score_test = f1_score(y_test, y_pred_test.argmax(axis=1), average='macro')
             acc_score_test = accuracy_score(y_test, y_pred_test.argmax(axis=1))
             mcc_score = matthews_corrcoef(y_test, y_pred_test.argmax(axis=1))
             bal_acc = balanced_accuracy_score(y_test, y_pred_test.argmax(axis=1))
-            writer.writerow(["Test F1 Score", f1_score_test])
-            writer.writerow(["Test Accuracy Score", acc_score_test])
-            writer.writerow(["Test MCC", mcc_score])
-            writer.writerow(["Test Balanced Accuracy", bal_acc])
+            writer.writerow(['Test F1 Score', f1_score_test])
+            writer.writerow(['Test Accuracy Score', acc_score_test])
+            writer.writerow(['Test MCC', mcc_score])
+            writer.writerow(['Test Balanced Accuracy', bal_acc])
 
-            # Remove "_top_50_SF" suffix from model_name if it's present, there is already a column for this information
+            # Remove '_top_50_SF' suffix from model_name if it's present, there is already a column for this information
             model_name = model_name.replace('_top_50_SF', '')
 
 
@@ -671,7 +644,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
             if os.path.exists(df_results_path):
                 df_existing = pd.read_csv(df_results_path)
-                print("Columns in df_existing:", df_existing.columns.tolist())
+                print('Columns in df_existing:', df_existing.columns.tolist())
                 # Create a mask to find rows that match the current combination of parameters
                 mask = (
                     (df_existing['Model'].astype(type(model_name)) == model_name) &
@@ -695,16 +668,16 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
             df_combined.to_csv(df_results_path, index=False)
 
-            writer.writerow(["Bootstrapping Results", ""])
+            writer.writerow(['Bootstrapping Results', ''])
             num_iter = 1000
             f1_arr = []
             acc_arr = []
             mcc_arr = []
             bal_arr = []
 
-            warnings.filterwarnings("ignore", message="y_pred contains classes not in y_true")
+            warnings.filterwarnings('ignore', message='y_pred contains classes not in y_true')
 
-            print("Evaluation with bootstrapping")
+            print('Evaluation with bootstrapping')
             for it in tqdm(range(num_iter)):
                 X_test_re, y_test_re = resample(X_test, y_test, n_samples=len(y_test), random_state=it)
                 y_pred_test_re = model.predict(X_test_re, verbose=0)
@@ -716,12 +689,12 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 del X_test_re, y_test_re, y_pred_test_re  # Immediately delete to free memory
                 gc.collect()
 
-            writer.writerow(["Accuracy ", np.mean(acc_arr)])
-            writer.writerow(["F1-Score", np.mean(f1_arr)])
-            writer.writerow(["MCC", np.mean(mcc_arr)])
-            writer.writerow(["Balanced Accuracy", np.mean(bal_arr)])
+            writer.writerow(['Accuracy ', np.mean(acc_arr)])
+            writer.writerow(['F1-Score', np.mean(f1_arr)])
+            writer.writerow(['MCC', np.mean(mcc_arr)])
+            writer.writerow(['Balanced Accuracy', np.mean(bal_arr)])
             
-            warnings.filterwarnings("default")
+            warnings.filterwarnings('default')
 
 
             # save Classification report with the actual labels
@@ -738,66 +711,62 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
             save_confusion_matrix(y_test, y_pred, confusion_matrix_path)
 
-            print(f"{green}Model evaluation done{reset}")
+            print(f'{green}Model evaluation done{reset}')
 
             # free all memory
             del model, y_pred_val, y_pred_test, y_pred, cr, df, df_results, df_existing, df_combined, f1_arr, acc_arr, mcc_arr, bal_arr, num_iter
             gc.collect()
 
-            # DEBUG
-            print(f"f1_score_test: {f1_score_test}")
+            print(f'f1_score (on test dataset): {f1_score_test}')
 
 
 def create_arg_parser():
-    """Creates and returns the ArgumentParser object."""
+    '''Creates and returns the ArgumentParser object.'''
 
     parser = argparse.ArgumentParser(description=
                         'Run training and evaluation for one or all models')
     parser.add_argument('--do_training', type=int, 
                         default=1, 
-                        help="Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train")
+                        help='Whether to actually train and test the model or just test the saved model, put 0 to skip training, 1 to train')
     
     parser.add_argument('--dropout', type=float, 
                         default=0.3, 
-                        help="Whether to use dropout in the model layers or not. Put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value")
+                        help='Whether to use dropout in the model layers or not. Put 0 to not use dropout, a value between 0 and 1 excluded to use dropout with this value')
     
     parser.add_argument('--layer_size', type=int, 
                         default=2048, 
-                        help="To choose the size of the dens layers in the classifier. The value should be a positive integer, 1024 or 2048 is recommended")
+                        help='To choose the size of the dens layers in the classifier. The value should be a positive integer, 1024 or 2048 is recommended')
 
 
     parser.add_argument('--nb_layer_block', type=int, 
                         default=2,
-                        help="Number of layer block in the classifier ({Dense, LeakyReLU, BatchNormalization, Dropout}= 1 layer block). The value should be a positive integer, 2 or 3 is recommended")
+                        help='Number of layer block in the classifier ({Dense, LeakyReLU, BatchNormalization, Dropout}= 1 layer block). The value should be a positive integer, 2 or 3 is recommended')
     
     parser.add_argument('--model', type=str, 
                         default='ProtT5', 
-                        help="What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec. Make sure to download the corresponding embeddings or compute them with ./src/all/models/all_models/embed_all_models.py")
+                        help='What model to use between ProtT5, ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec. Make sure to download the corresponding embeddings or compute them with ./src/model_building/models/ProstT5_Ankh_TMVec_ESM2_ProtT5new/embed_all_new_models.py')
     
     parser.add_argument('--classifier_input', type=str, 
                         default='AA', 
-                        help="Whether to use Amino Acids, 3Di or a concatenation of both to train the classifier, put 'AA' for Amino Acids, '3Di' for 3Di, 'AA+3Di' for the concatenation of the 2")
+                        help='Whether to use Amino Acids, 3Di or a concatenation of both to train the classifier, put AA for Amino Acids, 3Di for 3Di, AA+3Di for the concatenation of the 2')
     
     
     parser.add_argument('--pLDDT_threshold', type=int, 
                         default=0, 
-                        help="Threshold for pLDDT to filter the trining set of 3Di from hight structure quality, choose from [0, 4, 14, 24, 34, 44, 54, 64, 74, 84] (only useful for 3Di input)")
+                        help='Threshold for pLDDT to filter the trining set of 3Di from hight structure quality, choose from [0, 4, 14, 24, 34, 44, 54, 64, 74, 84] (only useful for 3Di input)')
     
     parser.add_argument('--only_50_largest_SF', type=int, 
                         default=0,
-                        help="Whether to train only with the 50 most represented superfamilies or not, put 0 to use all the superfamilies, 1 to use only the 50 largest")
+                        help='Whether to train only with the 50 most represented superfamilies or not, put 0 to use all the superfamilies, 1 to use only the 50 largest')
     
     parser.add_argument('--support_threshold', type=int, 
                         default=0,
-                        help="Whether to filter the training set to only keep the SF with a support > support_threshold, put 0 to not filter, and any number >0 to filter for this value (you have to run dataset_filtering_for_3Di_usage.py with the same support_threshold before, or download the already computed filter csv to use this option)")
+                        help='Whether to filter the training set to only keep the SF with a support > support_threshold, put 0 to not filter, and any number >0 to filter for this value (you have to run dataset_filtering_for_3Di_usage.py with the same support_threshold before, or download the already computed filter csv to use this option)')
 
     
     return parser
 
 def main():
-
-    # DEBUG
-    print(f"{green}ann_all_models main running{reset}")
 
     parser = create_arg_parser()
     args = parser.parse_args()
@@ -814,27 +783,27 @@ def main():
 
     # Validate support_threshold
     if not isinstance(support_threshold, int) or support_threshold < 0:
-        raise ValueError("support_threshold must be a non-negative integer")
+        raise ValueError('support_threshold must be a non-negative integer')
 
     if input_type == 'AA':
         pLDDT_threshold = 0
 
     if (input_type == '3Di' or input_type == 'AA+3Di') and model_name == 'ProtT5':
-        raise ValueError("Please use 'ProtT5_new' instead of 'ProtT5' when using classifier_input '3Di' or 'AA+3Di', see ReadMe for more details")
+        raise ValueError('Please use ProtT5_new instead of ProtT5 when using classifier_input 3Di or AA+3Di, see ReadMe for more details')
 
     do_training = False if int(args.do_training) == 0 else True
 
-    print(f"{yellow}Hyperparameters{reset}")
-    print(f"{yellow}Model Name: {model_name}{reset}")
-    print(f"{yellow}Input Type: {input_type}{reset}")
-    print(f"{yellow}Number of Layer Blocks: {nb_layer_block}{reset}")
-    print(f"{yellow}Dropout: {dropout}{reset}")
-    print(f"{yellow}Layer Size: {layer_size}{reset}")
-    print(f"{yellow}pLDDT Threshold: {pLDDT_threshold}{reset}")
-    print(f"{yellow}Only 50 Largest SF: {only_50_largest_SF}{reset}")
-    print(f"{yellow}Support Threshold: {support_threshold}{reset}")
-    print(f"{yellow}Do Training: {do_training}{reset}")
-    print("\n")
+    print(f'{yellow}Hyperparameters{reset}')
+    print(f'{yellow}Model Name: {model_name}{reset}')
+    print(f'{yellow}Input Type: {input_type}{reset}')
+    print(f'{yellow}Number of Layer Blocks: {nb_layer_block}{reset}')
+    print(f'{yellow}Dropout: {dropout}{reset}')
+    print(f'{yellow}Layer Size: {layer_size}{reset}')
+    print(f'{yellow}pLDDT Threshold: {pLDDT_threshold}{reset}')
+    print(f'{yellow}Only 50 Largest SF: {only_50_largest_SF}{reset}')
+    print(f'{yellow}Support Threshold: {support_threshold}{reset}')
+    print(f'{yellow}Do Training: {do_training}{reset}')
+    print('\n')
 
     
     

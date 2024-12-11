@@ -1,3 +1,5 @@
+The function tree of get_3Di_sequences.py, to help understand the code.
+
 main
  └── process_dataset
       ├── download_and_trim_pdb

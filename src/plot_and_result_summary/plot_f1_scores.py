@@ -1,8 +1,8 @@
 # ANSI escape code for colored text
-yellow = "\033[93m"
-green = "\033[92m"
-reset = "\033[0m"
-red = "\033[91m"
+yellow = '\033[93m'
+green = '\033[92m'
+reset = '\033[0m'
+red = '\033[91m'
 
 
 import sys
@@ -10,35 +10,36 @@ import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
-    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
 venv_name = os.path.basename(venv_path)
-if venv_name != "venv_2":
-    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+if venv_name != 'venv_2':
+    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
+# import plotly.express as px
+# import numpy as np
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import matplotlib
-matplotlib.use('Agg')  # Use the 'Agg' backend for environments without a display server
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
+
 
 
 # Function to plot all F1 scores in the dataframe on the same plot as a bar plot
 def plot_all_f1_scores(dataframe, list_model_to_show):
-    """
+    '''
     Plots all F1 scores in the dataframe on the same plot as a bar plot and saves the plot.
     
     :param dataframe: pandas DataFrame containing the results.
     :param list_model_to_show: List of model names to show in the plot.
-    """
+    '''
     # Define color mapping based on Input_Type
     color_map = {
         'AA': 'blue',
@@ -50,7 +51,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
     dataframe = dataframe[dataframe['Model'].isin(list_model_to_show)]
 
     # Create a unique identifier for each combination of parameters
-    dataframe['Parameters'] = dataframe.apply(lambda row: f'Nb_Layer_Block={row["Nb_Layer_Block"]}, Dropout={row["Dropout"]}, Input_Type={row["Input_Type"]}, Layer_size={row["Layer_size"]}, pLDDT_threshold={row["pLDDT_threshold"]}', axis=1) 
+    dataframe['Parameters'] = dataframe.apply(lambda row: f'Nb_Layer_Block={row['Nb_Layer_Block']}, Dropout={row['Dropout']}, Input_Type={row['Input_Type']}, Layer_size={row['Layer_size']}, pLDDT_threshold={row['pLDDT_threshold']}', axis=1) 
     
     # Sort the dataframe by Model, then by F1_Score in descending order
     dataframe = dataframe.sort_values(by=['Model', 'F1_Score'], ascending=[True, False])
@@ -75,7 +76,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
             name=row['Parameters'],
             marker_color=color_map.get(row['Input_Type'], 'gray'),  # Use gray if Input_Type is not in the color_map
             hoverinfo='text',
-            text=f'Model={row["Model"]}<br>Nb_Layer_Block={row["Nb_Layer_Block"]}<br>Dropout={row["Dropout"]}<br>Input_Type={row["Input_Type"]}<br>Layer_size={row["Layer_size"]}<br>pLDDT_threshold={row["pLDDT_threshold"]}<br>F1_Score={row["F1_Score"]:.4f}'
+            text=f'Model={row['Model']}<br>Nb_Layer_Block={row['Nb_Layer_Block']}<br>Dropout={row['Dropout']}<br>Input_Type={row['Input_Type']}<br>Layer_size={row['Layer_size']}<br>pLDDT_threshold={row['pLDDT_threshold']}<br>F1_Score={row['F1_Score']:.4f}'
         ))
 
     fig.update_layout(
@@ -103,7 +104,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
 
 # Function to plot the evolution of F1 scores
 def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **conditions):
-    """
+    '''
     Plots the F1 score evolution for selected models along a specified parameter.
     
     :param dataframe: pandas DataFrame containing the results.
@@ -111,7 +112,7 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **co
     :param models_to_plot: List of models to include in the plot.
     :param title: Optional title for the graph. If not provided, a title will be generated based on conditions.
     :param conditions: Dictionary of conditions to filter the data (optional).
-    """
+    '''
     # Filter the dataframe for the selected models
     df_filtered = dataframe[dataframe['Model'].isin(models_to_plot)]
     
@@ -142,9 +143,6 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **co
         condition_str = ', '.join(f'{param}={value}' for param, value in conditions.items() if value is not None)
         if condition_str:
             plot_title += condition_str  # Directly use the formatted condition_str
-
-    # DEBUG
-    print(f'Plotting: {plot_title}')
 
     plt.title(plot_title)
     plt.xlabel(x_param)
@@ -201,7 +199,7 @@ plot_f1_score_evolution(
 )
 
 def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, **conditions):
-    """
+    '''
     Plots the F1 score evolution for a selected model along a specified parameter,
     with different curves for each input type.
 
@@ -210,7 +208,7 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
     :param model: The model to plot (single model name as a string).
     :param input_types: List of input types to plot (e.g., ['AA', '3Di', 'AA+3Di']).
     :param conditions: Dictionary of additional conditions to filter the data (optional).
-    """
+    '''
     # Filter the dataframe for the selected model
     df_filtered = dataframe[dataframe['Model'] == model]
     
@@ -227,7 +225,6 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
                 else:
                     df_subset = df_subset[df_subset[param] == value]
 
-                    # DEBUG
                     print(f'Filtering: {param}={value}')
 
                 condition_str += f'_{param}_{value}'
@@ -259,7 +256,12 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
     plt.savefig(plot_filename)
     plt.close()  # Use plt.close() instead of plt.show() for 'Agg' backend
 
+
+
+
 # Example usage:
+
+
 # input_types = ['AA', '3Di']
 # model = 'ProstT5_full'
 # x_param = 'Dropout'

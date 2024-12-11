@@ -3,10 +3,10 @@ ANN model trained on the T5 embeddings
 '''
 
 # ANSI escape code for colored text
-yellow = "\033[93m"
-green = "\033[92m"
-reset = "\033[0m"
-red = "\033[91m"
+yellow = '\033[93m'
+green = '\033[92m'
+reset = '\033[0m'
+red = '\033[91m'
 
 
 import sys
@@ -14,20 +14,21 @@ import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
-    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
 venv_name = os.path.basename(venv_path)
-if venv_name != "venv_2":
-    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+if venv_name != 'venv_2':
+    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
 # libraries
 import pandas as pd 
 import numpy as np 
+import math
 from sklearn import preprocessing
 import tensorflow as tf
 from keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU
@@ -96,7 +97,7 @@ else:
     # dataset import
     # train 
     ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
-    y_train = list(ds_train["SF"])
+    y_train = list(ds_train['SF'])
 
     filename = './data/Dataset/embeddings/SF_Train_ProtT5.npz'
     X_train = np.load(filename)['arr_0']
@@ -110,12 +111,11 @@ else:
 
     # val
     ds_val = pd.read_csv('./data/Dataset/annotations/Y_Val_SF.csv')
-    y_val = list(ds_val["SF"])
+    y_val = list(ds_val['SF'])
 
     filename = './data/Dataset/embeddings/SF_Val_ProtT5.npz'
     X_val = np.load(filename)['arr_0']
 
-    # filename = './data/Dataset/embeddings/Other Class/Other_Val_US.npz'
     filename = './data/Dataset/embeddings/Other Class/Other_Val.npz'
     X_val_other = np.load(filename)['arr_0']
 
@@ -126,12 +126,11 @@ else:
 
     # test
     ds_test = pd.read_csv('./data/Dataset/annotations/Y_Test_SF.csv')
-    y_test = list(ds_test["SF"])
+    y_test = list(ds_test['SF'])
 
     filename = './data/Dataset/embeddings/SF_Test_ProtT5.npz'
     X_test = np.load(filename)['arr_0']
 
-    # filename = './data/Dataset/embeddings/Other Class/Other_Test_US.npz'
     filename = './data/Dataset/embeddings/Other Class/Other_Test.npz'
     X_test_other = np.load(filename)['arr_0']
 
@@ -151,10 +150,10 @@ else:
 
     num_classes = len(np.unique(y_tot))
     print(num_classes)
-    print("Loaded X and y")
+    print('Loaded X and y')
 
     X_train, y_train = shuffle(X_train, y_train, random_state=42)
-    print("Shuffled")
+    print('Shuffled')
 
 # generator
 def bm_generator(X_t, y_t, batch_size):
@@ -216,7 +215,7 @@ with tf.device('/gpu:0'):
 
     # adam optimizer
     opt = keras.optimizers.Adam(learning_rate = 1e-5)
-    model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics=['accuracy'])
+    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics=['accuracy'])
 
     # callbacks
     mcp_save = keras.callbacks.ModelCheckpoint('saved_models/ann_t5_m1.h5', save_best_only=True, monitor='val_accuracy', verbose=1)
@@ -228,42 +227,42 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    # history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
     model = load_model('saved_models/ann_t5_m1.h5')
 
-    # Plot the training and validation loss
-    # loss = history.history['loss']
-    # val_loss = history.history['val_loss']
-    # epochs = range(1, len(loss) + 1)
-    # plt.figure()
-    # plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
-    # plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
-    # plt.title('Training and Validation Loss')
-    # plt.xlabel('Epochs')
-    # plt.ylabel('Loss')
-    # plt.legend()
-    # plt.savefig(f'results/Loss/ProtT5_loss.png')  # Save the plot
-    # plt.close()
+    # Save the training and validation loss
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs = range(1, len(loss) + 1)
+    plt.figure()
+    plt.plot(epochs, loss, 'b-', label='Training loss', linewidth=1)
+    plt.plot(epochs, val_loss, 'r-', label='Validation loss', linewidth=1)
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig(f'results/Loss/ProtT5_loss.png')  # Save the plot
+    plt.close()
 
-    print("Validation")
+    print('Validation')
     y_pred_val = model.predict(X_val)
     f1_score_val = f1_score(y_val, y_pred_val.argmax(axis=1), average = 'weighted')
     acc_score_val = accuracy_score(y_val, y_pred_val.argmax(axis=1))
-    print("F1 Score: ", f1_score_val)
-    print("Acc Score", acc_score_val)
+    print('F1 Score: ', f1_score_val)
+    print('Acc Score', acc_score_val)
 
-    print("Regular Testing")
+    print('Regular Testing')
     y_pred_test = model.predict(X_test)
     f1_score_test = f1_score(y_test, y_pred_test.argmax(axis=1), average = 'macro')
     acc_score_test = accuracy_score(y_test, y_pred_test.argmax(axis=1))
     mcc_score = matthews_corrcoef(y_test, y_pred_test.argmax(axis=1))
     bal_acc = balanced_accuracy_score(y_test, y_pred_test.argmax(axis=1))
-    print("F1 Score: ", f1_score_test)
-    print("Acc Score: ", acc_score_test)
-    print("MCC: ", mcc_score)
-    print("Bal Acc: ", bal_acc)
+    print('F1 Score: ', f1_score_test)
+    print('Acc Score: ', acc_score_test)
+    print('MCC: ', mcc_score)
+    print('Bal Acc: ', bal_acc)
 
-    print("Bootstrapping Results")
+    print('Bootstrapping Results')
     num_iter = 1000
     f1_arr = []
     acc_arr = []
@@ -271,36 +270,33 @@ with tf.device('/gpu:0'):
     bal_arr = []
 
     #Suppress warnings that will rise when bootstrapping samples contain classes not in the original sample
-    warnings.filterwarnings("ignore", message="y_pred contains classes not in y_true")
+    warnings.filterwarnings('ignore', message='y_pred contains classes not in y_true')
 
     for it in tqdm(range(num_iter)):
-        # print("Iteration: ", it)
         X_test_re, y_test_re = resample(X_test, y_test, n_samples = len(y_test), random_state=it)
         y_pred_test_re = model.predict(X_test_re, verbose=0)
-        # print(y_test_re)
         f1_arr.append(f1_score(y_test_re, y_pred_test_re.argmax(axis=1), average = 'macro'))
         acc_arr.append(accuracy_score(y_test_re, y_pred_test_re.argmax(axis=1)))
         mcc_arr.append(matthews_corrcoef(y_test_re, y_pred_test_re.argmax(axis=1)))
         bal_arr.append(balanced_accuracy_score(y_test_re, y_pred_test_re.argmax(axis=1)))
 
 
-    print("Accuracy: ", np.mean(acc_arr), np.std(acc_arr))
-    print("F1-Score: ", np.mean(f1_arr), np.std(f1_arr))
-    print("MCC: ", np.mean(mcc_arr), np.std(mcc_arr))
-    print("Bal Acc: ", np.mean(bal_arr), np.std(bal_arr))
+    print('Accuracy: ', np.mean(acc_arr), np.std(acc_arr))
+    print('F1-Score: ', np.mean(f1_arr), np.std(f1_arr))
+    print('MCC: ', np.mean(mcc_arr), np.std(mcc_arr))
+    print('Bal Acc: ', np.mean(bal_arr), np.std(bal_arr))
 
     # Allow the warning back 
-    warnings.filterwarnings("default")
+    warnings.filterwarnings('default')
 
 with tf.device('/gpu:0'):
     y_pred = model.predict(X_test)
-    print("Classification Report Validation")
+    print('Classification Report Validation')
     cr = classification_report(y_test, y_pred.argmax(axis=1), output_dict = True, zero_division=1)
     df = pd.DataFrame(cr).transpose()
     df.to_csv('results/CR_ANN_T5_m1.csv')
-    print("Confusion Matrix")
+    print('Confusion Matrix')
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
-    # print(matrix)
 
     # Plot the confusion matrix 
     plt.figure(figsize=(10, 8))
@@ -311,7 +307,7 @@ with tf.device('/gpu:0'):
     plt.savefig(f'results/confusion_matrices/ProtT5.png')  # Save the plot
     plt.close()
 
-    print("F1 Score")
+    print('F1 Score')
     print(f1_score(y_test, y_pred.argmax(axis=1), average = 'macro', zero_division=0))
 
 '''
@@ -468,73 +464,4 @@ Acc Score:  0.08311021865238732
 MCC:  0.022393191155585926
 Bal Acc:  0.0014463794762714455
 
-'''
-
-'''
-First run (Orfeu tests):
-nb layer (dens - leakyRelu - Batch normal - dropout)= 1
-bs = 128
-epochs = 200
-input size = 1024
-
-Validation
-F1 Score:  0.8376208701803203
-Acc Score 0.8618679877604546
-
-Regular Testing
-F1 Score:  0.6916966902686269
-Acc Score:  0.8452346254736228
-MCC:  0.8445510425864564
-Bal Acc:  0.7137585454807984
-
-Bootstrapping Results
-Accuracy:  0.8454102302535705 0.004245773538633677
-F1-Score:  0.701729238128407 0.006865777279383606
-MCC:  0.8447279805700859 0.004261423964467635
-Bal Acc:  0.7380713713481866 0.006310194353462971
-
-
-Classification Report Validation
-
-OSError: Cannot save file into a non-existent directory: 'results'
-
-'''
-
-
-'''
-last run
-
-
-loss: 0.9525 - accuracy: 0.8504 - val_loss: 1.0115 - val_accuracy: 0.8491 - lr: 1.0000e-06
-Validation
-
-F1 Score:  0.8460129945200751
-Acc Score 0.8687163048229637
-
-Regular Testing
-
-F1 Score:  0.7116407744775418
-Acc Score:  0.8513552900029147
-MCC:  0.850710887711986
-Bal Acc:  0.7330387153448567
-
-Bootstrapping Results
-
-Accuracy:  0.8515558146313028 0.004198531256747538
-F1-Score:  0.7187172246628645 0.006942070682355846
-MCC:  0.8509127445874228 0.004213220917025692
-Bal Acc:  0.754958316621048 0.0062739259981693055
-215/215 [==============================] - 0s 551us/step
-Classification Report Validation
-
-error
-
-Confusion Matrix
-[[148   0   0 ...   0   0   2]
- [  0   2   0 ...   0   0   0]
- [  0   0   0 ...   0   0   1]
- ...
- [  0   0   0 ...   1   0   0]
- [  0   0   0 ...   0   1   0]
- [  2   0   0 ...   0   0  14]]
 '''

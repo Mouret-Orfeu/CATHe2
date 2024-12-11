@@ -7,12 +7,12 @@ reset_color = "\033[0m"
 red = "\033[91m"
 orange_color = '\033[33m'
 
-print(f"{green}embedding code running (embed_all_models.py), make sure you set up and activated venv_2{reset_color}")
+print(f"{green}embedding code running (embed_all_new_models.py), make sure you set up and activated venv_2{reset_color}")
 
-# DEBUG
 print(f"{green}embedding code running: library imports in progress, it may take a few minutes{reset_color}")
 
-
+max_res_per_batch = 4096
+nb_seq_max_per_batch = 4096
 
 import sys
 import os
@@ -216,9 +216,6 @@ def get_sequences(seq_path, dataset, is_3Di):
             # Determine the correct CSV file path based on the dataset
             usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage_0.csv'
 
-            # DEBUG
-            print(f"{yellow}Usage CSV path: {usage_csv_path}{reset_color}")
-
             if not os.path.exists(usage_csv_path):
                 raise FileNotFoundError(f"CSV file not found: {usage_csv_path}")
 
@@ -226,11 +223,7 @@ def get_sequences(seq_path, dataset, is_3Di):
             df_domains_for_3Di_usage = pd.read_csv(usage_csv_path)
             sequence_ids_to_use = set(df_domains_for_3Di_usage['Domain_id'])
 
-            # DEBUG
-            print(f"{yellow}Length of df_domains_for_3Di_usage: {len(df_domains_for_3Di_usage)}{reset_color}")
-            print(f"{yellow}Number of sequence IDs to use: {len(sequence_ids_to_use)}{reset_color}")
-
-            # DEBUG
+            
             if not sequence_ids_to_use:
                 print(f"{red}No sequence IDs found in the CSV file: {usage_csv_path}{reset_color}")
                 raise ValueError("No sequence IDs found in the CSV file.")
@@ -242,9 +235,6 @@ def get_sequences(seq_path, dataset, is_3Di):
             fasta_entries = read_fasta(fasta_file)
             fasta_entries.sort(key=lambda entry: int(entry[0]))
         for entry in fasta_entries:
-            # DEBUG
-            # print(f"{green}Entry: {entry[0]}{reset_color}")
-            # exit()
             if dataset != "other":
                 if int(entry[0]) in sequence_ids_to_use:
                     sequences[int(entry[0])] = entry[2]
@@ -255,7 +245,6 @@ def get_sequences(seq_path, dataset, is_3Di):
         for key in sequences.keys():
             sequences[key] = sequences[key].lower()
 
-        # DEBUG
         print(f"{yellow}Processing FASTA file: {seq_path}{reset_color}")
 
         if not sequences:
@@ -299,7 +288,7 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset):
 
 
 def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
-                   max_residues=4096, nb_seq_max_in_batch=4096):
+                   max_residues=max_res_per_batch, nb_seq_max_in_batch=nb_seq_max_per_batch):
                                                                                            
     emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, dataset)
 
@@ -381,22 +370,15 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
                     emb_dict[domaine_id] = emb.detach().cpu().numpy().squeeze()
                     processed_sequences += 1
                     
-                    # DEBUG
-                    # if len(emb_dict) == 1:
-                    #     print("Example: embedded protein {} with length {} to emb. of shape: {}".format(identifier, s_len, emb.shape))
+                    
 
     end = time.time()
 
-    # sort created embedding dict
     # Sort the keys in ascending order
     sorted_keys = sorted(emb_dict.keys())
 
-    # Create a list of embeddings in the sorted order
-    # sorted_embeddings = [emb_dict[key] for key in tqdm(sorted_keys, desc="Sorting embeddings")]
-
     keys = np.array(sorted_keys)  # Convert sorted_keys to a NumPy array
     embeddings = np.array([emb_dict[key] for key in sorted_keys])  # Create the embeddings array
-
 
 
     if len(embeddings) != len(seq_dict):
@@ -404,17 +386,9 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
         print('Total number of embeddings: {}'.format(len(embeddings)))
         raise ValueError(f"Stopping execution due to mismatch. processed_sequences: {processed_sequences}, sequence to be processed: {len(seq_dict)}")
     
-    # np.savez(emb_path, sorted_embeddings)
-
-    # DEBUG
-    print(f"len keys: {len(keys)}")
-    print(f"len embeddings: {len(embeddings)}")
 
     # Save the keys and embeddings separately
     np.savez(emb_path, keys=keys, embeddings=embeddings)
-
-    #DEBUG
-    #print("10 first keys: ",sorted_keys[:10], "\n 10 last keys: ", sorted_keys[-10:])
     
     
     print('Total number of embeddings: {}'.format(len(embeddings)))

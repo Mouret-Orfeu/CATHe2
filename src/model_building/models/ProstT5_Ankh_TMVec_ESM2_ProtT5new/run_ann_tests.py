@@ -71,7 +71,7 @@ def run_script_with_combinations(script_path, dropout_values, layer_size_values,
         os.system(command)
 
 
-script_path = './src/all/models/all_models/ann_all_models.py'
+script_path = './src/model_building/models/ProstT5_Ankh_TMVec_ESM2_ProtT5new/ann_all_new_models.py'
 
 
 # # Initialize the progress bar

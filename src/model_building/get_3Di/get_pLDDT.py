@@ -1,26 +1,28 @@
-# ANSI escape code for colored text
-yellow = "\033[93m"
-green = "\033[92m"
-reset = "\033[0m"
-red = "\033[91m"
+# As the code for pLDDT retrieval does not work properly in get_3Di_sequences.y, pLDDT are fetched using the following code.
 
-print(f"{green}pLDDT fetching code running (get_pLDDT.py), make sure you set up and activated venv_2{reset}")
+# ANSI escape code for colored text
+yellow = '\033[93m'
+green = '\033[92m'
+reset = '\033[0m'
+red = '\033[91m'
+
+print(f'{green}pLDDT fetching code running (get_pLDDT.py){reset}')
 
 import sys
 import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
-    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
 venv_name = os.path.basename(venv_path)
-if venv_name != "venv_2":
-    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+if venv_name != 'venv_2':
+    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
 import csv
 import requests
@@ -45,12 +47,12 @@ def download_cif(database_code):
     response = requests.get(url)
     
     if response.status_code == 200:
-        cif_filename = f"{database_code}-model_v4.cif"
+        cif_filename = f'{database_code}-model_v4.cif'
         with open(cif_filename, 'wb') as f:
             f.write(response.content)
         return cif_filename
     else:
-        print(f"Failed to download CIF file for {database_code}")
+        print(f'Failed to download CIF file for {database_code}')
         return None
 
 # Function to extract global pLDDT score from CIF file
@@ -72,17 +74,17 @@ def extract_global_plddt(cif_file, expected_database_code):
                     cleaned_found_database_code = found_database_code.replace('-model_v4', '')
 
                     if cleaned_found_database_code != expected_database_code:
-                        print(f"Database code mismatch: {cleaned_found_database_code} != {expected_database_code}")
+                        print(f'Database code mismatch: {cleaned_found_database_code} != {expected_database_code}')
                         return None
 
                 # Capture the metric ID for global pLDDT
-                if line.startswith("1 global pLDDT"):
+                if line.startswith('1 global pLDDT'):
                     global_plddt_id = line.split()[0]
 
                 # Start collecting metric global section
                 if line.startswith('_ma_qa_metric_global.metric_id'):
                     if global_plddt_id is None:
-                        print("Error: Global pLDDT ID not found in the CIF file.")
+                        print('Error: Global pLDDT ID not found in the CIF file.')
                         return None
 
                     metric_id = line.split()[-1]
@@ -100,10 +102,10 @@ def extract_global_plddt(cif_file, expected_database_code):
                     break
 
             if metric_value is None:
-                print("Error: Global pLDDT value could not be extracted.")
+                print('Error: Global pLDDT value could not be extracted.')
             return metric_value
     except FileNotFoundError:
-        print(f"Error: CIF file {cif_file} not found.")
+        print(f'Error: CIF file {cif_file} not found.')
         return None
 
 # Function to process each entry (download CIF, extract pLDDT, cleanup)
@@ -131,7 +133,7 @@ def process_records_chunk(records_chunk, total_records):
         # Update progress
         with progress_lock:
             progress += 1
-            print(f"Processing: {progress}/{total_records} records completed.", end='\r')
+            print(f'Processing: {progress}/{total_records} records completed.', end='\r')
 
     return results
 
@@ -166,7 +168,7 @@ def get_pLDDT():
                 if result:
                     final_results.extend(result)
             except Exception as e:
-                print(f"An error occurred: {e}")
+                print(f'An error occurred: {e}')
 
     # Sort results by protein sequence ID
     final_results.sort(key=lambda x: int(x[0]))
@@ -194,7 +196,7 @@ def verify_pLDDT_and_get_missing_ones(output_csv, fasta_file):
     fasta_ids = []
     fasta_database_code = []
 
-    for record in tqdm(fasta_entries_list, desc="Parsing FASTA Entries"):
+    for record in tqdm(fasta_entries_list, desc='Parsing FASTA Entries'):
         header = record.id
         parts = header.split('_')
         protein_seq_id = parts[0]
@@ -213,14 +215,14 @@ def verify_pLDDT_and_get_missing_ones(output_csv, fasta_file):
     # Find the missing IDs that are in the FASTA file but not in the CSV
     missing_ids = list(fasta_ids - pLDDT_ids)
 
-    # Debug output to check the number of missing IDs
-    print("Number of missing IDs:", len(missing_ids))
+    # DEBUG output to check the number of missing IDs
+    #print('Number of missing IDs:', len(missing_ids))
 
     added_missing_ids = 0
     new_rows = []
 
     # Process missing IDs and add pLDDT values to the CSV
-    for missing_id in tqdm(missing_ids, desc="Processing Missing IDs"):
+    for missing_id in tqdm(missing_ids, desc='Processing Missing IDs'):
         database_code = fasta_dict.get(missing_id)
 
         # Download the CIF file and extract the pLDDT value
@@ -234,7 +236,7 @@ def verify_pLDDT_and_get_missing_ones(output_csv, fasta_file):
                     added_missing_ids += 1
                 os.remove(cif_file)  # Clean up the CIF file after processing
         except Exception as e:
-            print(f"Error processing {missing_id}: {e}")
+            print(f'Error processing {missing_id}: {e}')
 
     # Add the new rows to the original data and sort by ID
     rows.extend(new_rows)
@@ -248,7 +250,7 @@ def verify_pLDDT_and_get_missing_ones(output_csv, fasta_file):
         # Write sorted data
         csv_writer.writerows(rows)
 
-    print(f"Added missing pLDDT values: {added_missing_ids}/{len(missing_ids)}")
+    print(f'Added missing pLDDT values: {added_missing_ids}/{len(missing_ids)}')
 
 
 def sort_csv_by_id_as_int(input_csv, output_csv):

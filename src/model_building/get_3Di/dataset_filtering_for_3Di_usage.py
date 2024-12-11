@@ -1,10 +1,10 @@
 # ANSI escape code for colored text
-yellow = "\033[93m"
-green = "\033[92m"
-reset = "\033[0m"
-red = "\033[91m"
+yellow = '\033[93m'
+green = '\033[92m'
+reset = '\033[0m'
+red = '\033[91m'
 
-print(f"{green}CATHe dataset filtering preparation code running, make sure you set up and activated venv_2{reset}")
+print(f'{green}CATHe dataset filtering preparation code running{reset}')
 
 import sys
 import os
@@ -12,26 +12,26 @@ import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
-    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}")
+    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
 venv_name = os.path.basename(venv_path)
-if venv_name != "venv_2":
-    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}")
+if venv_name != 'venv_2':
+    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
 import pandas as pd 
-import csv
-from tqdm import tqdm
+# import csv
+# from tqdm import tqdm
 
 
 
 def save_SF_lost_csv(pLDDT_threshold, total_lost_SF, nb_SF_remaining, Training_set_size, top_50_filtering, support_threshold):
     # Path to the CSV file
-    lost_SF_csv_path = "./data/Dataset/csv/Lost_SF_and_Train_size.csv"
+    lost_SF_csv_path = './data/Dataset/csv/Lost_SF_and_Train_size.csv'
     
     # Create a DataFrame with the new data
     update_df = pd.DataFrame({
@@ -66,13 +66,13 @@ def save_SF_lost_csv(pLDDT_threshold, total_lost_SF, nb_SF_remaining, Training_s
 
 
 def read_fasta(file):
-    """Reads a FASTA file and returns a list of tuples (id, header, sequence)."""
+    '''Reads a FASTA file and returns a list of tuples (id, header, sequence).'''
     fasta_entries = []
     header = None
     sequence = []
     for line in file:
         line = line.strip()
-        if line.startswith(">"):
+        if line.startswith('>'):
             if header:
                 fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
             header = line[1:]
@@ -133,9 +133,8 @@ def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold, top_50_fil
     Test_domain_ids_for_which_I_have_3Di.sort()
     test_sf_with_3Di = set(df_test[df_test['Unnamed: 0'].isin(Test_domain_ids_for_which_I_have_3Di)]['SF'].tolist())
 
-    # DEBUG
     all_test_sf = set(df_test['SF'].tolist())
-    print(f"lost sf using 3Di for Test: {len(all_test_sf - test_sf_with_3Di)}")
+    print(f'lost sf using 3Di for Test: {len(all_test_sf - test_sf_with_3Di)}')
 
 
 
@@ -235,12 +234,12 @@ def main():
 
     # Validate support_threshold
     if not isinstance(support_threshold, int) or support_threshold < 0:
-        raise ValueError("support_threshold must be a non-negative integer")
+        raise ValueError('support_threshold must be a non-negative integer')
     
         
     # Iterate over thresholds and filter Val and Test datasets
     for pLDDT_threshold in [0, 4, 14, 24, 34, 44, 54, 64, 74, 84]:
         save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold, top_50_filtering, support_threshold)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

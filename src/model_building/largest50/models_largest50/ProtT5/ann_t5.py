@@ -1,3 +1,9 @@
+reset = "\033[0m"
+red = "\033[91m"
+
+print(f"{red}This code is part of the previous version of CATHe, it is recommanded to run it with the vam-sin version of this project at https://github.com/vam-sin/CATHe {reset}")
+
+
 # libraries
 import pandas as pd 
 import numpy as np 
@@ -180,7 +186,7 @@ with tf.device('/gpu:0'):
     train_gen = bm_generator(X_train, y_train, bs)
     val_gen = bm_generator(X_val, y_val, bs)
     test_gen = bm_generator(X_test, y_test, bs)
-    #history = model.fit_generator(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
+    history = model.fit_generator(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(bs)), verbose=1, validation_data = val_gen, validation_steps = len(X_val)/bs, workers = 0, shuffle = True, callbacks = callbacks_list)
     model = load_model('saved_models/ann_t5_largest50.h5', custom_objects={'sensitivity':sensitivity})
 
     print("Validation")
