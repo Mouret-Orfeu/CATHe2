@@ -1,3 +1,5 @@
+# This code computes and savec the embeddings
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'
@@ -8,6 +10,7 @@ import sys
 import os
 import argparse
 
+# Manage the input arguments
 parser = argparse.ArgumentParser(description='Run predictions pipeline with FASTA file')
 parser.add_argument('--model', type=str, default='ProtT5', choices=['ProtT5', 'ProstT5'], help='Model to use: ProtT5 (original one) or ProstT5 (new one)')
 parser.add_argument('--input_type', type=str, default='AA', choices=['AA', 'AA+3Di'], help='Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5)')
@@ -22,6 +25,7 @@ venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
     raise EnvironmentError(f'{red}Error, venv path is none. Please activate the right venv first, see ReadMe for more details.{reset}')
 
+# Check if the activated virtual environment is the right one depending on the model
 venv_name = os.path.basename(venv_path)
 if args.model == 'ProtT5' and venv_name != 'venv_1':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_1. If you want to use the ProtT5 model, venv_1 must be activated. See ReadMe for more details.{reset}')
@@ -42,6 +46,8 @@ import glob
 def embed_sequence(model):
 
     if model == 'ProtT5':
+
+        # bio_embeddings is actually the reason why there is 2 virtual environments, because it causes a lot of dependency issues with other libraries (namely numpy), but I made the choice to keep the ProtT5 process as it was.
         from bio_embeddings.embed import ProtTransT5BFDEmbedder
 
         print(f'{yellow}Loading ProtT5 model. (can take a few minutes){reset}')
@@ -76,7 +82,7 @@ def embed_sequence(model):
 
         print('Embedding sequences with ProstT5')
 
-        # Define the arguments for embed_all_new_models.py
+        # runing embed_all_new_models.py, which can embed sequences with all new models (here using ProstT5_full)
         args = [
             'python3', './src/model_building/models/ProstT5_Ankh_TMVec_ESM2_ProtT5new/embed_all_new_models.py',
             '--model', 'ProstT5_full',
@@ -192,6 +198,7 @@ def embed_3Di(pdb_path):
     # Uncomment this line and test the whole process not on google collab
     # get_3di_sequences(pdb_path, output_dir) !!!!!!!!!!!!!!!!
 
+    # runing embed_all_new_models.py, specifying --is_3Di 1 to embed 3Di sequences
     try:
         subprocess.run(
             f'python ./src/model_building/models/ProstT5_Ankh_TMVec_ESM2_ProtT5new/embed_all_new_models.py --model ProstT5_full --is_3Di 1 --embed_path {embed_path} --seq_path {fasta_file_3Di} --dataset other',
@@ -228,8 +235,6 @@ def main():
         embed_sequence(args.model)
         embed_3Di(pdb_path)
     else:
-        # raise error here
-
         raise ValueError('Invalid input_type. Please choose AA or AA+3Di.')
 
 

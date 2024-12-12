@@ -1,9 +1,9 @@
+# This code snippet is used to parse the AA sequence fasta file and save it as a CSV file
+
 import pandas as pd 
 import argparse
 
 from Bio import SeqIO
-
-# This code snippet is used to parse the AA sequence fasta file and save it as a CSV file
 
 # Parse command-line arguments for the model 
 parser = argparse.ArgumentParser(description='Run predictions pipeline with FASTA file')

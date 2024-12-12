@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# This code is used to embed AA or 3Di sequences. It can do so with all new models: Ankh_base, Ankh_large, TMVec, ProstT5_full, ProstT5_half, ESM2 and ProtT5_new (which is just prot_t5_xl_uniref50, the 'new' is just a remainder that CATH datasets embeddings were already computed in the previous version of CATHe).
+# (For 3Di, only ProstT5_full or ProstT5_half are available) 
 
 # ANSI escape code for colored text
 yellow = "\033[93m"
@@ -7,7 +8,7 @@ reset_color = "\033[0m"
 red = "\033[91m"
 orange_color = '\033[33m'
 
-print(f"{green}embedding code running (embed_all_new_models.py), make sure you set up and activated venv_2{reset_color}")
+print(f"{green}embedding code running (embed_all_new_models.py){reset_color}")
 
 print(f"{green}embedding code running: library imports in progress, it may take a few minutes{reset_color}")
 
@@ -26,6 +27,7 @@ venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
     raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset_color}")
 
+# Check if the activated virtual environment is venv_2
 venv_name = os.path.basename(venv_path)
 if venv_name != "venv_2":
     raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset_color}")
@@ -59,6 +61,8 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 # import gc
 # import os
 
+
+# GPU management
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 print("Using device: {}".format(device))
@@ -278,7 +282,7 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset):
     print('Total number of sequences: {}'.format(len(seq_dict)))
 
     avg_length = sum([len(seq) for seq in seq_dict.values()]) / len(seq_dict)
-    # sort sequences by length to trigger OOM at the beginning
+    # sort sequences by length to trigger OOM (out of memory) at the beginning
     seq_dict = sorted(seq_dict.items(), key=lambda kv: len(kv[1]), reverse=True)
     
     print("Average sequence length: {}".format(avg_length))

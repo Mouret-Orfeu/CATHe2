@@ -1,4 +1,7 @@
-# run 'all' with internet connection with 720 Mbps download speed: took around  
+# This code is for extracting 3Di sequences from the CATHe Dataset, automatically downloading the corresponding PDB files and trimming them to match the sequences.
+
+# Adjust to your CPU capacity
+multi_threading_worker_nb = 100
 
 # ANSI escape code for colored text
 yellow = '\033[93m'
@@ -20,6 +23,7 @@ venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
     raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
+# Check if the activated virtual environment is venv_2
 venv_name = os.path.basename(venv_path)
 if venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
@@ -60,7 +64,7 @@ def find_best_model(pdb_file_path, sequence):
             for residue in chain:
                 if residue.id[0] == ' ':  # Ensures only standard residues are considered
                     pdb_sequence += seq1(residue.resname)
-            # Calculate match score (using Hamming distance Hamming distance with penalty for length differences.)
+            # Calculate match score (using Hamming distance with penalty for length differences.)
             match_score = sum(1 for a, b in zip(sequence, pdb_sequence) if a != b) + abs(len(sequence) - len(pdb_sequence))
             if match_score < best_match_score:
                 best_model_id = model.id
@@ -204,6 +208,8 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
         url = f'https://files.rcsb.org/download/{pdb_id}.pdb'
 
     try:
+
+        # Download corresponding PDB file
         response = requests.get(url)
         response.raise_for_status()
         pdb_file_path = os.path.join(output_dir, f'{sequence_id}_{os.path.basename(url)}')
@@ -211,11 +217,13 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
         with open(pdb_file_path, 'w') as file:
             file.write(response.text)
 
+        # Find the best model and chain in the PDB file to match the CATH dataset sequence
         model, best_chain, _ = find_best_model(pdb_file_path, sequence)
 
         if process_training_set:
             plddt_scores = extract_global_plddt(pdb_file_path)
         
+        # Trim the PDB file to only keep the residues that match the sequence, examples in pdb_sequence_examples.txt
         trimmed_pdb_file_path = pdb_file_path.replace('.pdb', '_trimmed.pdb')
         trim_pdb(pdb_file_path, sequence, best_chain, model, expected_chain, trimmed_pdb_file_path)
     
@@ -269,7 +277,9 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_train
     os.makedirs(output_dir, exist_ok=True)
 
     results = []
-    with ThreadPoolExecutor(max_workers=100) as executor:
+
+    # Multi-threading the download and trimming process
+    with ThreadPoolExecutor(max_workers=multi_threading_worker_nb) as executor:
         futures = [executor.submit(download_and_trim_pdb, row, output_dir, process_training_set) for _, row in data.iterrows()]
         for future in tqdm(as_completed(futures), total=len(futures)):
             result, plddt_scores = future.result()
@@ -285,6 +295,7 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_train
 
     foldseek_path = './foldseek/bin/foldseek' 
     
+    # Foldseek uses all trimmed PDB files to create the 3Di sequence FASTA file
     try:
         run_command(f'{foldseek_path} createdb {output_dir} {query_db}')
         run_command(f'{foldseek_path} lndb {query_db}_h {query_db}_ss_h')
@@ -364,7 +375,9 @@ def write_fasta(file, fasta_entries):
 def create_arg_parser():
     parser = argparse.ArgumentParser(description='Process dataset to extract 3Di sequences.')
     parser.add_argument('--dataset', type=str, choices=['all', 'test', 'train', 'validation', 'train_missing_ones'], default='all',
-                        help='Dataset to process: all, test, train, validation or train_missing_ones')
+                        help='Dataset to process: all, test, train, validation or train_missing_ones. \
+                        train_missing_ones is basically a re run of the train dataset to try creating missing 3Di sequences from the first run, due to failed requests for PDB files.\
+                        all will process all datasets except train_missing_ones.')
     return parser
 
 def main():

@@ -1,3 +1,5 @@
+# This code is used to train the ANN model for CATH annotation prediction. To do so, many hyperparameters can be tuned like the model which computed the embeddings, the structure of the classifier trained on these embeddings, or different filter on the training dataset. 
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'
@@ -23,6 +25,7 @@ venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
     raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
+# Check if the activated virtual environment is venv_2
 venv_name = os.path.basename(venv_path)
 if venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
@@ -59,10 +62,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from tensorflow.compat.v1 import ConfigProto
 
+# GPU management
 tf.keras.backend.clear_session()
 config = ConfigProto()
 config.gpu_options.allow_growth = True
-
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -74,7 +77,7 @@ print(f'{orange}{gpu_status}{reset}')
 
 
 def load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold):
-    # Load list of domain ids to keep
+    # Load list of domain ids to keep, depending on the filtering criteria
     if only_50_largest_SF:
         train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
         val_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Val_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
@@ -125,7 +128,7 @@ def load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_
     
     return train_embeddings_to_keep_3Di, val_embeddings_to_keep_3Di, test_embeddings_to_keep_3Di
 
-# @profile
+
 def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold):
     '''Loads data for the specified model.'''
 
@@ -177,7 +180,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             y_test.append('other')
     
     else:
-
+        # For new models, new embeddings are used.
 
         # labels y_train, y_val, y_test
 
@@ -186,7 +189,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
         
         if input_type == '3Di' or input_type == 'AA+3Di':
-            # Load the domain IDs for which 3Di data is available
+            # Load the domain IDs corresponding to the filter criteria
 
             if only_50_largest_SF:
                 train_ids_for_3Di_usage = set(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
@@ -243,6 +246,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
 
         if input_type == 'AA':
 
+            # Load AA sequence embeddings
             X_train_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Train_file_name_seq_embed}')
             X_val_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')
             X_test_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')
@@ -252,6 +256,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             X_test = np.array(X_test_seq_embeddings_df['embeddings'])
         
         if input_type == '3Di':
+            # Load 3Di embeddings
 
             # Get doman ids of the sequences to keep
             train_ids_to_keep, val_ids_to_keep, test_ids_to_keep = load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold)
@@ -375,7 +380,6 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
         yield X_batch, y_batch
 
 
-# Keras NN Model
 def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, layer_size):
     '''Creates and returns a Keras model based on the specified model name and layer blocks.'''
     
@@ -433,12 +437,12 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
 
     return classifier
 
-# @profile
 def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold):
     '''Trains the model.'''
 
     print(f'{green}Model training {reset}')
 
+    # The following code defines the name for various files that will be saved during the training process with this specific hyperparaeter combination
     if only_50_largest_SF:
         base_model_path = f'saved_models/ann_{model_name}_top_50_SF'
         base_loss_path = f'results/Loss/ann_{model_name}_top_50_SF'
@@ -458,17 +462,16 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
     
     if input_type == '3Di':
 
-        # save_model_path  = save_model_path.replace('.keras', '_3Di.keras')
         save_model_path += '_3Di'
         save_loss_path = save_loss_path.replace('.png', '_3Di.png')
     
     if input_type == 'AA+3Di':
             
-        # save_model_path  = save_model_path.replace('.keras', '_AA+3Di.keras')
         save_model_path += '_AA+3Di'
         save_loss_path = save_loss_path.replace('.png', '_AA+3Di.png')
 
 
+    # Here is the code that effectively trains the model
     with tf.device('/gpu:0'):
         # model
         model = create_model(model_name, num_classes, nb_layer_block, dropout, input_type, layer_size)
@@ -485,7 +488,6 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         # test and train generators
         train_gen = bm_generator(X_train, y_train, batch_size, num_classes)
         val_gen = bm_generator(X_val, y_val, batch_size, num_classes)
-        # test_gen = bm_generator(X_test, y_test, batch_size, num_classes)
         history = model.fit(train_gen, epochs = num_epochs, steps_per_epoch = math.ceil(len(X_train)/(batch_size)), verbose=1, validation_data = val_gen, validation_steps = math.ceil(len(X_val)/batch_size), shuffle = True, callbacks = callbacks_list)
 
         # Plot the training and validation loss
@@ -499,7 +501,7 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         plt.legend()
-        plt.savefig(save_loss_path)  # Save the plot
+        plt.savefig(save_loss_path)
         plt.show()
         plt.close()
 
@@ -510,7 +512,6 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
 
 def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
 
-    # print('Confusion Matrix')
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
     size = matrix.shape[0]
     print(f'Size of confusion matrix: {size}')
@@ -552,12 +553,12 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     plt.savefig(f'{confusion_matrix_path}.png', bbox_inches='tight')
     plt.close()
 
-# @profile
 def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold):
     '''Evaluates the trained model.'''
 
     print(f'{green}Model evaluation {reset}')
 
+    # The following code defines the name for various files that will be saved during the training process with this specific hyperparaeter combination
     if only_50_largest_SF:
         model_name = f'{model_name}_top_50_SF'
     
@@ -588,7 +589,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         confusion_matrix_path = confusion_matrix_path.replace('.png', '_AA+3Di.png')
         results_file = results_file.replace('.csv', '_AA+3Di.csv')
 
-
+    # Load the model and evaluate it
     with open(results_file, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Metric', 'Value'])
@@ -640,8 +641,11 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 'Support_threshold': [support_threshold],
                 'F1_Score': [f1_score_test]
             })
+
+            # This is the dataframe showing the results of all the models with all tried hyperparameters combinations (beeing the F1 scoreon the test dataset)
             df_results_path = './results/perf_dataframe.csv'
 
+            # This code updates perf_dataframe.csv
             if os.path.exists(df_results_path):
                 df_existing = pd.read_csv(df_results_path)
                 print('Columns in df_existing:', df_existing.columns.tolist())
@@ -668,6 +672,8 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
             df_combined.to_csv(df_results_path, index=False)
 
+
+            # Get all evaluation metrics with bootstrapping
             writer.writerow(['Bootstrapping Results', ''])
             num_iter = 1000
             f1_arr = []
@@ -697,7 +703,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             warnings.filterwarnings('default')
 
 
-            # save Classification report with the actual labels
+            # save Classification report (CR) with the actual labels (the CR shows precision, recall, F1 score and support for every Super Falimies (SF))
             y_pred = model.predict(X_test)
             y_pred_labels = le.inverse_transform(y_pred.argmax(axis=1))
             y_test_labels = le.inverse_transform(y_test)
@@ -753,7 +759,7 @@ def create_arg_parser():
     
     parser.add_argument('--pLDDT_threshold', type=int, 
                         default=0, 
-                        help='Threshold for pLDDT to filter the trining set of 3Di from hight structure quality, choose from [0, 4, 14, 24, 34, 44, 54, 64, 74, 84] (only useful for 3Di input)')
+                        help='Threshold for pLDDT to filter the trining set of 3Di from hight structure quality, choose from [0, 4, 14, 24, 34, 44, 54, 64, 74, 84] (if classifier_input is AA, pLDDT_threshold will be set to 0, as it is only relevant for 3D structures from which 3Di are derived)')
     
     parser.add_argument('--only_50_largest_SF', type=int, 
                         default=0,
@@ -781,12 +787,16 @@ def main():
     dropout = args.dropout
     layer_size=  args.layer_size
 
+    # Argument checks:
     # Validate support_threshold
     if not isinstance(support_threshold, int) or support_threshold < 0:
         raise ValueError('support_threshold must be a non-negative integer')
 
     if input_type == 'AA':
         pLDDT_threshold = 0
+
+    if only_50_largest_SF and support_threshold != 0:
+        print(f'{yellow}Warning: When only_50_largest_SF is on (1), support_threshold will be ignored as the 50 most represented SF have a good support already{reset}')
 
     if (input_type == '3Di' or input_type == 'AA+3Di') and model_name == 'ProtT5':
         raise ValueError('Please use ProtT5_new instead of ProtT5 when using classifier_input 3Di or AA+3Di, see ReadMe for more details')
@@ -807,11 +817,17 @@ def main():
 
     
     
-    
+    # Date loading
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold)
+
+    # Data preparation
     X_train, y_train, y_val, y_test, num_classes, le = data_preparation(X_train, y_train, y_val, y_test)
+
+    # Training
     if do_training:
         train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold)
+    
+    # Evaluation
     evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold)
     # Clear memory after evaluation
     del X_train, y_train, X_val, y_val, X_test, y_test

@@ -1,3 +1,5 @@
+# This code run the entire process for CATH annotation estimation based on a given model (ProtT5 or ProstT5) and input type (Amino Acid sequences in a FASTA file and 3Di sequences computed with PDB files).
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'
@@ -72,15 +74,15 @@ os.system(cmd)
 cmd = f'python3 ./src/cathe-predict/fasta_to_ds.py --model {args.model}'
 os.system(cmd)
 
-# Pass the model and input_type to predict_embed.py
+# Computes the embeddings used to make the CATH annotation prediction
 cmd = f'python3 ./src/cathe-predict/predict_embed.py --model {args.model} --input_type {args.input_type}'
 os.system(cmd)
 
 if args.model == 'ProtT5':
-    # Concatenates all individual embedding files into a single file
+    # Concatenates all individual embedding files into a single file (only useful for ProtT5)
     cmd = f'python3 ./src/cathe-predict/append_embed.py'
     os.system(cmd)
 
-# Pass the model and input_type to make_predictions.py
+# Uses the selected model to make the prediction
 cmd = f'python3 ./src/cathe-predict/make_predictions.py --model {args.model} --input_type {args.input_type}'
 os.system(cmd)

@@ -1,3 +1,5 @@
+# This code is fot creating csv files used to filter CATHe datasets when using 3Di seqences. The filtering is based on chosen hyperparameters like pLDDT_threshold, top_50_filteringa and support_threshold .
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'
@@ -19,6 +21,7 @@ venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
     raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
+# Check if the activated virtual environment is venv_2
 venv_name = os.path.basename(venv_path)
 if venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
@@ -91,7 +94,6 @@ def remove_lost_and_unrepresented_sf(filtered_sf, val_ids_with_3Di, test_ids_wit
     sf_to_remove_for_val = set(unique_SF_val) - set(filtered_sf)
     sf_to_remove_for_test = set(unique_SF_test) - set(filtered_sf)
     
-    
     # Filter Val IDs to remove lost and unrepresented SFs
     df_val_filtered_train_based = df_val[~df_val['SF'].isin(sf_to_remove_for_val)]
     val_filtered_ids = df_val_filtered_train_based[df_val_filtered_train_based['Unnamed: 0'].isin(val_ids_with_3Di)]['Unnamed: 0'].tolist()
@@ -100,7 +102,7 @@ def remove_lost_and_unrepresented_sf(filtered_sf, val_ids_with_3Di, test_ids_wit
     df_test_filtered_train_based = df_test[~df_test['SF'].isin(sf_to_remove_for_test)]
     test_filtered_ids = df_test_filtered_train_based[df_test_filtered_train_based['Unnamed: 0'].isin(test_ids_with_3Di)]['Unnamed: 0'].tolist()
 
-    return val_filtered_ids, test_filtered_ids  # Include the count of lost SFs
+    return val_filtered_ids, test_filtered_ids
 
 def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold, top_50_filtering, support_threshold):
     # Load the Train_pLDDT.csv file

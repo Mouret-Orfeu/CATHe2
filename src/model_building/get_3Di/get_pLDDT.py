@@ -1,4 +1,4 @@
-# As the code for pLDDT retrieval does not work properly in get_3Di_sequences.y, pLDDT are fetched using the following code.
+# As the code for pLDDT retrieval does not work properly in get_3Di_sequences.y, pLDDT are fetched using the following code. (pLDDT are used in model training to filter out the low confidence 3Di from the datasets)
 
 # ANSI escape code for colored text
 yellow = '\033[93m'
@@ -20,6 +20,7 @@ venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
     raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
 
+# Check if the activated virtual environment is venv_2
 venv_name = os.path.basename(venv_path)
 if venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')

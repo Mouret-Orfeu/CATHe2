@@ -1,3 +1,5 @@
+# This code uses the computed embeddings and loaded models to the CATH annotation prediction
+
 # libraries
 import pandas as pd 
 import numpy as np 
@@ -76,7 +78,7 @@ ds_test = pd.read_csv('./src/cathe-predict/Y_Test_SF.csv')
 
 y_test = list(ds_test['SF'])
 
-# y process
+# Model label management 
 y_tot = []
 
 for i in range(len(y_train)):
@@ -94,6 +96,7 @@ le.fit(y_tot)
 
 classes = le.classes_
 
+# Model loading
 if args.model == 'ProtT5' and args.input_type == 'AA':
 	model = load_model('./src/cathe-predict/CATHe.h5', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
 elif args.model == 'ProstT5' and args.input_type == 'AA':
@@ -103,6 +106,7 @@ elif args.model == 'ProstT5' and args.input_type == 'AA':
 elif args.model == 'ProstT5' and args.input_type == 'AA+3Di':
 	model = load_model('./src/cathe-predict/ann_ProstT5_full_2_blocks_dropout_0.3_layer_size_2048_pLDDT_24_support_threshold_0_AA+3Di', custom_objects={'loss': tfa.losses.SigmoidFocalCrossEntropy()})
 
+# Prediction
 y_pred = model.predict(embeds)
 
 count = 0

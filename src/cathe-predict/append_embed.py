@@ -1,3 +1,5 @@
+# This code saves the concatenated embeddings into a single file for the ProtT5 model (for ProstT5, the embeddings are already in a single file when computed)
+
 import numpy as np
 import os
 
