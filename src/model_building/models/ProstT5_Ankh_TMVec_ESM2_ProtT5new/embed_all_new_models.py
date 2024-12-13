@@ -2,15 +2,15 @@
 # (For 3Di, only ProstT5_full or ProstT5_half are available) 
 
 # ANSI escape code for colored text
-yellow = "\033[93m"
-green = "\033[92m"
-reset_color = "\033[0m"
-red = "\033[91m"
+yellow = '\033[93m'
+green = '\033[92m'
+reset_color = '\033[0m'
+red = '\033[91m'
 orange_color = '\033[33m'
 
-print(f"{green}embedding code running (embed_all_new_models.py){reset_color}")
+print(f'{green}embedding code running (embed_all_new_models.py){reset_color}')
 
-print(f"{green}embedding code running: library imports in progress, it may take a few minutes{reset_color}")
+print(f'{green}embedding code running: library imports in progress, it may take a few minutes{reset_color}')
 
 max_res_per_batch = 4096
 nb_seq_max_per_batch = 4096
@@ -20,17 +20,17 @@ import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f"{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset_color}")
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset_color}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
 if venv_path is None:
-    raise EnvironmentError(f"{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset_color}")
+    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset_color}')
 
 # Check if the activated virtual environment is venv_2
 venv_name = os.path.basename(venv_path)
-if venv_name != "venv_2":
-    raise EnvironmentError(f"{red}The activated virtual environment is '{venv_name}', not 'venv_2'. However venv_2 must be activated to run this code. See ReadMe for more details.{reset_color}")
+if venv_name != 'venv_2':
+    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset_color}')
 
 
 import time
@@ -45,7 +45,7 @@ import re
 import gc
 from tqdm import tqdm
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # import argparse
 # import time
@@ -65,21 +65,34 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 # GPU management
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-print("Using device: {}".format(device))
+print('Using device: {}'.format(device))
 
 # Print in orange if a GPU is used or not
-gpu_status = "GPU is being used!" if torch.cuda.is_available() else "No GPU is available."
+gpu_status = 'GPU is being used!' if torch.cuda.is_available() else 'No GPU is available.'
 
 
-print(f"{orange_color}{gpu_status}{reset_color}")
+print(f'{orange_color}{gpu_status}{reset_color}')
 
 # TM_Vec functions ##########################################################################
 
-# Function to extract ProtTrans embedding for a sequence
+
 def featurize_prottrans(sequences, model, tokenizer, device):
-    sequences = [(" ".join(seq)) for seq in sequences]
-    sequences = [re.sub(r"[UZOB]", "X", sequence) for sequence in sequences]
-    ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding="longest",)
+    '''
+    Extract ProtT5 embedding for later TM_Vec embedding
+
+    Args:
+        sequences: list of sequences
+        model: ProtT5 model
+        tokenizer: ProtT5 tokenizer
+        device: device to use for computation (CPU or GPU)
+    
+    
+    '''
+
+
+    sequences = [(' '.join(seq)) for seq in sequences]
+    sequences = [re.sub(r'[UZOB]', 'X', sequence) for sequence in sequences]
+    ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding='longest',)
     input_ids = torch.tensor(ids['input_ids']).to(device)
     attention_mask = torch.tensor(ids['attention_mask']).to(device)
 
@@ -88,38 +101,80 @@ def featurize_prottrans(sequences, model, tokenizer, device):
             embedding = model(input_ids=input_ids, attention_mask=attention_mask)
     
     except RuntimeError:
-                print("RuntimeError during ProtT5 embedding  (nb sequences in batch={} /n (length of sequences in the batch ={}))".format(len(sequences), [len(seq) for seq in sequences]))
-                sys.exit("Stopping execution due to RuntimeError.")
-    
+                print('RuntimeError during ProtT5 embedding  (nb sequences in batch={} /n (length of sequences in the batch ={}))'.format(len(sequences), [len(seq) for seq in sequences]))
+                sys.exit('Stopping execution due to RuntimeError.')
+
+
+    # Takes the final hidden states, moves the tensor to the CPU and converts it to a NumPy array for easier manipulation.
     embedding = embedding.last_hidden_state.cpu().numpy()
 
     features = []
     for seq_num in range(len(sequences)):
+
+        # Uses the 0-1 mask of valid tokens to determine the length of the sequence 
         seq_len = (attention_mask[seq_num] == 1).sum()
+
+        # Slices out the embeddings corresponding to valid tokens, excluding the final special token
         seq_emd = embedding[seq_num][:seq_len - 1]
+
+        # Appends the processed embedding to the features list.
         features.append(seq_emd)
 
+    # Converts the NumPy embedding of the first sequence (features[0]) back into a PyTorch tensor.
     prottrans_embedding = torch.tensor(features[0])
+
+    # Add a Batch Dimension for later processing
     prottrans_embedding = torch.unsqueeze(prottrans_embedding, 0).to(device)
 
     return prottrans_embedding
 
-# Embed a protein using tm_vec (takes as input a prottrans embedding)
+
+# Embed a protein using tm_vec (takes as input a ProtT5 embedding)
 def embed_tm_vec(prottrans_embedding, model_deep, device, seq):
+    '''
+    Embed using TM_Vec
+
+    Args:
+        prottrans_embedding: ProtT5 embedding
+        model_deep: TM_Vec model
+        device: device to use for computation (CPU or GPU)
+        seq: the sequence beeing embedded
+
+    Returns:
+        tm_vec_embedding: TM_Vec embedding
+
+    '''
+
+
     padding = torch.zeros(prottrans_embedding.shape[0:2]).type(torch.BoolTensor).to(device)
 
     try:
         tm_vec_embedding = model_deep(prottrans_embedding, src_mask=None, src_key_padding_mask=padding)
     
     except RuntimeError:
-        print("RuntimeError during TM_Vec embedding sequence {}".format(seq))
-        sys.exit("Stopping execution due to RuntimeError.")
+        print('RuntimeError during TM_Vec embedding sequence {}'.format(seq))
+        sys.exit('Stopping execution due to RuntimeError.')
 
     return tm_vec_embedding.cpu().detach().numpy()
 
+
 def encode(sequences, model_deep, model, tokenizer, device):
+    '''
+    Run the whole process to embed AA sequences using TM_Vec
+
+    Args:
+        sequences: list of sequences
+        model_deep: TM_Vec model
+        model: ProtT5 model
+        tokenizer: ProtT5 tokenizer
+        device: device to use for computation (CPU or GPU)
+    
+    Returns:
+        embed_all_sequences: list of embeddings
+
+    '''
     embed_all_sequences = []
-    for seq in tqdm(sequences, desc="Batch encoding"):
+    for seq in tqdm(sequences, desc='Batch encoding'):
         protrans_sequence = featurize_prottrans([seq], model, tokenizer, device)
         if protrans_sequence is None:
             sys.exit()
@@ -130,19 +185,31 @@ def encode(sequences, model_deep, model, tokenizer, device):
 # all_models functions ##########################################################################
 
 def get_model(model_name):
+    '''
+    Load the model and tokenizer based on the model name
 
-    print(f"Loading {model_name}")
+    Args:
+        model_name: the name of the model to load (ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec)
+
+    Returns:
+        model_deep: TM_Vec extra model (if needed)
+        model: the model
+        tokenizer: the tokenizer
+    
+    '''
+
+    print(f'Loading {model_name}')
 
     if model_name == 'ProtT5_new':
         # Load the tokenizer
         tokenizer = T5Tokenizer.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc', do_lower_case=False)
         # Load the model
-        model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc").to(device)
+        model = T5EncoderModel.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc').to(device)
         model_deep = None
 
 
     elif model_name == 'ESM2':
-        model_path = "facebook/esm2_t33_650M_UR50D"
+        model_path = 'facebook/esm2_t33_650M_UR50D'
         model = AutoModel.from_pretrained(model_path)
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         model_deep = None
@@ -157,20 +224,20 @@ def get_model(model_name):
 
 
     elif model_name in ['ProstT5_full', 'ProstT5_half']:
-        model_path = "Rostlab/ProstT5"
-        print("Loading ProstT5 from: {}".format(model_path))
+        model_path = 'Rostlab/ProstT5'
+        print('Loading ProstT5 from: {}'.format(model_path))
         model = T5EncoderModel.from_pretrained(model_path)
         tokenizer = T5Tokenizer.from_pretrained(model_path, do_lower_case=False)
         model_deep = None
         
     elif model_name == 'TM_Vec':
-        tokenizer = T5Tokenizer.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50", do_lower_case=False)
-        model = T5EncoderModel.from_pretrained("./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50")
+        tokenizer = T5Tokenizer.from_pretrained('./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50', do_lower_case=False)
+        model = T5EncoderModel.from_pretrained('./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50')
         gc.collect()
 
         # TM-Vec model paths
-        tm_vec_model_cpnt = "./data/Dataset/weights/TM_Vec/tm_vec_cath_model.ckpt"
-        tm_vec_model_config = "./data/Dataset/weights/TM_Vec/tm_vec_cath_model_params.json"
+        tm_vec_model_cpnt = './data/Dataset/weights/TM_Vec/tm_vec_cath_model.ckpt'
+        tm_vec_model_config = './data/Dataset/weights/TM_Vec/tm_vec_cath_model_params.json'
 
         # Load the TM-Vec model
         tm_vec_model_config = trans_basic_block_Config.from_json(tm_vec_model_config)
@@ -180,7 +247,7 @@ def get_model(model_name):
                 
     else:
         
-        sys.exit(f"Stopping execution due to model '{model_name}' not found. Choose from: ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec.")
+        sys.exit(f'Stopping execution due to model {model_name} not found. Choose from: ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec.')
     
     model.to(device)
     model.eval()
@@ -189,13 +256,23 @@ def get_model(model_name):
 
 
 def read_fasta(file):
-    """Reads a FASTA file and returns a list of tuples (id, header, sequence)."""
+    '''
+    Reads a FASTA file and returns a list of tuples (id, header, sequence).
+
+    Args:
+        file: the FASTA file to read
+       
+    Returns:
+        fasta_entries: list of tuples (id, header, sequence) corresponding to the FASTA entries
+    
+    
+    '''
     fasta_entries = []
     header = None
     sequence = []
     for line in file:
         line = line.strip()
-        if line.startswith(">"):
+        if line.startswith('>'):
             if header:
                 fasta_entries.append((header.split('_')[0], header, ''.join(sequence)))
             header = line[1:]
@@ -207,21 +284,34 @@ def read_fasta(file):
 
     return fasta_entries
 
-def get_sequences(seq_path, dataset, is_3Di):
 
-    print("Reading sequences")
+def get_sequences(seq_path, dataset, is_3Di):
+    '''
+    Read and return the AA or 3Di sequences from the CSV or FASTA file
+
+    Args:
+        seq_path: the path of the CSV or FASTA file
+        dataset: the corresponding dataset (Val, Test, Train, all, other)
+        is_3Di: 1 if the sequences are 3Di, 0 if the sequences are AA
+    
+    Returns:
+        sequences: dictionary of sequences (key: sequence ID, value: sequence)
+    
+    '''
+
+    print('Reading sequences')
 
     sequences = {}
 
     if is_3Di:
 
         # dataset='other' means the programme is used to embed a custom dataset, not the CATHe datasets, so no filtering is needed
-        if dataset != "other":
+        if dataset != 'other':
             # Determine the correct CSV file path based on the dataset
             usage_csv_path = f'./data/Dataset/csv/{dataset}_ids_for_3Di_usage_0.csv'
 
             if not os.path.exists(usage_csv_path):
-                raise FileNotFoundError(f"CSV file not found: {usage_csv_path}")
+                raise FileNotFoundError(f'CSV file not found: {usage_csv_path}')
 
             # Load the IDs that should be kept
             df_domains_for_3Di_usage = pd.read_csv(usage_csv_path)
@@ -229,8 +319,8 @@ def get_sequences(seq_path, dataset, is_3Di):
 
             
             if not sequence_ids_to_use:
-                print(f"{red}No sequence IDs found in the CSV file: {usage_csv_path}{reset_color}")
-                raise ValueError("No sequence IDs found in the CSV file.")
+                print(f'{red}No sequence IDs found in the CSV file: {usage_csv_path}{reset_color}')
+                raise ValueError('No sequence IDs found in the CSV file.')
 
         
 
@@ -239,7 +329,7 @@ def get_sequences(seq_path, dataset, is_3Di):
             fasta_entries = read_fasta(fasta_file)
             fasta_entries.sort(key=lambda entry: int(entry[0]))
         for entry in fasta_entries:
-            if dataset != "other":
+            if dataset != 'other':
                 if int(entry[0]) in sequence_ids_to_use:
                     sequences[int(entry[0])] = entry[2]
             else:
@@ -249,11 +339,11 @@ def get_sequences(seq_path, dataset, is_3Di):
         for key in sequences.keys():
             sequences[key] = sequences[key].lower()
 
-        print(f"{yellow}Processing FASTA file: {seq_path}{reset_color}")
+        print(f'{yellow}Processing FASTA file: {seq_path}{reset_color}')
 
         if not sequences:
-            print(f"{red}No sequences found in the FASTA file: {fasta_file}{reset_color}")
-            raise ValueError("No sequences found in the FASTA file.")
+            print(f'{red}No sequences found in the FASTA file: {fasta_file}{reset_color}')
+            raise ValueError('No sequences found in the FASTA file.')
         
     else:
         # If not 3Di, simply load the sequences from the CSV
@@ -266,6 +356,24 @@ def get_sequences(seq_path, dataset, is_3Di):
 
 
 def embedding_set_up(seq_path, model_name, is_3Di, dataset):
+    '''
+    Set up the embedding process by loading the sequences and the model
+
+    Args:
+        seq_path: the path of the CSV or FASTA file
+        model_name: the name of the model to load (ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec)
+        is_3Di: 1 if the sequences are 3Di, 0 if the sequences are AA
+        dataset: the corresponding dataset (Val, Test, Train, all, other)
+    
+    Returns:
+        emb_dict: empty dictionary of embeddings (key: sequence ID, value: embedding)
+        seq_dict: dictionary of sequences (key: sequence ID, value: sequence)
+
+    
+    
+    '''
+
+
     emb_dict = dict()
     seq_dict = get_sequences(seq_path, dataset, is_3Di)
     model_deep, model, tokenizer = get_model(model_name)
@@ -273,8 +381,8 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset):
     if model_name == 'ProstT5_half':
         model = model.half()
     if model_name in ['ProstT5_full', 'ProstT5_half']:
-        prefix = "<fold2AA>" if is_3Di else "<AA2fold>"
-        print(f"Input is 3Di: {is_3Di}")
+        prefix = '<fold2AA>' if is_3Di else '<AA2fold>'
+        print(f'Input is 3Di: {is_3Di}')
     else:
         prefix = None
 
@@ -285,7 +393,7 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset):
     # sort sequences by length to trigger OOM (out of memory) at the beginning
     seq_dict = sorted(seq_dict.items(), key=lambda kv: len(kv[1]), reverse=True)
     
-    print("Average sequence length: {}".format(avg_length))
+    print('Average sequence length: {}'.format(avg_length))
 
     return emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix
     
@@ -293,6 +401,25 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset):
 
 def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
                    max_residues=max_res_per_batch, nb_seq_max_in_batch=nb_seq_max_per_batch):
+
+    '''
+    Embed the sequences and save the embeddings
+
+    Args:
+        seq_path: the path of the CSV or FASTA file
+        emb_path: the path where to save the embeddings
+        model_name: the name of the model to load (ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec)
+        is_3Di: 1 if the sequences are 3Di, 0 if the sequences are AA
+        dataset: the corresponding dataset (Val, Test, Train, all, other)
+        max_residues: maximum number of residues per batch
+        nb_seq_max_in_batch: maximum number of sequences per batch
+    
+        
+    Returns:
+        True if the embeddings were computed and saved successfully
+    
+    
+    '''
                                                                                            
     emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix = embedding_set_up(seq_path, model_name, is_3Di, dataset)
 
@@ -300,7 +427,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
         start = time.time()
         batch = []
         batch_keys = []
-        for seq_idx, (seq_key, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
+        for seq_idx, (seq_key, seq) in enumerate(tqdm(seq_dict, desc='Embedding sequences'), 1):
             seq_len = len(seq)
             batch.append(seq)
             batch_keys.append(seq_key)
@@ -317,10 +444,10 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
         start = time.time()
         batch = list()
         processed_sequences = 0
-        for seq_idx, (seq_key, seq) in enumerate(tqdm(seq_dict, desc="Embedding sequences"), 1):
+        for seq_idx, (seq_key, seq) in enumerate(tqdm(seq_dict, desc='Embedding sequences'), 1):
             if model_name == 'ProtT5_new':
                 # add a spaces between AA
-                seq = " ".join(seq)
+                seq = ' '.join(seq)
 
             # replace non-standard AAs
             seq = seq.replace('U', 'X').replace('Z', 'X').replace('O', 'X').replace('B', 'X')
@@ -345,7 +472,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
             
                 token_encoding = tokenizer.batch_encode_plus(seqs, 
                                                         add_special_tokens=True, 
-                                                        padding="longest", 
+                                                        padding='longest', 
                                                         is_split_into_words =(model_name in ['ESM2','Ankh_base','Ankh_large']),
                                                         return_tensors='pt'
                                                         ).to(device)
@@ -355,7 +482,7 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
                         embedding_repr = model(token_encoding.input_ids, 
                                             attention_mask=token_encoding.attention_mask)
                 except RuntimeError:
-                    print("RuntimeError during embedding for {} (L={})".format(seq_key, seq_len))
+                    print('RuntimeError during embedding for {} (L={})'.format(seq_key, seq_len))
                     continue
                 
                 # batch-size x seq_len x embedding_dim
@@ -386,9 +513,9 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
 
 
     if len(embeddings) != len(seq_dict):
-        print("Number of embeddings does not match number of sequences!")
+        print('Number of embeddings does not match number of sequences!')
         print('Total number of embeddings: {}'.format(len(embeddings)))
-        raise ValueError(f"Stopping execution due to mismatch. processed_sequences: {processed_sequences}, sequence to be processed: {len(seq_dict)}")
+        raise ValueError(f'Stopping execution due to mismatch. processed_sequences: {processed_sequences}, sequence to be processed: {len(seq_dict)}')
     
 
     # Save the keys and embeddings separately
@@ -402,57 +529,66 @@ def get_embeddings(seq_path, emb_path, model_name, is_3Di, dataset,
 
 
 def create_arg_parser():
-    """Creates and returns the ArgumentParser object."""
+    '''
+    Creates and returns the ArgumentParser object.
+    
+    Args:
+        None
+
+    Returns:
+        parser: the ArgumentParser object
+    
+    '''
 
     parser = argparse.ArgumentParser(description=
                         'Compute embeddings with one or all pLMs')
     
     parser.add_argument('--model', type=str, 
                         default='ProstT5_full', 
-                        help="What model to use between ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all")
+                        help='What model to use between ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all')
     
     
     parser.add_argument('--is_3Di', type=int,
                         default=0,
-                        help="1 if you want to embed 3Di, 0 if you want to embed AA sequences. Default: 0")
+                        help='1 if you want to embed 3Di, 0 if you want to embed AA sequences. Default: 0')
     
     parser.add_argument('--seq_path', type=str,
                         default='default',
-                        help="""If is_3Di==0: This argument contains the path of a personalized CSV file with sequences to embed 
+                        help='''If is_3Di==0: This argument contains the path of a personalized CSV file with sequences to embed 
                             (this CSV must have the same structure as the CATHe datasets). 
                             By default, the script will embed the sequences from the CATHe datasets.
 
                             If is_3Di==1: This argument contains the path of a FASTA file with 3Di sequences to embed 
                             (this FASTA must have the same structure as the ones produced by get_3Di_sequences.py).
-                            """)
+                            ''')
     
     parser.add_argument('--embed_path', type=str,
                         default='default',
-                        help="This argument contain the path where to put the computed embeddings")
+                        help='This argument contain the path where to put the computed embeddings')
     
     parser.add_argument('--dataset', type=str,
                         default='Val',
-                        help="The dataset to embed (Val, Test, Train, all, other). 'all' will embed the Val, Test, and Train datasets.")
+                        help='The dataset to embed (Val, Test, Train, all, other). "all" will embed the Val, Test, and Train datasets.')
     
     return parser
 
 
 def process_datasets(model_name, is_3Di, embed_path, seq_path, datasets):
-    print(f"Embedding with {model_name}")
+    print(f'Embedding with {model_name}')
 
     for dataset in datasets:
         if is_3Di:
             if embed_path == 'default':
-                embed_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz"
+                embed_path = f'./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz'
             if seq_path == 'default':  
-                seq_path = f"./data/Dataset/3Di/{dataset}.fasta"
+                seq_path = f'./data/Dataset/3Di/{dataset}.fasta'
             
 
         else:
             if embed_path == 'default':
-                embed_path = f"./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz"
+                embed_path = f'./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz'
             if seq_path == 'default':
-                seq_path = f"./data/Dataset/csv/{dataset}.csv"
+                seq_path = f'./data/Dataset/csv/{dataset}.csv'
             
         
 
@@ -477,7 +613,7 @@ def main():
     datasets = args.dataset
 
     if datasets not in ['Val', 'Test', 'Train', 'all', 'other']:
-        raise ValueError("The dataset should be 'Val', 'Test', 'Train', 'all' or 'other'")
+        raise ValueError('The dataset should be Val, Test, Train, all or other')
     
     if datasets == 'all':
         datasets = ['Val', 'Test', 'Train']
@@ -486,17 +622,17 @@ def main():
 
     if is_3Di:
         if model_name not in ['ProstT5_full', 'ProstT5_half']:
-            raise ValueError("For 3Di sequences, the model should be 'ProstT5_full' or 'ProstT5_half'")
+            raise ValueError('For 3Di sequences, the model should be ProstT5_full or ProstT5_half')
 
     if model_name == 'all':
         
-        print("Embedding with all models")
+        print('Embedding with all models')
         model_names = ['ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
         for model in model_names:
             process_datasets(model, is_3Di, embed_path, seq_path, datasets)
     else:
         
-        print(f"Embedding with {model_name}")
+        print(f'Embedding with {model_name}')
         process_datasets(model_name, is_3Di, embed_path, seq_path, datasets)
 
 

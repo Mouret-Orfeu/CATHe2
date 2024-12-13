@@ -1,5 +1,17 @@
 # This code is used to train the ANN model for CATH annotation prediction. To do so, many hyperparameters can be tuned like the model which computed the embeddings, the structure of the classifier trained on these embeddings, or different filter on the training dataset. 
 
+# This code is based on Vam-sin version of CATHe ann training: ann_t5.py
+# Author: Vamsi Nallapareddy
+# Source: https://github.com/vam-sin/CATHe/tree/main (from which this project was forked)
+# License: MIT License
+# Modifications: Added new models, new embeddings, new filtering criteria, and new hyperparameters to train the model.
+
+# Part of the code from https://huggingface.co/Rostlab/ProstT5
+# Author: Rostlab
+
+# Part of the code from https://github.com/tymor22/tm-vec/blob/master/ipynb/repo_EMBED.ipynb
+# Part of the code from https://github.com/tymor22/tm-vec/blob/master/tm_vec/tm_vec_utils.py
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'
@@ -77,6 +89,20 @@ print(f'{orange}{gpu_status}{reset}')
 
 
 def load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold):
+    '''
+    Load the domain ids to keep based on the filtering criteria.
+
+    Args:
+        pLDDT_threshold (int): The pLDDT threshold used to filter the domains.
+        only_50_largest_SF (bool): Whether to keep only the 50 largest superfamilies.
+        support_threshold (int): The support threshold used to filter the domains.
+    
+    Returns:
+        train_ids_to_keep (list): List of domain ids to keep for the training set.
+        val_ids_to_keep (list): List of domain ids to keep for the validation set.
+        test_ids_to_keep (list): List of domain ids to keep for the test set.
+    
+    '''
     # Load list of domain ids to keep, depending on the filtering criteria
     if only_50_largest_SF:
         train_ids_to_keep = list(pd.read_csv(f'./data/Dataset/csv/Train_ids_for_3Di_usage_pLDDT_threshold_{pLDDT_threshold}_top_50_SF.csv')['Domain_id'])
@@ -95,6 +121,24 @@ def load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold):
     return train_ids_to_keep, val_ids_to_keep, test_ids_to_keep
 
 def load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_embed, Test_file_name_3Di_embed, train_ids_to_keep, val_ids_to_keep, test_ids_to_keep):
+    '''
+    Load and filter the 3Di embeddings based on the domain ids to keep.
+
+    Args:
+        Train_file_name_3Di_embed (str): The name of the file containing the training 3Di embeddings.
+        Val_file_name_3Di_embed (str): The name of the file containing the validation 3Di embeddings.
+        Test_file_name_3Di_embed (str): The name of the file containing the test 3Di embeddings.
+        train_ids_to_keep (list): List of domain ids to keep for the training set.
+        val_ids_to_keep (list): List of domain ids to keep for the validation set.
+        test_ids_to_keep (list): List of domain ids to keep for the test set.
+
+    Returns:
+        train_embeddings_to_keep_3Di (list): List of 3Di embeddings to keep for the training set.
+        val_embeddings_to_keep_3Di (list): List of 3Di embeddings to keep for the validation set.
+        test_embeddings_to_keep_3Di (list): List of 3Di embeddings to keep for the test set.
+    
+    '''
+    
     # load 3Di embedding df
     X_train_3Di_df = np.load(f'./data/Dataset/embeddings/{Train_file_name_3Di_embed}')
     X_val_3Di_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_3Di_embed}')
@@ -130,7 +174,24 @@ def load_and_filter_3Di_embeddings(Train_file_name_3Di_embed, Val_file_name_3Di_
 
 
 def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, support_threshold):
-    '''Loads data for the specified model.'''
+    '''
+    Load the filtered data for model training, validation and testing, based on the model name input type and different filtering criteria.
+
+    Args:
+        model_name (str): The name of the model used to compute the embeddings.
+        input_type (str): The type of input data used for training the model.
+        pLDDT_threshold (int): The pLDDT threshold used to filter the domains.
+        only_50_largest_SF (bool): Whether to keep only the 50 largest superfamilies.
+        support_threshold (int): The support threshold used to filter the domains.
+
+    Returns:
+        X_train (np.ndarray): The training data.
+        y_train (list): The training labels.
+        X_val (np.ndarray): The validation data.
+        y_val (list): The validation labels.
+        X_test (np.ndarray): The test data.
+        y_test (list): The test labels.
+    '''
 
     if model_name == 'ProtT5':
         # For ProtT5, the former code and embeddings datasets are used here, see ./src/model_building/models/ProtT5/ann_ProtT5.py
@@ -336,7 +397,22 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
 
 
 def data_preparation(X_train, y_train, y_val, y_test):
-    '''Prepares the data for training.'''
+    '''
+    Prepares the data for training. (Encodes the labels and shuffles the data.)
+
+    Args:
+        X_train (np.ndarray): The training data.
+        y_train (list): The training labels.
+        y_val (list): The validation labels.
+        y_test (list): The test labels.
+    
+    Returns:
+        X_train (np.ndarray): The training data.
+        y_train (np.ndarray): The training labels.
+        y_val (np.ndarray): The validation labels.
+        y_test (np.ndarray): The test labels.
+    
+    '''
     
     y_tot = y_train + y_val + y_test
     le = preprocessing.LabelEncoder()
@@ -356,7 +432,21 @@ def data_preparation(X_train, y_train, y_val, y_test):
     return X_train, y_train, y_val, y_test, num_classes, le
 
 
-def bm_generator(X_t, y_t, batch_size, num_classes):
+def bm_generator(X, y, batch_size, num_classes):
+    '''
+    Generates batches of data for training.
+
+    Args:
+        X (np.ndarray): The data.
+        y (np.ndarray): The labels.
+        batch_size (int): The batch size.
+        num_classes (int): The number of classes.
+    
+    Yields:
+        X_batch (np.ndarray): A batch of data.
+        y_batch (np.ndarray): A batch of labels.
+    
+    '''
     val = 0
 
     while True:
@@ -365,12 +455,12 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
 
         for _ in range(batch_size):
 
-            if val == len(X_t):
+            if val == len(X):
                 val = 0
 
-            X_batch.append(X_t[val])
+            X_batch.append(X[val])
             y_enc = np.zeros((num_classes))
-            y_enc[y_t[val]] = 1
+            y_enc[y[val]] = 1
             y_batch.append(y_enc)
             val += 1
 
@@ -381,7 +471,21 @@ def bm_generator(X_t, y_t, batch_size, num_classes):
 
 
 def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, layer_size):
-    '''Creates and returns a Keras model based on the specified model name and layer blocks.'''
+    '''
+    Creates and returns a Keras model based on the specified model name and layer blocks.
+
+    Args:
+        model_name (str): The name of the model used to compute the embeddings.
+        num_classes (int): The number of classes.
+        nb_layer_block (int): The number of layer blocks.
+        dropout (float): The dropout rate.
+        input_type (str): The type of input data used for training the model.
+        layer_size (int): The size of the layers.
+    
+    Returns:
+        classifier (Model): The untrained model.
+    
+    '''
     
     
     if input_type == 'AA+3Di':
@@ -437,8 +541,31 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
 
     return classifier
 
+
 def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_type, nb_layer_block, dropout, layer_size, pLDDT_threshold, only_50_largest_SF, support_threshold):
-    '''Trains the model.'''
+    '''
+    Train the model and save it.
+
+    Args:
+        model_name (str): The name of the model used to compute the embeddings.
+        num_classes (int): The number of classes.
+        X_train (np.ndarray): The training data.
+        y_train (np.ndarray): The training labels.
+        X_val (np.ndarray): The validation data.
+        y_val (np.ndarray): The validation labels.
+        input_type (str): The type of input data used for training the model.
+        nb_layer_block (int): The number of layer blocks.
+        dropout (float): The dropout rate.
+        layer_size (int): The size of the layers.
+        pLDDT_threshold (int): The pLDDT threshold used to filter the domains.
+        only_50_largest_SF (bool): Whether to keep only the 50 largest superfamilies.
+        support_threshold (int): The support threshold used to filter the domains.
+
+    Returns:
+        None
+    
+    
+    '''
 
     print(f'{green}Model training {reset}')
 
@@ -511,6 +638,18 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         gc.collect()
 
 def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
+    '''
+    Save the confusion matrix as a CSV file and a heatmap image.
+
+    Args:
+        y_test (np.ndarray): The true labels.
+        y_pred (np.ndarray): The predicted labels.
+        confusion_matrix_path (str): The path to save the confusion matrix.
+    
+    Returns:
+        None
+    
+    '''
 
     matrix = confusion_matrix(y_test, y_pred.argmax(axis=1))
     size = matrix.shape[0]
@@ -553,8 +692,30 @@ def save_confusion_matrix(y_test, y_pred, confusion_matrix_path):
     plt.savefig(f'{confusion_matrix_path}.png', bbox_inches='tight')
     plt.close()
 
+
 def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dropout, input_type, layer_size, pLDDT_threshold, le, only_50_largest_SF, support_threshold):
-    '''Evaluates the trained model.'''
+    '''
+    Evaluate the trained model (with and without bootstrapping), saving a classification report, confusion matrix and performance metrics.
+
+    Args:
+        model_name (str): The name of the model used to compute the embeddings.
+        X_val (np.ndarray): The validation data.
+        y_val (np.ndarray): The validation labels.
+        X_test (np.ndarray): The test data.
+        y_test (np.ndarray): The test labels.
+        nb_layer_block (int): The number of layer blocks.
+        dropout (float): The dropout rate.
+        input_type (str): The type of input data used for training the model.
+        layer_size (int): The size of the layers.
+        pLDDT_threshold (int): The pLDDT threshold used to filter the domains.
+        le (LabelEncoder): The label encoder.
+        only_50_largest_SF (bool): Whether to keep only the 50 largest superfamilies.
+        support_threshold (int): The support threshold used to filter the domains.
+    
+    Returns:
+        None
+    
+    '''
 
     print(f'{green}Model evaluation {reset}')
 
@@ -727,7 +888,16 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
 
 
 def create_arg_parser():
-    '''Creates and returns the ArgumentParser object.'''
+    '''
+    Creates and returns the ArgumentParser object.
+    
+    Args:
+        None
+
+    Returns:
+        parser (ArgumentParser): The ArgumentParser object
+    
+    '''
 
     parser = argparse.ArgumentParser(description=
                         'Run training and evaluation for one or all models')

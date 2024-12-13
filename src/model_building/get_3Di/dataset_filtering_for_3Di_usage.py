@@ -33,6 +33,21 @@ import pandas as pd
 
 
 def save_SF_lost_csv(pLDDT_threshold, total_lost_SF, nb_SF_remaining, Training_set_size, top_50_filtering, support_threshold):
+    '''
+    Update the Lost_SF_and_Train_size.csv file which contains information about the number of lost SFs and the size of the training set for the different hyperparameters combination.
+
+    Args:
+        pLDDT_threshold (int): The pLDDT threshold used to filter the dataset.
+        total_lost_SF (int): The number of SFs lost after filtering.
+        nb_SF_remaining (int): The number of SFs remaining after filtering.
+        Training_set_size (int): The size of the training set after filtering.
+        top_50_filtering (bool): Whether the top 50 filtering is enabled.
+        support_threshold (int): The support threshold used to filter the dataset.
+    
+    Returns:
+        None
+    '''
+
     # Path to the CSV file
     lost_SF_csv_path = './data/Dataset/csv/Lost_SF_and_Train_size.csv'
     
@@ -69,7 +84,15 @@ def save_SF_lost_csv(pLDDT_threshold, total_lost_SF, nb_SF_remaining, Training_s
 
 
 def read_fasta(file):
-    '''Reads a FASTA file and returns a list of tuples (id, header, sequence).'''
+    '''
+    Reads a FASTA file and returns a list of tuples (id, header, sequence) corresponding to each entry in the file.
+
+    Args:
+        file (file): The file object to read.
+    
+    Returns:
+        list: A list of tuples (id, header, sequence).
+    '''
     fasta_entries = []
     header = None
     sequence = []
@@ -87,6 +110,19 @@ def read_fasta(file):
     return fasta_entries
 
 def remove_lost_and_unrepresented_sf(filtered_sf, val_ids_with_3Di, test_ids_with_3Di, df_val, df_test):
+    '''
+    Remove lost and unrepresented SFs in the training set, from the Val and Test datasets.
+
+    Args:
+        filtered_sf (list): The list of SFs that are represented in the training set.
+        val_ids_with_3Di (list): The list of domain IDs for which 3Di data is available in the Val dataset.
+        test_ids_with_3Di (list): The list of domain IDs for which 3Di data is available in the Test dataset.
+        df_val (DataFrame): The DataFrame containing the Val dataset.
+        df_test (DataFrame): The DataFrame containing the Test dataset.
+    
+    Returns:
+        tuple: A tuple containing the filtered Val and Test domain IDs.
+    '''
     
     # Identify SFs not represented in Train threshold 0
     unique_SF_val = df_val['SF'].unique().tolist()  
@@ -105,6 +141,19 @@ def remove_lost_and_unrepresented_sf(filtered_sf, val_ids_with_3Di, test_ids_wit
     return val_filtered_ids, test_filtered_ids
 
 def save_dataset_ids_for_3Di_usage_in_classification(pLDDT_threshold, top_50_filtering, support_threshold):
+    '''
+    Save the filtered Domain IDs for the Train, Val and Test datasets based on the pLDDT threshold, top 50 filtering and support threshold filters.
+
+    Args:
+        pLDDT_threshold (int): The pLDDT threshold used to filter the dataset.
+        top_50_filtering (bool): Whether to filter the dataset based on the 50 most represented SFs in the training set.
+        support_threshold (int): The SF support threshold used to filter the dataset (SF with a support <= support_threshold are removed).
+
+    Returns:
+        None
+
+
+    '''
     # Load the Train_pLDDT.csv file
     df_plddt = pd.read_csv('./data/Dataset/csv/Train_pLDDT.csv')
 

@@ -31,21 +31,26 @@ from tqdm import tqdm
 
 
 def run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type_values, pLDDT_threshold_values, model_values, do_training, only_50_largest_SF, support_threshold, combinations_to_skip=None):
-    """
-    Function to create all possible combinations of parameters and run a script for each combination.
+    '''
+    Function to create all possible combinations of hyperparameters and run the ann training and evaluation script for each combination.
 
-    :param script_path: Path to the Python script to be run.
-    :param dropout_values: List of possible dropout values.
-    :param layer_size_values: List of possible layer size values.
-    :param nb_layer_block_values: List of possible Nb_Layer_Block values.
-    :param input_type_values: List of possible Input_Type values.
-    :param pLDDT_threshold_values: List of possible pLDDT_threshold values.
-    :param model_values: List of model names to use.
-    :param do_training: Boolean to decide if training is necessary (1), or if the goal is to evaluate a already trained model (0)
-    :param only_50_largest_SF: Boolean to decide if the model should be trained on the 50 largest SF (1), or on all SF (0)
-    :param combinations_to_skip: List of tuples representing parameter combinations to skip (optional).
-    :param support_threshold: Integer representing the support filter value to use.
-    """
+    Args:
+        script_path (str): The path to the script to run.
+        dropout_values (list): List of dropout values to test.
+        layer_size_values (list): List of layer size values to test.
+        nb_layer_block_values (list): List of number of layer block values to test.
+        input_type_values (list): List of input type values to test.
+        pLDDT_threshold_values (list): List of pLDDT threshold values to test.
+        model_values (list): List of model to test.
+        do_training (list): List of do_training values to test.
+        only_50_largest_SF (list): List of only_50_largest_SF values to test.
+        support_threshold (list): List of support threshold values to test.
+        combinations_to_skip (list): List of combinations to skip. Each combination should be a tuple with the right order og hyperparameters.
+
+    Returns:
+        None
+    '''
+
     if combinations_to_skip is None:
         combinations_to_skip = []
 
@@ -79,7 +84,7 @@ script_path = './src/model_building/models/ProstT5_Ankh_TMVec_ESM2_ProtT5new/ann
 # example of usage: here the function will train a model with all possible combinations of the following hyperparameters:
 dropout_values = [0.3]
 layer_size_values = [2048]
-nb_layer_block_values = ['two']
+nb_layer_block_values = [2]
 input_type = ['AA+3Di']
 pLDDT_threshold = [4, 14, 24, 34, 44, 54, 64, 74, 84]
 model = ['ProstT5_full']

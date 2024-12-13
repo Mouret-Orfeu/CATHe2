@@ -1,5 +1,15 @@
 # This code computes and savec the embeddings
 
+# This file includes foldseek commands found in the ProstT5 project ReadMe
+# Author: Michael Heinzinger
+# Source: https://github.com/mheinzinger/ProstT5?tab=readme-ov-file
+# License: MIT License
+
+# Foldseek:
+# Author: Steinegger Lab 
+# Source: https://github.com/steineggerlab/foldseek
+# License: GNU GENERAL PUBLIC LICENSE
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'
@@ -98,13 +108,21 @@ def embed_sequence(model):
         
 
 
-def get_3di_sequences(pdb_folder_path, output_dir):
+def get_3di_sequences(pdb_folder_path):
     '''
-    Extract 3Di sequences from all PDB files in a folder using Foldseek.
+    Extract 3Di sequences from all PDB files using Foldseek.
     Combine the 3Di sequences into a single FASTA file.
+
+    Args:
+        pdb_folder_path (str): Path to the folder containing PDB files
+        output_dir (str): Path to the output directory where the combined 3Di sequences will be saved
+
+    Returns:
+        None
     '''
+    
     # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs('./src/cathe-predict/3Di_sequence_folder', exist_ok=True)
 
     # Create a folder for trimmed PDB files inside pdb_folder_path
     trimmed_pdb_folder = os.path.join(pdb_folder_path, 'trimmed_pdb_folder')
@@ -190,13 +208,21 @@ def get_3di_sequences(pdb_folder_path, output_dir):
 
 
 def embed_3Di(pdb_path):
+    '''
+    Embed the 3Di sequences using embed_all_new_models.py script.
+
+    Args:
+        pdb_path (str): Path to the folder containing PDB files
+    
+    Returns:
+        None
+    '''
+
     fasta_file_3Di = './src/cathe-predict/3Di_sequence_folder/combined_3di_sequences.fasta'
     embed_path = './src/cathe-predict/Embeddings/3Di_embeddings.npz'
 
     # Get the 3Di sequence
-    # !!!!!!!!!!!!!!!!!!!
-    # Uncomment this line and test the whole process not on google collab
-    # get_3di_sequences(pdb_path, output_dir) !!!!!!!!!!!!!!!!
+    get_3di_sequences(pdb_path) 
 
     # runing embed_all_new_models.py, specifying --is_3Di 1 to embed 3Di sequences
     try:

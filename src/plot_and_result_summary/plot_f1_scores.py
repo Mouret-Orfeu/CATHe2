@@ -107,11 +107,15 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **co
     '''
     Plots the F1 score evolution for selected models along a specified parameter.
     
-    :param dataframe: pandas DataFrame containing the results.
-    :param x_param: The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout', 'Input_Type').
-    :param models_to_plot: List of models to include in the plot.
-    :param title: Optional title for the graph. If not provided, a title will be generated based on conditions.
-    :param conditions: Dictionary of conditions to filter the data (optional).
+    Args:
+        dataframe (pd.DataFrame): The DataFrame containing the results.
+        x_param (str): The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout', 'Input_Type').
+        models_to_plot (list): List of models to plot.
+        title (str): The title of the plot (optional).
+        conditions (dict): Dictionary of conditions to filter the data (optional).
+
+    Returns:
+        None
     '''
     # Filter the dataframe for the selected models
     df_filtered = dataframe[dataframe['Model'].isin(models_to_plot)]
@@ -203,11 +207,16 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
     Plots the F1 score evolution for a selected model along a specified parameter,
     with different curves for each input type.
 
-    :param dataframe: pandas DataFrame containing the results.
-    :param x_param: The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout', 'Input_Type').
-    :param model: The model to plot (single model name as a string).
-    :param input_types: List of input types to plot (e.g., ['AA', '3Di', 'AA+3Di']).
-    :param conditions: Dictionary of additional conditions to filter the data (optional).
+    Args:
+        dataframe (pd.DataFrame): The DataFrame containing the results.
+        x_param (str): The parameter to plot on the x-axis (e.g., 'Nb_Layer_Block', 'Dropout', 'Input_Type').
+        model (str): The model to plot.
+        input_types (list): List of input types to include in the plot.
+        conditions (dict): Dictionary of conditions to filter the data (optional).
+
+    Returns:
+        None
+
     '''
     # Filter the dataframe for the selected model
     df_filtered = dataframe[dataframe['Model'] == model]

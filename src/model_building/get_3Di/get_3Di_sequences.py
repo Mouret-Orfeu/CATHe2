@@ -1,5 +1,15 @@
 # This code is for extracting 3Di sequences from the CATHe Dataset, automatically downloading the corresponding PDB files and trimming them to match the sequences.
 
+# This file includes foldseek commands found in the ProstT5 project ReadMe
+# Author: Michael Heinzinger
+# Source: https://github.com/mheinzinger/ProstT5?tab=readme-ov-file
+# License: MIT License
+
+# Foldseek:
+# Author: Steinegger Lab 
+# Source: https://github.com/steineggerlab/foldseek
+# License: GNU GENERAL PUBLIC LICENSE
+
 # Adjust to your CPU capacity
 multi_threading_worker_nb = 100
 
@@ -46,12 +56,22 @@ import argparse
 
 warnings.simplefilter('ignore', BiopythonWarning)
 
-# Function to remove 'X' from sequences
-def clean_sequence(sequence):
-    return sequence.replace('X', '')
-
 # Function to find the model with the best matching chain sequence
 def find_best_model(pdb_file_path, sequence):
+    '''
+    Find the model with the best matching chain sequence in a pdb file, given a CATHe dataset AA sequence.
+
+    Args:
+        pdb_file_path (str): The path to the PDB file.
+        sequence (str): The sequence to match.
+    
+    Returns:
+        best_model_id (int): The model ID of the best matching model.
+        best_match_chain_id (str): The chain ID of the best matching chain.
+        best_pdb_sequence (str): The sequence of the best matching chain in the PDB file.
+    
+    '''
+
     parser = PDBParser()
     structure = parser.get_structure('structure', pdb_file_path)
     best_model_id = None
@@ -83,8 +103,15 @@ class TrimSelect(Select):
 
 def extract_global_plddt(pdb_file_path):
     '''
-    Extract the global pLDDT score from an AlphaFold PDB file.
+    Extract the global pLDDT score from a PDB file.
+
+    Args:
+        pdb_file_path (str): The path to the PDB file.
+    
+    Returns:
+        plddt_scores (list): The list of pLDDT scores corresponding to each residue of thechain considered.
     '''
+
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('structure', pdb_file_path)
     plddt_scores = []
@@ -99,6 +126,13 @@ def extract_global_plddt(pdb_file_path):
 def save_plddt_scores(plddt_scores, output_path):
     '''
     Save pLDDT scores to a file.
+
+    Args:
+        plddt_scores (list): The list of pLDDT scores to save.
+        output_path (str): The path to save the scores to.
+
+    Returns:
+        None
     '''
     with open(output_path.replace('.pdb', '_plddt_scores.txt'), 'w') as f:
         for score in plddt_scores:
@@ -107,6 +141,13 @@ def save_plddt_scores(plddt_scores, output_path):
 def plot_plddt_scores(plddt_scores, output_dir):
     '''
     Create and save a boxplot of the aggregated pLDDT scores.
+
+    Args:
+        plddt_scores (list): The list of pLDDT scores to plot.
+        output_dir (str): The directory to save the plot to.
+    
+    Returns:
+        None
     '''
     plt.boxplot(plddt_scores)
     plt.title('pLDDT Score Distribution')
@@ -115,6 +156,20 @@ def plot_plddt_scores(plddt_scores, output_dir):
     plt.close()
 
 def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id, trimmed_pdb_file_path):
+    '''
+    Trim a PDB file to match a given sequence.
+
+    Args:
+        pdb_file_path (str): The path to the PDB file.
+        sequence (str): The sequence to match.
+        best_chain_id (str): The chain ID of the best matching chain.
+        model_id (int): The model ID of the best matching model.
+        expected_chain_id (str): The expected chain ID.
+        trimmed_pdb_file_path (str): The path to save the trimmed PDB file to.
+    
+    Returns:
+        None
+    '''
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('structure', pdb_file_path)
 
@@ -193,6 +248,18 @@ def trim_pdb(pdb_file_path, sequence, best_chain_id, model_id, expected_chain_id
 
 
 def download_and_trim_pdb(row, output_dir, process_training_set):
+    '''
+    Download the PDB file corresponding to a sequence and trim it to match the sequence.
+
+    Args:
+        row (pd.Series): The row of the dataset to process.
+        output_dir (str): The directory to save the trimmed PDB file to.
+        process_training_set (bool): Whether the dataset is the training set.
+    
+    Returns:
+        dict: The sequence ID and path to the trimmed PDB file.
+        pLDDT_scores (list): The list of pLDDT scores corresponding to each residue of the chain considered.
+    '''
     sequence_id = row['Unnamed: 0']
     sequence = row['Sequence']
     plddt_scores = []  # Initialize plddt_scores
@@ -247,6 +314,18 @@ def download_and_trim_pdb(row, output_dir, process_training_set):
 #DEBUG
 # Function to extract sequence from PDB file
 def extract_sequence_from_pdb(pdb_file_path, chain_id, model_id):
+    '''
+    Debug function: extract the sequence of a chain in a PDB file.
+
+    Args:
+        pdb_file_path (str): The path to the PDB file.
+        chain_id (str): The chain ID to extract.
+        model_id (int): The model ID to extract.
+    
+    Returns:
+        str: The sequence of the chain in the PDB file.
+    '''
+
     parser = PDBParser()
     structure = parser.get_structure('structure', pdb_file_path)
     sequence = ''
@@ -266,6 +345,16 @@ def extract_sequence_from_pdb(pdb_file_path, chain_id, model_id):
 
 # Function to run a shell command and check for errors
 def run_command(command):
+    '''
+    Run a shell command and check for errors.
+
+    Args:
+        command (str): The command to run.
+    
+    Returns:
+        str: The output of the command.
+    
+    '''
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
         print(f'Error running command: {command}')
@@ -275,6 +364,22 @@ def run_command(command):
 
 def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_training_set, plddt_scores_list):
     os.makedirs(output_dir, exist_ok=True)
+
+    '''
+    Process a dataset with multiple threads to extract and save 3Di sequences
+
+    Args:
+        data (pd.DataFrame): The dataset to process.
+        output_dir (str): The directory to save the trimmed PDB files to.
+        query_db (str): The path to save the query database to.
+        query_db_ss_fasta (str): The path to save the 3Di sequence FASTA file to.
+        process_training_set (bool): Whether the dataset is the training set.
+        plddt_scores_list (list): The list of global pLDDT scores for each 3Di seqeunce to fill.
+
+    Returns:
+        None
+    
+    '''
 
     results = []
 
@@ -308,6 +413,16 @@ def process_dataset(data, output_dir, query_db, query_db_ss_fasta, process_train
 
 
 def remove_intermediate_files(output_dir):
+    '''
+    Remove all intermediate files in the output directory except the directly_saved_pdb_idx.csv file and the pLDDT plot.
+
+    Args:
+        output_dir (str): The directory to clean up.
+    
+    Returns:
+        None
+    
+    '''
     pLDDT_plot_str = '_plddt_boxplot.png'
 
     # Remove all files in output_dir except 'directly_saved_pdb_idx.csv' and the pLDDT plot
@@ -319,6 +434,16 @@ def remove_intermediate_files(output_dir):
 
 
 def get_missing_domains():
+    '''
+    Create a dataset of missing domains from the training dataset for later processing.
+
+    Args:
+        None
+    
+    Returns:
+        None
+
+    '''
     Train_part_1 = './data/pdb_files/Train/Train_first/directly_saved_pdb_idx.csv'
     Train_part_2 = './data/pdb_files/Train/Train_second/directly_saved_pdb_idx.csv'
     Train_csv = './data/Dataset/csv/Train.csv'
@@ -347,7 +472,15 @@ def get_missing_domains():
     print(f'Missing domains data saved to {output_file}')
 
 def read_fasta(file):
-    '''Reads a FASTA file and returns a list of tuples (id, header, sequence).'''
+    '''
+    Read a FASTA file and returns a list of tuples (id, header, sequence).
+    
+    Args:
+        file (file): The file to read.
+    
+    Returns:
+        list: A list of tuples (id, header, sequence).
+    '''
     fasta_entries = []
     header = None
     sequence = []
@@ -365,14 +498,34 @@ def read_fasta(file):
     return fasta_entries
 
 def write_fasta(file, fasta_entries):
-    '''Writes a list of tuples (id, header, sequence) to a FASTA file.'''
+    '''
+    Write a list of tuples (id, header, sequence) to a FASTA file.
+    
+    Args:
+        file (file): The file to write to.
+        fasta_entries (list): A list of tuples (id, header, sequence).
+    
+    Returns:
+        None
+    
+    '''
     for _, header, sequence in fasta_entries:
         file.write(f'>{header}\n')
         file.write(f'{sequence}\n')
 
 
-# Create an ArgumentParser
 def create_arg_parser():
+    '''
+    Create an ArgumentParser for the script.
+
+    Args:
+        None
+
+    Returns:
+        ArgumentParser: The ArgumentParser for the script.
+    
+    
+    '''
     parser = argparse.ArgumentParser(description='Process dataset to extract 3Di sequences.')
     parser.add_argument('--dataset', type=str, choices=['all', 'test', 'train', 'validation', 'train_missing_ones'], default='all',
                         help='Dataset to process: all, test, train, validation or train_missing_ones. \
