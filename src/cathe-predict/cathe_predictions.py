@@ -7,7 +7,7 @@ reset = '\033[0m'
 red = '\033[91m'
 
 
-print(f'{green}cathe_prediction running, library imports in progress, may take a few minutes{reset}')
+print(f'{green}cathe_prediction running, library imports in progress, may take a long time{reset}')
 
 import os
 import sys

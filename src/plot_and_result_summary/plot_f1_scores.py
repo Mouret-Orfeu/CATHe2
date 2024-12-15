@@ -51,7 +51,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
     dataframe = dataframe[dataframe['Model'].isin(list_model_to_show)]
 
     # Create a unique identifier for each combination of parameters
-    dataframe['Parameters'] = dataframe.apply(lambda row: f'Nb_Layer_Block={row['Nb_Layer_Block']}, Dropout={row['Dropout']}, Input_Type={row['Input_Type']}, Layer_size={row['Layer_size']}, pLDDT_threshold={row['pLDDT_threshold']}', axis=1) 
+    dataframe['Parameters'] = dataframe.apply(lambda row: f"Nb_Layer_Block={row['Nb_Layer_Block']}, Dropout={row['Dropout']}, Input_Type={row['Input_Type']}, Layer_size={row['Layer_size']}, pLDDT_threshold={row['pLDDT_threshold']}", axis=1) 
     
     # Sort the dataframe by Model, then by F1_Score in descending order
     dataframe = dataframe.sort_values(by=['Model', 'F1_Score'], ascending=[True, False])
@@ -76,7 +76,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
             name=row['Parameters'],
             marker_color=color_map.get(row['Input_Type'], 'gray'),  # Use gray if Input_Type is not in the color_map
             hoverinfo='text',
-            text=f'Model={row['Model']}<br>Nb_Layer_Block={row['Nb_Layer_Block']}<br>Dropout={row['Dropout']}<br>Input_Type={row['Input_Type']}<br>Layer_size={row['Layer_size']}<br>pLDDT_threshold={row['pLDDT_threshold']}<br>F1_Score={row['F1_Score']:.4f}'
+            text=f"Model={row['Model']}<br>Nb_Layer_Block={row['Nb_Layer_Block']}<br>Dropout={row['Dropout']}<br>Input_Type={row['Input_Type']}<br>Layer_size={row['Layer_size']}<br>pLDDT_threshold={row['pLDDT_threshold']}<br>F1_Score={row['F1_Score']:.4f}"
         ))
 
     fig.update_layout(
@@ -99,7 +99,6 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
 
     # Optionally, display the plot in the browser
     fig.show()
-
 
 
 # Function to plot the evolution of F1 scores
@@ -173,34 +172,37 @@ models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', '
 
 list_model_to_show = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
+# example usage function plot_all_f1_scores
+plot_all_f1_scores(df, list_model_to_show)
+
 # Plot the F1 score evolution along 'Dropout' for all models with the specified conditions
 
 models_to_plot = ['ProstT5_full']
 
 
-# Example usage:
-input_types = 'AA+3Di'
-x_param = 'pLDDT_threshold'
-Dropout = 0.3
-layer_size = 2048
-nb_layer_block = 2
-is_top_50_SF = False
-Support_threshold = 10
+# # Example usage function plot_f1_score_evolution:
+# input_types = 'AA+3Di'
+# x_param = 'pLDDT_threshold'
+# Dropout = 0.3
+# layer_size = 2048
+# nb_layer_block = 2
+# is_top_50_SF = False
+# Support_threshold = 10
 
 
-# Plot F1 score evolution
-plot_f1_score_evolution(
-    dataframe=df, 
-    x_param=x_param, 
-    models_to_plot=models_to_plot, 
-    title = 'F1 Score relatively to pLDDT threshold, Support_threshold = 10',
-    Input_Type=input_types, 
-    Dropout=Dropout,
-    Layer_size=layer_size, 
-    Nb_Layer_Block=nb_layer_block,
-    is_top_50_SF = is_top_50_SF,
-    Support_threshold=Support_threshold
-)
+# # Plot F1 score evolution
+# plot_f1_score_evolution(
+#     dataframe=df, 
+#     x_param=x_param, 
+#     models_to_plot=models_to_plot, 
+#     title = 'F1 Score relatively to pLDDT threshold, Support_threshold = 10',
+#     Input_Type=input_types, 
+#     Dropout=Dropout,
+#     Layer_size=layer_size, 
+#     Nb_Layer_Block=nb_layer_block,
+#     is_top_50_SF = is_top_50_SF,
+#     Support_threshold=Support_threshold
+# )
 
 def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, **conditions):
     '''
@@ -268,7 +270,7 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
 
 
 
-# Example usage:
+# Example usage function plot_f1_score_evolution_unique_model:
 
 
 # input_types = ['AA', '3Di']

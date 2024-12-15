@@ -1,6 +1,27 @@
 # This code is used to embed AA or 3Di sequences. It can do so with all new models: Ankh_base, Ankh_large, TMVec, ProstT5_full, ProstT5_half, ESM2 and ProtT5_new (which is just prot_t5_xl_uniref50, the 'new' is just a remainder that CATH datasets embeddings were already computed in the previous version of CATHe).
 # (For 3Di, only ProstT5_full or ProstT5_half are available) 
 
+# Part of the code from:
+# Author: Tymor Hamamsy
+# Source: https://github.com/tymor22/tm-vec/blob/master/ipynb/repo_EMBED.ipynb, https://github.com/tymor22/tm-vec/blob/master/tm_vec/tm_vec_utils.py
+# License: BSD 3-Clause License, Copyright (c) 2022, Tymor Hamamsy. All rights reserved.
+# License available at: https://github.com/tymor22/tm-vec/blob/master/LICENSE
+
+# Part of the code from:
+# Author: Ahmed Elnaggar 
+# Source: https://github.com/agemagician/Ankh/blob/main/README.md
+# License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+
+# Part of the code from:
+# Author: Martin Heinzinger
+# Source: https://github.com/mheinzinger/ProstT5
+# License: MIT License
+
+# Part of the code from:
+# Author: Meta Research 
+# Source: https://github.com/facebookresearch/esm
+# License: MIT License
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'
@@ -10,8 +31,12 @@ orange_color = '\033[33m'
 
 print(f'{green}embedding code running (embed_all_new_models.py){reset_color}')
 
-print(f'{green}embedding code running: library imports in progress, it may take a few minutes{reset_color}')
+print(f'{green}embedding code running: library imports in progress, it may take a long time (~40 min if you start from a fresh system, depending on your connexion speed){reset_color}')
 
+# max_res_per_batch is the maximum number of residues per batch,
+# Adjust to the GPU memory you have, (for a 40 GB GPU, max_res_per_batch = 40000 is close to the max you can use for a heavy model like Ankh_large)
+# If max_res_per_batch is too hight you might get an error saying not all sequences were enbedded
+# nb_seq_max_per_batch is the maximum number of sequences per batch, just put the same value as max_res_per_batch, it worked well for me
 max_res_per_batch = 4096
 nb_seq_max_per_batch = 4096
 
@@ -545,7 +570,7 @@ def create_arg_parser():
     
     parser.add_argument('--model', type=str, 
                         default='ProstT5_full', 
-                        help='What model to use between ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec, or all')
+                        help='What model to use between ProtT5_new, ESM2, Ankh_large, Ankh_base, ProstT5_full, ProstT5_half, TM_Vec')
     
     
     parser.add_argument('--is_3Di', type=int,
@@ -568,37 +593,36 @@ def create_arg_parser():
     
     parser.add_argument('--dataset', type=str,
                         default='Val',
-                        help='The dataset to embed (Val, Test, Train, all, other). "all" will embed the Val, Test, and Train datasets.')
+                        help='The dataset to embed (Val, Test, Train, other). other is used to embed a custom dataset, not the CATHe ones. In this last case you might want to adjust the seq_path and embed_path arguments.')
     
     return parser
 
 
-def process_datasets(model_name, is_3Di, embed_path, seq_path, datasets):
-    print(f'Embedding with {model_name}')
+def process_datasets(model_name, is_3Di, embed_path, seq_path, dataset):
 
-    for dataset in datasets:
-        if is_3Di:
-            if embed_path == 'default':
-                embed_path = f'./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz'
-            if seq_path == 'default':  
-                seq_path = f'./data/Dataset/3Di/{dataset}.fasta'
-            
-
-        else:
-            if embed_path == 'default':
-                embed_path = f'./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz'
-            if seq_path == 'default':
-                seq_path = f'./data/Dataset/csv/{dataset}.csv'
-            
+    
+    if is_3Di:
+        if embed_path == 'default':
+            embed_path = f'./data/Dataset/embeddings/{dataset}_{model_name}_per_protein_3Di.npz'
+        if seq_path == 'default':  
+            seq_path = f'./data/Dataset/3Di/{dataset}.fasta'
         
 
-        get_embeddings(
-            seq_path,
-            embed_path,
-            model_name,
-            is_3Di,
-            dataset
-        )
+    else:
+        if embed_path == 'default':
+            embed_path = f'./data/Dataset/embeddings/{dataset}_{model_name}_per_protein.npz'
+        if seq_path == 'default':
+            seq_path = f'./data/Dataset/csv/{dataset}.csv'
+        
+    
+
+    get_embeddings(
+        seq_path,
+        embed_path,
+        model_name,
+        is_3Di,
+        dataset
+    )
 
 def main():
 
@@ -610,30 +634,17 @@ def main():
     embed_path = args.embed_path
     seq_path = args.seq_path
 
-    datasets = args.dataset
+    dataset = args.dataset
 
-    if datasets not in ['Val', 'Test', 'Train', 'all', 'other']:
+    if dataset not in ['Val', 'Test', 'Train', 'all', 'other']:
         raise ValueError('The dataset should be Val, Test, Train, all or other')
-    
-    if datasets == 'all':
-        datasets = ['Val', 'Test', 'Train']
-    else:
-        datasets = [datasets]
 
     if is_3Di:
         if model_name not in ['ProstT5_full', 'ProstT5_half']:
             raise ValueError('For 3Di sequences, the model should be ProstT5_full or ProstT5_half')
-
-    if model_name == 'all':
         
-        print('Embedding with all models')
-        model_names = ['ProtT5_new', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-        for model in model_names:
-            process_datasets(model, is_3Di, embed_path, seq_path, datasets)
-    else:
-        
-        print(f'Embedding with {model_name}')
-        process_datasets(model_name, is_3Di, embed_path, seq_path, datasets)
+    print(f'Embedding with {model_name}')
+    process_datasets(model_name, is_3Di, embed_path, seq_path, dataset)
 
 
 

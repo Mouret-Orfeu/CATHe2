@@ -6,11 +6,9 @@
 # License: MIT License
 # Modifications: Added new models, new embeddings, new filtering criteria, and new hyperparameters to train the model.
 
-# Part of the code from https://huggingface.co/Rostlab/ProstT5
+# Part of the code from: 
 # Author: Rostlab
-
-# Part of the code from https://github.com/tymor22/tm-vec/blob/master/ipynb/repo_EMBED.ipynb
-# Part of the code from https://github.com/tymor22/tm-vec/blob/master/tm_vec/tm_vec_utils.py
+# Source: https://huggingface.co/Rostlab/ProstT5
 
 # ANSI escape code for colored text
 yellow = '\033[93m'
@@ -42,7 +40,7 @@ venv_name = os.path.basename(venv_path)
 if venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
-print(f'{green} ann_all_new_models.py: library imports in progress, may take a few minutes{reset}')
+print(f'{green} ann_all_new_models.py: library imports in progress, may take a long time{reset}')
 
 import argparse
 import pandas as pd 
