@@ -738,14 +738,14 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
         model_path += '_3Di'
             
         classification_report_path = classification_report_path.replace('.csv', '_3Di.csv')
-        confusion_matrix_path = confusion_matrix_path.replace('.png', '_3Di.png')
+        confusion_matrix_path = f"{confusion_matrix_path}_3Di"
         results_file = results_file.replace('.csv', '_3Di.csv')
     
     if input_type == 'AA+3Di':
                 
         model_path += '_AA+3Di'
         classification_report_path = classification_report_path.replace('.csv', '_AA+3Di.csv')
-        confusion_matrix_path = confusion_matrix_path.replace('.png', '_AA+3Di.png')
+        confusion_matrix_path = f"{confusion_matrix_path}_AA+3Di"
         results_file = results_file.replace('.csv', '_AA+3Di.csv')
 
     # Load the model and evaluate it

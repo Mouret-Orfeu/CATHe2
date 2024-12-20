@@ -78,7 +78,7 @@ for directory in directories:
 
 # Ask the user if they want to download the ProtTrans model (default: No)
 download_prompt = (
-    'Do you want to download the ProtT5 model (size ~ 5G)?\n'
+    'Do you want to download the ProtT5 model (size ~ 11G)?\n'
     'Note: It is not required if you are not planning to re-compute embeddings for CATHe dataset with ProtT5, (which you can already download following the README).\n'
     'Download now? [y/N]: '
 )
