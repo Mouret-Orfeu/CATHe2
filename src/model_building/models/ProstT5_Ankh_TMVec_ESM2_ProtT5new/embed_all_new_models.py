@@ -226,9 +226,7 @@ def get_model(model_name):
     print(f'Loading {model_name}')
 
     if model_name == 'ProtT5_new':
-        # Load the tokenizer
         tokenizer = T5Tokenizer.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc', do_lower_case=False)
-        # Load the model
         model = T5EncoderModel.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc').to(device)
         model_deep = None
 
@@ -256,8 +254,8 @@ def get_model(model_name):
         model_deep = None
         
     elif model_name == 'TM_Vec':
-        tokenizer = T5Tokenizer.from_pretrained('./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50', do_lower_case=False)
-        model = T5EncoderModel.from_pretrained('./data/Dataset/weights/ProtT5/prot_t5_xl_uniref50')
+        tokenizer = T5Tokenizer.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc', do_lower_case=False)
+        model = T5EncoderModel.from_pretrained('Rostlab/prot_t5_xl_half_uniref50-enc').to(device)
         gc.collect()
 
         # TM-Vec model paths
