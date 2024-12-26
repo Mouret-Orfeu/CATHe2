@@ -47,4 +47,4 @@ merged_df = lost_sf_df.merge(
 merged_df = merged_df.drop(columns=['is_top_50_SF'])
 
 # Save the result to a new CSV file
-merged_df.to_csv('./perf_and_SF_lost_summary.csv', index=False)
+merged_df.to_csv('./results/perf_and_SF_lost_summary.csv', index=False)
