@@ -25,7 +25,7 @@ reset = '\033[0m'
 # Parse command-line arguments for the model and the input type
 parser = argparse.ArgumentParser(description='Run predictions pipeline with FASTA file')
 parser.add_argument('--model', type=str,default='ProtT5', choices=['ProtT5', 'ProstT5'], help='Model to use: ProtT5 (original one) or ProstT5 (new one)')
-parser.add_argument('--input_type', type=str,default='AA', choices=['AA', 'AA+3Di'], help='Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5). If you select AA+3Di, ensure to provide pdb files in ./src/cathe-predict/pdb_folder, from which 3Di sequences will be extracted.')
+parser.add_argument('--input_type', type=str,default='AA', choices=['AA', 'AA+3Di'], help='Input type: AA or AA+3Di (AA+3Di is only supported by ProstT5). If you select AA+3Di, ensure to provide pdb files in ./src/cathe-predict/PDB_folder, from which 3Di sequences will be extracted.')
 args = parser.parse_args()
 
 st = time.time()
