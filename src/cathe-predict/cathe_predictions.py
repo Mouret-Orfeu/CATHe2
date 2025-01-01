@@ -6,11 +6,15 @@ green = '\033[92m'
 reset = '\033[0m'
 red = '\033[91m'
 
+import sys
+import os
+
+# Check if a virtual environment is active
+if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate venv_2 or venv_1 to run this code. See ReadMe for more details.{reset}')
 
 print(f'{green}cathe_prediction running, library imports in progress, may take a long time{reset}')
 
-import os
-import sys
 import argparse
 import tensorflow as tf
 

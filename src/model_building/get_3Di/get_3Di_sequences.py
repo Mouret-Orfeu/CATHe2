@@ -26,7 +26,7 @@ import os
 
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate the right venv_2 to run this code. See ReadMe for more details.{reset}')
+    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate venv_2 to run this code. See ReadMe for more details.{reset}')
 
 # Get the name of the activated virtual environment
 venv_path = os.environ.get('VIRTUAL_ENV')
