@@ -63,7 +63,4 @@ data.zip
 /src/cathe-predict/CATHe.h5
 /src/cathe-predict/af_one_third
 /src/cathe-predict/Dataset.csv
-/src/cathe-predict/Y_Test_SF.csv
-/src/cathe-predict/Y_Train_SF.csv
-/src/cathe-predict/Y_Val_SF.csv
 /submission
