@@ -81,15 +81,26 @@ def run_script_with_combinations(script_path, dropout_values, layer_size_values,
 
 script_path = './src/model_building/models/ProstT5_Ankh_TMVec_ESM2_ProtT5new/ann_all_new_models.py'
 
-# example of usage: here the function will train a model with all possible combinations of the following hyperparameters:
+
 dropout_values = [0.3]
 layer_size_values = [2048]
 nb_layer_block_values = [2]
 input_type = ['AA+3Di']
-pLDDT_threshold = [4, 14, 24, 34, 44, 54, 64, 74, 84]
+pLDDT_threshold = [4]
 model = ['ProstT5_full']
 do_training = [1]
-only_50_largest_SF = [0]
+only_50_largest_SF = [0, 1]
 support_threshold = [10]
+
+# example of usage: here the function will train a model with all possible combinations of the following hyperparameters:
+# dropout_values = [0.3]
+# layer_size_values = [2048]
+# nb_layer_block_values = [2]
+# input_type = ['AA+3Di']
+# pLDDT_threshold = [4, 14, 24, 34, 44, 54, 64, 74, 84]
+# model = ['ProstT5_full']
+# do_training = [1]
+# only_50_largest_SF = [0]
+# support_threshold = [10]
 
 run_script_with_combinations(script_path, dropout_values, layer_size_values, nb_layer_block_values, input_type, pLDDT_threshold, model, do_training, only_50_largest_SF, support_threshold)
