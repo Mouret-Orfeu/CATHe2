@@ -27,8 +27,6 @@ if venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
 
 import pandas as pd 
-# import csv
-# from tqdm import tqdm
 
 
 

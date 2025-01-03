@@ -204,7 +204,7 @@ def get_3di_sequences(pdb_folder_path):
                     print(f'Error removing {file_path}: {e}')
 
         except subprocess.CalledProcessError as e:
-            print(f'{red}An error occurred during 3Di computation for {pdb_file_name}: {e}')
+            print(f'{red}An error occurred during 3Di computation for {pdb_file_name}: {e}{reset}')
 
     print(f'All 3Di sequences have been combined into {combined_fasta_output}.')
 

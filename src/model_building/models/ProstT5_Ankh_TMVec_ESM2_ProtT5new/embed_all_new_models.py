@@ -72,20 +72,6 @@ from tqdm import tqdm
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# import argparse
-# import time
-# import torch
-# import numpy as np
-# import pandas as pd
-# from transformers import AutoModel, AutoTokenizer, T5Tokenizer, T5EncoderModel
-
-
-# import ankh
-# from tm_vec.embed_structure_model import trans_basic_block, trans_basic_block_Config
-# import re
-# import gc
-# import os
-
 
 # GPU management
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

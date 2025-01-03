@@ -50,7 +50,6 @@ from sklearn import preprocessing
 import tensorflow as tf
 from tensorflow import keras  
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Input, LeakyReLU
-# from tensorflow.keras.layers import Conv1D, Softmax, GlobalAveragePooling1D, Concatenate, Lambda
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras import regularizers
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, balanced_accuracy_score, classification_report, confusion_matrix
@@ -65,7 +64,6 @@ import matplotlib
 import matplotlib.colors as mcolors
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-# from memory_profiler import profile
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 

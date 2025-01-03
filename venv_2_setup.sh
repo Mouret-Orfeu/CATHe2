@@ -75,3 +75,5 @@ echo "Installing foldseek..."
 wget https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz
 tar xvzf foldseek-linux-avx2.tar.gz
 rm foldseek-linux-avx2.tar.gz
+
+echo 'export PATH=$(pwd)/foldseek/bin/:$PATH' >> ./venv_2/bin/activate

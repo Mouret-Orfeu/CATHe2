@@ -5,17 +5,7 @@ import pandas as pd
 import numpy as np 
 from sklearn import preprocessing
 from tensorflow.keras.models import load_model
-# from tensorflow.keras.models import Model
-# import tensorflow as tf
-# from tensorflow.keras import optimizers, regularizers
-# from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, Conv1D, Flatten, Input, LeakyReLU, Add
-# from tensorflow.keras.regularizers import l2
-# from sklearn.model_selection import train_test_split, KFold, cross_val_score, StratifiedKFold
-# from sklearn.preprocessing import StandardScaler, LabelEncoder, normalize
-# from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, classification_report, matthews_corrcoef, balanced_accuracy_score
-# from tensorflow.keras import backend as K
 import tensorflow_addons as tfa
-# from tensorflow import keras
 import time
 import argparse
 

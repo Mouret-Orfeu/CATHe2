@@ -3,9 +3,7 @@ absl-py==2.1.0
 alabaster==0.7.12
 alembic==1.5.6
 amqp==5.3.1
-#apex @ file:///home/vamsi/Academics/BITS/UCL/SSG/src/ProtBert/apex
 appdirs==1.4.4
-#apturl==0.5.2
 arrow==0.8.0
 ase==3.19.1
 asgiref==3.2.7
@@ -16,15 +14,9 @@ backcall==0.2.0
 beniget==0.4.2.post1
 billiard==4.2.1
 bio==1.6.2
-#bio-embeddings
 bio-embeddings-allennlp==0.9.2
 bio-embeddings-bepler==0.0.1
-#bio-embeddings-CPCProt
-#bio-embeddings-esm==0.2.1
-#bio-embeddings-plus
-#bio-embeddings-tape-proteins==0.5
 biopython==1.84
-#biovec
 bleach==3.1.5
 blinker==1.4
 blis==0.7.4
@@ -32,7 +24,6 @@ bokeh==2.1.1
 boto==2.46.1
 boto3==1.14.48
 botocore==1.17.48
-#Brlapi==0.7.0
 bz2file==0.98
 cachetools==4.1.0
 catalogue==1.0.0
@@ -50,11 +41,9 @@ cmaes==0.8.2
 cmd2==1.5.0
 colorama==0.4.4
 colorlog==4.7.2
-#command-not-found==0.3
 ConfigArgParse==0.11.0
 conllu==4.4
 cryptography==2.8
-#cupshelpers==1.0
 cycler==0.10.0
 cymem==2.0.5
 Cython==3.0.11
@@ -64,12 +53,10 @@ decorator==4.4.2
 defer==1.0.4
 defusedxml==0.6.0
 DendroPy==4.5.1
-#dgl-cu101==0.6.1
 dgllife==0.2.8
 distlib==0.3.1
 distributed==2.21.0
 distro==1.4.0
-#distro-info===0.23ubuntu1
 dj-database-url==0.5.0
 Django==3.0.6
 django-crispy-forms==1.9.1
@@ -78,7 +65,6 @@ docutils==0.15.2
 EasyProcess==0.3
 editdistance==0.5.3
 empath==0.89
-#Endgame-Singularity==1.0b1
 entrypoints==0.3
 et-xmlfile==1.0.1
 filelock==3.13.1
@@ -89,9 +75,7 @@ flatbuffers==24.3.25
 fsspec[http]==2024.2.0
 ftfy==5.9
 future==0.18.2
-#gast~=0.5.0
 gast==0.6.0
-#gensim==4.3.2
 gevent==24.11.1
 google-auth==2.36.0
 google-auth-oauthlib==1.0.0
@@ -116,7 +100,6 @@ ipympl==0.5.6
 ipython==7.15.0
 ipython-genutils==0.2.0
 ipywidgets==7.5.1
-#isodate==0.6.0
 isodate==0.7.2
 itsdangerous==2.2.0
 jax==0.1.77
@@ -141,7 +124,6 @@ keras-self-attention==0.49.0
 keyring==18.0.1
 kiwisolver==1.4.7
 kombu==5.3.7
-#language-selector==0.1
 launchpadlib==1.10.13
 lazr.restfulclient==0.14.2
 lazr.uri==1.0.3
@@ -152,7 +134,6 @@ lmdb==1.5.1
 lock==2018.3.25.2110
 locket==0.2.0
 Logbook==1.5.3
-#louis==3.12.0
 macaroonbakery==1.3.1
 Mako==1.1.4
 Markdown==3.2.2
@@ -217,7 +198,6 @@ pydicom==2.0.0
 pyfasta==0.5.2
 pygame==2.6.1
 pythran==0.17.0
-#pyGaussDCA
 pyglet==1.5.0
 pygments==2.18.0
 PyGObject==3.36.0
@@ -231,9 +211,7 @@ pyRFC3339==1.1
 pyrsistent==0.16.0
 pytesseract==0.3.6
 pytest==8.3.3
-#python-apt==2.0.0+ubuntu0.20.4.3
 python-dateutil==2.9.0.post0
-#python-debian===0.1.36ubuntu1
 python-editor==1.0.4
 pytorch-ignite==0.5.1
 pytorch-pretrained-bert==0.6.2
@@ -262,7 +240,6 @@ s3transfer==0.3.3
 sacremoses==0.0.43
 scikit-learn==1.5.2
 scipy==1.13.1
-#screen-resolution-extra==0.0.0
 seaborn==0.13.2
 SecretStorage==2.3.1
 selenium==3.141.0
@@ -282,7 +259,6 @@ sphinxcontrib-htmlhelp==1.0.3
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.4
-#SQLAlchemy==1.3.23
 sqlalchemy==2.0.36
 sqlparse==0.3.1
 srsly==1.0.5
@@ -299,7 +275,6 @@ tensorboard-plugin-wit==1.6.0.post3
 tensorboardX==2.0
 tensorflow-addons==0.23.0
 tensorflow-estimator==2.14.0
-#tensorflow-gpu==2.12.0
 termcolor==1.1.0
 terminado==0.8.3
 testpath==0.4.4
@@ -307,31 +282,19 @@ tf-estimator-nightly==2.8.0.dev2021122109
 tflearn==0.3.1
 thinc==7.4.5
 threadpoolctl==3.5.0
-#tokenizers<0.20,>=0.19
 tokenizers==0.20.3
 toml==0.10.1
 toolz==0.10.0
-#torch
-#torch-cluster
 torch-geometric==2.6.1
-#torch-scatter
-#torch-sparse
-#torch-spline-conv
-#torchvision==0.10.1
 tornado==6.4.1
 tqdm==4.67.0
 traitlets==5.14.3
 transformers==4.46.2
 typeguard==2.9.1
 typing-extensions==4.9.0
-#ubuntu-advantage-tools==20.3
-#ubuntu-drivers-common==0.0.0
-#ufw==0.36
 umap-learn==0.5.7
-#unattended-upgrades==0.1
 Unidecode==1.2.0
 urllib3==1.25.10
-#usb-creator==0.3.7
 vine==5.1.0
 virtualenv==20.0.27
 wadllib==1.3.3
@@ -345,7 +308,6 @@ widgetsnbextension==3.5.1
 word2number==1.1
 wrapt==1.12.1
 xgboost==2.1.1
-#xkit==0.0.0
 xlrd==1.2.0
 yellowbrick==1.5
 zict==2.0.0
