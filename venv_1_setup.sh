@@ -36,32 +36,31 @@ export PYTHONPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
 sed -i 's/from scipy.linalg import get_blas_funcs, triu/from scipy.linalg import get_blas_funcs\nfrom numpy import triu/' ./venv_1/lib/python3.9/site-packages/gensim/matutils.py
 
 
-# Install NVIDIA driver
-echo "Installing NVIDIA driver..."
-sudo apt update
-sudo apt install -y nvidia-driver-460
-sudo update-initramfs -u
+# # Install NVIDIA driver
+# sudo apt update
+# sudo apt install -y nvidia-driver-460
+# sudo update-initramfs -u
 
-# Install CUDA toolkit
-wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
-sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-sudo dpkg -i cuda-keyring_1.1-1_all.deb
-sudo apt-get update
-sudo apt-get -y install cuda-toolkit-11-8
+# # Install CUDA toolkit
+# wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+# sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
+# wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+# sudo dpkg -i cuda-keyring_1.1-1_all.deb
+# sudo apt-get update
+# sudo apt-get -y install cuda-toolkit-11-8
 
-# Install cuDNN 8.7 for CUDA 11.8
-sudo dpkg -i ./cudnn-local-repo-ubuntu2204-8.7.0.84_1.0-1_arm64.deb
-sudo cp /var/cudnn-local-repo-ubuntu2204-8.7.0.84/cudnn-local-BF23AD8A-keyring.gpg /usr/share/keyrings/
-sudo apt-get update
-sudo apt-get install -y libcudnn8 libcudnn8-dev libcudnn8-samples
+# # Install cuDNN 8.7 for CUDA 11.8
+# sudo dpkg -i ./cudnn-local-repo-ubuntu2204-8.7.0.84_1.0-1_arm64.deb
+# sudo cp /var/cudnn-local-repo-ubuntu2204-8.7.0.84/cudnn-local-BF23AD8A-keyring.gpg /usr/share/keyrings/
+# sudo apt-get update
+# sudo apt-get install -y libcudnn8 libcudnn8-dev libcudnn8-samples
 
-# Set environment variables in the virtual environment
-echo 'export PATH=/usr/local/cuda-11.8/bin${PATH:+:${PATH}}' >> ./venv_1/bin/activate
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ./venv_1/bin/activate
+# # Set environment variables in the virtual environment
+# echo 'export PATH=/usr/local/cuda-11.8/bin${PATH:+:${PATH}}' >> ./venv_1/bin/activate
+# echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ./venv_1/bin/activate
 
-# Remove .deb files
-rm cuda-keyring_1.1-1_all.deb libtinfo5_6.3-2ubuntu0.1_amd64.deb
+# # Remove .deb files
+# rm cuda-keyring_1.1-1_all.deb libtinfo5_6.3-2ubuntu0.1_amd64.deb
 
 # Deactivate and reactivate the virtual environment
 deactivate
