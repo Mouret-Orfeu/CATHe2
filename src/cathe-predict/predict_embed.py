@@ -50,7 +50,7 @@ import pandas as pd
 import subprocess
 # import shutil
 sys.path.append('./src')
-from all.get_3Di.get_3Di_sequences import find_best_model, trim_pdb, TrimSelect
+from model_building.get_3Di.get_3Di_sequences import find_best_model, trim_pdb, TrimSelect
 import glob
 
 def embed_sequence(model):
@@ -154,8 +154,13 @@ def get_3di_sequences(pdb_folder_path):
 
         trim_pdb(pdb_file_path, sequence, best_match_chain_id, best_model_id, best_match_chain_id, trimmed_pdb_file_path)
 
+
+    folder_3Di_path = './src/cathe-predict/3Di_sequence_folder'
+    # Create folder_3Di_path if it doesn't exist
+    os.makedirs(folder_3Di_path, exist_ok=True)
+
     # FASTA file that will contain all 3Di sequences
-    combined_fasta_output = os.path.join(output_dir, 'combined_3di_sequences.fasta')
+    combined_fasta_output = os.path.join(folder_3Di_path, 'combined_3di_sequences.fasta')
 
     query_db_path = f'{trimmed_pdb_folder}_queryDB'
 
@@ -195,11 +200,8 @@ def get_3di_sequences(pdb_folder_path):
             for file_path in files_to_remove:
                 try:
                     os.remove(file_path)
-                    print(f'Removed: {file_path}')
                 except Exception as e:
                     print(f'Error removing {file_path}: {e}')
-
-            print(f'3Di sequence for {pdb_file_name} extracted and added to combined file.')
 
         except subprocess.CalledProcessError as e:
             print(f'{red}An error occurred during 3Di computation for {pdb_file_name}: {e}')

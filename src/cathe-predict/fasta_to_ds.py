@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Run predictions pipeline with FAST
 parser.add_argument('--model', type=str, default='ProtT5', choices=['ProtT5', 'ProstT5'], help='Model to use: ProtT5 (original one) or ProstT5 (new one)')
 args = parser.parse_args()
 
-fasta_file_path = './CATHe/src/cathe-predict/Sequences.fasta'
+fasta_file_path = './src/cathe-predict/Sequences.fasta'
 
 if args.model == 'ProtT5':
     

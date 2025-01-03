@@ -27,7 +27,7 @@ sudo apt-get install -y brltty command-not-found python3-cups libatlas-base-dev 
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # Set the PyTorch path
-export PYTHONPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
+# export PYTHONPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
 
 # Modify gensim matutils.y
 sed -i 's/from scipy.linalg import get_blas_funcs, triu/from scipy.linalg import get_blas_funcs\nfrom numpy import triu/' ./venv_2/lib/python3.9/site-packages/gensim/matutils.py

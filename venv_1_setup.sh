@@ -30,7 +30,7 @@ sudo apt-get install -y gfortran libopenblas-dev liblapack-dev libcups2-dev
 pip install wheel lazr.uri
 
 # Set torch path (optional, check if needed)
-export PYTHONPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
+# export PYTHONPATH=$(python -c 'import site; print(site.getsitepackages()[0])')
 
 # Modify gensim matutils.y
 sed -i 's/from scipy.linalg import get_blas_funcs, triu/from scipy.linalg import get_blas_funcs\nfrom numpy import triu/' ./venv_1/lib/python3.9/site-packages/gensim/matutils.py
@@ -79,7 +79,6 @@ echo "Installing Foldseek..."
 wget https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz
 tar xvzf foldseek-linux-avx2.tar.gz
 rm foldseek-linux-avx2.tar.gz
-export PATH=$(pwd)/foldseek/bin/:$PATH
 
 # Final system reboot to apply changes
 # echo "Rebooting the system to apply new NVIDIA driver..."

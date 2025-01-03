@@ -31,7 +31,7 @@ orange_color = '\033[33m'
 
 print(f'{green}embedding code running (embed_all_new_models.py){reset_color}')
 
-print(f'{green}embedding code running: library imports in progress, it may take a long time (~40 min if you start from a fresh system, depending on your connexion speed){reset_color}')
+print(f'{green}library imports in progress, it may take a long time (~40 min if you start from a fresh system, depending on your connexion speed){reset_color}')
 
 # max_res_per_batch is the maximum number of residues per batch,
 # Adjust to the GPU memory you have, (for a 40 GB GPU, max_res_per_batch = 40000 is close to the max you can use for a heavy model like Ankh_large)
@@ -415,8 +415,6 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset):
     avg_length = sum([len(seq) for seq in seq_dict.values()]) / len(seq_dict)
     # sort sequences by length to trigger OOM (out of memory) at the beginning
     seq_dict = sorted(seq_dict.items(), key=lambda kv: len(kv[1]), reverse=True)
-    
-    print('Average sequence length: {}'.format(avg_length))
 
     return emb_dict, seq_dict, model_deep, model, tokenizer, avg_length, prefix
     

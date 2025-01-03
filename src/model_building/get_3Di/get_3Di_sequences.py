@@ -24,20 +24,6 @@ print(f'{green}3Di computing code running (get_3Di_sequences.py){reset}')
 import sys
 import os
 
-# Check if a virtual environment is active
-if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
-    raise EnvironmentError(f'{red}No virtual environment is activated. Please activate venv_2 to run this code. See ReadMe for more details.{reset}')
-
-# Get the name of the activated virtual environment
-venv_path = os.environ.get('VIRTUAL_ENV')
-if venv_path is None:
-    raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
-
-# Check if the activated virtual environment is venv_2
-venv_name = os.path.basename(venv_path)
-if venv_name != 'venv_2':
-    raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
-
 
 import pandas as pd
 import requests
@@ -655,4 +641,18 @@ def main():
             
 
 if __name__ == '__main__':
+    # Check if a virtual environment is active
+    if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
+        raise EnvironmentError(f'{red}No virtual environment is activated. Please activate venv_2 to run this code. See ReadMe for more details.{reset}')
+
+    # Get the name of the activated virtual environment
+    venv_path = os.environ.get('VIRTUAL_ENV')
+    if venv_path is None:
+        raise EnvironmentError(f'{red}Error, venv path is none. Please activate the venv_2. See ReadMe for more details.{reset}')
+
+    # Check if the activated virtual environment is venv_2
+    venv_name = os.path.basename(venv_path)
+    if venv_name != 'venv_2':
+        raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, not venv_2. However venv_2 must be activated to run this code. See ReadMe for more details.{reset}')
+    
     main()
