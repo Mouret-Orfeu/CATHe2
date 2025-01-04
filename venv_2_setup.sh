@@ -37,6 +37,8 @@ sed -i 's/from scipy.linalg import get_blas_funcs, triu/from scipy.linalg import
 # sudo apt update
 # sudo apt install -y nvidia-driver-460
 # sudo update-initramfs -u
+# you have to reboot the system to apply the changes in the NVIDIA driver
+
 
 # # Install CUDA toolkit
 # wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
