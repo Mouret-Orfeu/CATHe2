@@ -88,7 +88,7 @@ h5py==3.12.1
 HeapDict==1.0.1
 httplib2==0.14.0
 hyperopt==0.2.4
-idna==2.7
+idna==2.8
 imagesize==1.2.0
 imbalanced-learn==0.8.0
 imblearn==0.0
@@ -291,7 +291,7 @@ tqdm==4.67.0
 traitlets==5.14.3
 transformers==4.46.2
 typeguard==2.9.1
-typing-extensions==4.9.0
+typing-extensions==4.12.2
 umap-learn==0.5.7
 Unidecode==1.2.0
 urllib3==1.25.10

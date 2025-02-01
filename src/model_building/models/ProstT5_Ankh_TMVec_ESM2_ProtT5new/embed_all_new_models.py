@@ -34,7 +34,7 @@ print(f'{green}embedding code running (embed_all_new_models.py){reset_color}')
 print(f'{green}library imports in progress, it may take a long time (~40 min if you start from a fresh system, depending on your connexion speed){reset_color}')
 
 # max_res_per_batch is the maximum number of residues per batch,
-# Adjust to the GPU memory you have, (for a 40 GB GPU, max_res_per_batch = 40000 is close to the max you can use for a heavy model like Ankh_large)
+# Adjust to the GPU memory you have, (for a 40 GB GPU, max_res_per_batch = 4096 is close to the max you can use for the heaviest model ESM2, 40000 for Ankh_large)
 # If max_res_per_batch is too hight you might get an error saying not all sequences were enbedded
 # nb_seq_max_per_batch is the maximum number of sequences per batch, just put the same value as max_res_per_batch, it worked well for me
 max_res_per_batch = 4096
@@ -218,8 +218,12 @@ def get_model(model_name):
 
 
     elif model_name == 'ESM2':
-        model_path = 'facebook/esm2_t33_650M_UR50D'
-        model = AutoModel.from_pretrained(model_path)
+        # 650M parameter version
+        #model_path = 'facebook/esm2_t33_650M_UR50D'
+
+        # 15B parameter version (in half precision because it is too heavy otherwise)
+        model_path = 'facebook/esm2_t48_15B_UR50D'
+        model = AutoModel.from_pretrained(model_path, torch_dtype=torch.float16)
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         model_deep = None
 

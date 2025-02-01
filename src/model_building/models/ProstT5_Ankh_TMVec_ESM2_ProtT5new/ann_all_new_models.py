@@ -67,20 +67,29 @@ import matplotlib.pyplot as plt
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-
+# GPU management
 from tensorflow.compat.v1 import ConfigProto
 
-# GPU management
 tf.keras.backend.clear_session()
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+        print("Using GPU:", gpus[0])
+    except RuntimeError as e:
+        print(e)
 
-# Print in orange if a GPU is used or not
-gpu_status = 'GPU is being used!' if torch.cuda.is_available() else 'No GPU is available.'
-
-print(f'{orange}{gpu_status}{reset}')
+# Test GPU usage by Tensorflow
+gpu_devices = tf.config.list_physical_devices('GPU')
+if gpu_devices:
+    print(f"{orange}GPU is being used!{reset}")
+else:
+    print(f"{orange}GPU is not being used, working on CPU.{reset}")
 
 
 
@@ -490,7 +499,13 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
             'ProtT5': (2048,),
             'ProstT5_full': (2048,),
             'ProstT5_half': (2048,),
-            'ESM2': (2304,),
+            
+            # for the 650M ESM2 version
+            #'ESM2': (2304,),
+
+            # for the 15B ESM2 version 5120
+            'ESM2': (6144,),
+
             'Ankh_large': (2560,),
             'Ankh_base': (1792,),
             'TM_Vec': (1536,)
@@ -502,7 +517,13 @@ def create_model(model_name, num_classes, nb_layer_block, dropout, input_type, l
             'ProtT5': (1024,),
             'ProstT5_full': (1024,),
             'ProstT5_half': (1024,),
-            'ESM2': (1280,),
+
+            # for the 650M ESM2 version
+            #'ESM2': (1280,),
+
+            # for the 15B ESM2 version 5120
+            'ESM2': (5120,),
+
             'Ankh_large': (1536,),
             'Ankh_base': (768,),
             'TM_Vec': (512,)
@@ -574,14 +595,11 @@ def train_model(model_name, num_classes, X_train, y_train, X_val, y_val, input_t
         base_model_path = f'saved_models/ann_{model_name}'
         base_loss_path = f'results/Loss/ann_{model_name}'
 
-    if dropout:
+    
 
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
-        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.png'
-    else:
-        
-        save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
-        save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_no_dropout_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.png'
+    save_model_path = f'{base_model_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}'
+    save_loss_path = f'{base_loss_path}_{nb_layer_block}_blocks_dropout_{dropout}_layer_size_{layer_size}_pLDDT_{pLDDT_threshold}_support_threshold_{support_threshold}.png'
+    
     
     if input_type == '3Di':
 
@@ -805,7 +823,7 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
             # This code updates perf_dataframe.csv
             if os.path.exists(df_results_path):
                 df_existing = pd.read_csv(df_results_path)
-                print('Columns in df_existing:', df_existing.columns.tolist())
+                # print('Columns in df_existing:', df_existing.columns.tolist())
                 # Create a mask to find rows that match the current combination of parameters
                 mask = (
                     (df_existing['Model'].astype(type(model_name)) == model_name) &
