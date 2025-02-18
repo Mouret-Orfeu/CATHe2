@@ -1,3 +1,5 @@
+# This code generates a csv showing both ProstT5_full performance, and dataset information like the number of SF removed based on pLDDT threshold and Top_50_filtering
+
 # ANSI escape code for colored text
 yellow = '\033[93m'
 green = '\033[92m'

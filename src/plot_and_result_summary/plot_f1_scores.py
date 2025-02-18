@@ -48,10 +48,10 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
     }
 
     # Filter the dataframe to include only the models in the list_model_to_show
-    dataframe = dataframe[dataframe['Model'].isin(list_model_to_show)]
+    dataframe = dataframe[dataframe['Model'].isin(list_model_to_show)].copy()
 
     # Create a unique identifier for each combination of parameters
-    dataframe['Parameters'] = dataframe.apply(lambda row: f"Nb_Layer_Block={row['Nb_Layer_Block']}, Dropout={row['Dropout']}, Input_Type={row['Input_Type']}, Layer_size={row['Layer_size']}, pLDDT_threshold={row['pLDDT_threshold']}", axis=1) 
+    dataframe.loc[:, 'Parameters'] = dataframe.apply(lambda row: f"Nb_Layer_Block={row['Nb_Layer_Block']}, Dropout={row['Dropout']}, Input_Type={row['Input_Type']}, Layer_size={row['Layer_size']}, pLDDT_threshold={row['pLDDT_threshold']}", axis=1)
     
     # Sort the dataframe by Model, then by F1_Score in descending order
     dataframe = dataframe.sort_values(by=['Model', 'F1_Score'], ascending=[True, False])
@@ -163,47 +163,6 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **co
     plt.close()  # Use plt.close() instead of plt.show() for 'Agg' backend
 
 
-# Load the dataframe
-df_results_path = './results/perf_dataframe.csv'
-df = pd.read_csv(df_results_path)
-
-# Example usage
-models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-
-list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-
-# example usage function plot_all_f1_scores
-plot_all_f1_scores(df, list_model_to_show)
-
-# Plot the F1 score evolution along 'Dropout' for all models with the specified conditions
-
-models_to_plot = ['ProstT5_full']
-
-
-# # Example usage function plot_f1_score_evolution:
-# input_types = 'AA+3Di'
-# x_param = 'pLDDT_threshold'
-# Dropout = 0.3
-# layer_size = 2048
-# nb_layer_block = 2
-# is_top_50_SF = False
-# Support_threshold = 10
-
-
-# # Plot F1 score evolution
-# plot_f1_score_evolution(
-#     dataframe=df, 
-#     x_param=x_param, 
-#     models_to_plot=models_to_plot, 
-#     title = 'F1 Score relatively to pLDDT threshold, Support_threshold = 10',
-#     Input_Type=input_types, 
-#     Dropout=Dropout,
-#     Layer_size=layer_size, 
-#     Nb_Layer_Block=nb_layer_block,
-#     is_top_50_SF = is_top_50_SF,
-#     Support_threshold=Support_threshold
-# )
-
 def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, **conditions):
     '''
     Plots the F1 score evolution for a selected model along a specified parameter,
@@ -270,6 +229,50 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
 
 
 
+# Usage examples:
+
+df_results_path = './results/perf_dataframe.csv'
+df = pd.read_csv(df_results_path)
+models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+
+# example usage function plot_all_f1_scores
+# list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+
+list_model_to_show = ['ESM2']
+plot_all_f1_scores(df, list_model_to_show)
+
+
+
+# Plot the F1 score evolution along 'Dropout' for all models with the specified conditions
+
+# # Example usage function plot_f1_score_evolution:
+# models_to_plot = ['ProstT5']
+# input_types = 'AA+3Di'
+# x_param = 'pLDDT_threshold'
+# Dropout = 0.3
+# layer_size = 2048
+# nb_layer_block = 2
+# is_top_50_SF = False
+# Support_threshold = 10
+
+# plot_f1_score_evolution(
+#     dataframe=df, 
+#     x_param=x_param, 
+#     models_to_plot=models_to_plot, 
+#     title = 'F1 Score relatively to pLDDT threshold, Support_threshold = 10',
+#     Input_Type=input_types, 
+#     Dropout=Dropout,
+#     Layer_size=layer_size, 
+#     Nb_Layer_Block=nb_layer_block,
+#     is_top_50_SF = is_top_50_SF,
+#     Support_threshold=Support_threshold
+# )
+
+
+
+
+
+
 # Example usage function plot_f1_score_evolution_unique_model:
 
 
@@ -289,6 +292,80 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
 #     Layer_size=layer_size, 
 #     Dropout=dropout,
 #     pLDDT_threshold=plddt_threshold  # Apply pLDDT_threshold=24 except for 'AA'
+# )
+
+
+
+
+#Fine tuning tests######################################################
+
+
+
+# Dropout
+# models_to_plot = ['ESM2']
+# input_types = 'AA'
+# x_param = 'Dropout'
+# pLDDT_threshold= 0.0
+# layer_size = 1024
+# nb_layer_block = 3
+# is_top_50_SF = False
+# Support_threshold = 0
+# plot_f1_score_evolution(
+#     dataframe=df, 
+#     x_param=x_param, 
+#     models_to_plot=models_to_plot, 
+#     title = 'F1 Score relatively to Dropout for based on best ESM2 model AA',
+#     Input_Type=input_types,
+#     is_top_50_SF = is_top_50_SF,
+#     Support_threshold=Support_threshold,
+#     Nb_Layer_Block=nb_layer_block,
+#     Layer_size=layer_size,
+#     pLDDT_threshold=pLDDT_threshold
+# )
+
+# Nb_Layer_Block
+# models_to_plot = ['ESM2']
+# input_types = 'AA'
+# x_param = 'Nb_Layer_Block'
+# dropout = 0.1
+# pLDDT_threshold= 0.0
+# layer_size = 1024
+# is_top_50_SF = False
+# Support_threshold = 0
+# plot_f1_score_evolution(
+#     dataframe=df, 
+#     x_param=x_param, 
+#     models_to_plot=models_to_plot, 
+#     title = 'F1 Score relatively to Nb_layer_block for based on best ESM2 model AA',
+#     Input_Type=input_types,
+#     is_top_50_SF = is_top_50_SF,
+#     Support_threshold=Support_threshold,
+#     Dropout=dropout,
+#     Layer_size=layer_size,
+#     pLDDT_threshold=pLDDT_threshold
+# )
+
+
+# Layer_size
+# models_to_plot = ['ESM2']
+# input_types = 'AA'
+# x_param = 'Layer_size'
+# dropout = 0.1
+# nb_layer_block = 3
+# pLDDT_threshold= 0.0
+# is_top_50_SF = False
+# Support_threshold = 0
+# plot_f1_score_evolution(
+#     dataframe=df, 
+#     x_param=x_param, 
+#     models_to_plot=models_to_plot, 
+#     title = 'F1 Score relatively to Layer_size for based on best ESM2 model AA',
+#     Input_Type=input_types,
+#     is_top_50_SF = is_top_50_SF,
+#     Support_threshold=Support_threshold,
+#     Nb_Layer_Block=nb_layer_block,
+#     Dropout=dropout,
+#     pLDDT_threshold=pLDDT_threshold
 # )
 
 
