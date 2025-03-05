@@ -205,9 +205,9 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         ds_train = pd.read_csv('./data/Dataset/annotations/Y_Train_SF.csv')
         y_train = list(ds_train['SF'])
 
-        filename = './data/Dataset/embeddings/SF_Train_ProtT5_per_protein.npz'
+        filename = './data/Dataset/embeddings/SF_Train_ProtT5.npz'
         X_train = np.load(filename)['arr_0']
-        filename = './data/Dataset/embeddings/Other Class/Other_Train_per_protein.npz'
+        filename = './data/Dataset/embeddings/Other Class/Other_Train.npz'
         X_train_other = np.load(filename)['arr_0']
 
         X_train = np.concatenate((X_train, X_train_other), axis=0)
@@ -219,10 +219,10 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         ds_val = pd.read_csv('./data/Dataset/annotations/Y_Val_SF.csv')
         y_val = list(ds_val['SF'])
 
-        filename = './data/Dataset/embeddings/SF_Val_ProtT5_per_protein.npz'
+        filename = './data/Dataset/embeddings/SF_Val_ProtT5.npz'
         X_val = np.load(filename)['arr_0']
 
-        filename = './data/Dataset/embeddings/Other Class/Other_Val_per_protein.npz'
+        filename = './data/Dataset/embeddings/Other Class/Other_Val.npz'
         X_val_other = np.load(filename)['arr_0']
 
         X_val = np.concatenate((X_val, X_val_other), axis=0)
@@ -234,10 +234,10 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         ds_test = pd.read_csv('./data/Dataset/annotations/Y_Test_SF.csv')
         y_test = list(ds_test['SF'])
 
-        filename = './data/Dataset/embeddings/SF_Test_ProtT5_per_protein.npz'
+        filename = './data/Dataset/embeddings/SF_Test_ProtT5.npz'
         X_test = np.load(filename)['arr_0']
 
-        filename = './data/Dataset/embeddings/Other Class/Other_Test_per_protein.npz'
+        filename = './data/Dataset/embeddings/Other Class/Other_Test.npz'
         X_test_other = np.load(filename)['arr_0']
 
         X_test = np.concatenate((X_test, X_test_other), axis=0)
