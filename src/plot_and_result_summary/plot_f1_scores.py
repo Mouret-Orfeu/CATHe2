@@ -51,7 +51,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
     dataframe = dataframe[dataframe['Model'].isin(list_model_to_show)].copy()
 
     # Create a unique identifier for each combination of parameters
-    dataframe.loc[:, 'Parameters'] = dataframe.apply(lambda row: f"Nb_Layer_Block={row['Nb_Layer_Block']}, Dropout={row['Dropout']}, Input_Type={row['Input_Type']}, Layer_size={row['Layer_size']}, pLDDT_threshold={row['pLDDT_threshold']}", axis=1)
+    dataframe.loc[:, 'Parameters'] = dataframe.apply(lambda row: f"Nb_Layer_Block={row['Nb_Layer_Block']}, Dropout={row['Dropout']}, Input_Type={row['Input_Type']}, Layer_size={row['Layer_size']}, pLDDT_threshold={row['pLDDT_threshold']}, is_top_50_SF={row['is_top_50_SF']}, Support_threshold{row['Support_threshold']}", axis=1)
     
     # Sort the dataframe by Model, then by F1_Score in descending order
     dataframe = dataframe.sort_values(by=['Model', 'F1_Score'], ascending=[True, False])
@@ -76,7 +76,7 @@ def plot_all_f1_scores(dataframe, list_model_to_show):
             name=row['Parameters'],
             marker_color=color_map.get(row['Input_Type'], 'gray'),  # Use gray if Input_Type is not in the color_map
             hoverinfo='text',
-            text=f"Model={row['Model']}<br>Nb_Layer_Block={row['Nb_Layer_Block']}<br>Dropout={row['Dropout']}<br>Input_Type={row['Input_Type']}<br>Layer_size={row['Layer_size']}<br>pLDDT_threshold={row['pLDDT_threshold']}<br>F1_Score={row['F1_Score']:.4f}"
+            text=f"Model={row['Model']}<br>Nb_Layer_Block={row['Nb_Layer_Block']}<br>Dropout={row['Dropout']}<br>Input_Type={row['Input_Type']}<br>Layer_size={row['Layer_size']}<br>pLDDT_threshold={row['pLDDT_threshold']}<br>is_top_50_SF={row['is_top_50_SF']}<br>Support_threshold={row['Support_threshold']}<br>F1_Score={row['F1_Score']:.4f}"
         ))
 
     fig.update_layout(
@@ -163,7 +163,7 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **co
     plt.close()  # Use plt.close() instead of plt.show() for 'Agg' backend
 
 
-def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, **conditions):
+def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types, title=None, **conditions):
     '''
     Plots the F1 score evolution for a selected model along a specified parameter,
     with different curves for each input type.
@@ -195,7 +195,7 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
                 else:
                     df_subset = df_subset[df_subset[param] == value]
 
-                    print(f'Filtering: {param}={value}')
+                    #   print(f'Filtering: {param}={value}')
 
                 condition_str += f'_{param}_{value}'
         filtered_dfs.append(df_subset)
@@ -205,20 +205,18 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
     
     plt.figure(figsize=(10, 6))
     sns.lineplot(data=df_filtered, x=x_param, y='F1_Score', hue='Input_Type', marker='o')
-    
-    # Construct the plot title
-    plot_title = f'F1 Score Evolution along {x_param} for {model}: '
-    if condition_str:
-        plot_title += condition_str.replace('_', ', ').replace('=', '=')
 
-    plt.title(plot_title)
+    plt.title(title)
     plt.xlabel(x_param)
     plt.ylabel('F1 Score')
     plt.legend(title='Input_Type')
     plt.grid(True)
     
     # Save the plot with the model name in the filename
-    plot_filename = f'./results/f1_score_plots/f1_score_evolution_{x_param}_{model}{condition_str}.png'
+    if title:
+        plot_filename = f'./results/f1_score_plots/{title}.png'
+    else:
+        plot_filename = f'./results/f1_score_plots/unnamed_plot.png'
 
     # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(plot_filename), exist_ok=True)
@@ -236,9 +234,10 @@ df = pd.read_csv(df_results_path)
 models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
 # example usage function plot_all_f1_scores
-# list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
-list_model_to_show = ['ESM2']
+# list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+list_model_to_show = ['ProstT5_full']
+
 plot_all_f1_scores(df, list_model_to_show)
 
 
@@ -276,30 +275,54 @@ plot_all_f1_scores(df, list_model_to_show)
 # Example usage function plot_f1_score_evolution_unique_model:
 
 
-# input_types = ['AA', '3Di']
+# input_types = ['AA', '3Di', 'AA+3Di']
 # model = 'ProstT5_full'
 # x_param = 'Dropout'
 # plddt_threshold = 24
 # layer_size = 1024
-# dropout = 0.1
 # nb_layer_block = 2
+# is_top_50_SF = False
+# support_threshold = 0
 
 # plot_f1_score_evolution_unique_model(
 #     dataframe=df, 
 #     x_param=x_param, 
 #     model=model, 
 #     input_types=input_types, 
+#     title="test plot",
 #     Layer_size=layer_size, 
-#     Dropout=dropout,
-#     pLDDT_threshold=plddt_threshold  # Apply pLDDT_threshold=24 except for 'AA'
+#     pLDDT_threshold=plddt_threshold,  # Apply pLDDT_threshold=24 except for 'AA'
+#     Nb_Layer_Block=nb_layer_block,
+#     is_top_50_SF=is_top_50_SF,
+#     Support_threshold=support_threshold
 # )
 
 
 
 
-#Fine tuning tests######################################################
+#end of work tests######################################################
 
 
+# input_types = ['AA', '3Di', 'AA+3Di']
+# model = 'ProstT5_full'
+# x_param = 'Layer_size'
+# plddt_threshold = 0
+# nb_layer_block = 2
+# dropout = 0.3
+# is_top_50_SF = False
+# support_threshold = 0
+
+# plot_f1_score_evolution_unique_model(
+#     dataframe=df, 
+#     x_param=x_param, 
+#     model=model, 
+#     input_types=input_types, 
+#     Dropout=dropout,
+#     pLDDT_threshold=plddt_threshold,  # Apply pLDDT_threshold=24 except for 'AA'
+#     Nb_Layer_Block=nb_layer_block,
+#     is_top_50_SF=is_top_50_SF,
+#     Support_threshold=support_threshold
+# )
 
 # Dropout
 # models_to_plot = ['ESM2']

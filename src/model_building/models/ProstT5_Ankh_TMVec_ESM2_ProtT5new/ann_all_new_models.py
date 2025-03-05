@@ -870,10 +870,17 @@ def evaluate_model(model_name, X_val, y_val, X_test, y_test, nb_layer_block, dro
                 del X_test_re, y_test_re, y_pred_test_re  # Immediately delete to free memory
                 gc.collect()
 
+            std_f1 = np.std(f1_arr)
+            std_acc = np.std(acc_arr)
+
             writer.writerow(['Accuracy ', np.mean(acc_arr)])
+            writer.writerow(['Accuracy std ', std_acc])
             writer.writerow(['F1-Score', np.mean(f1_arr)])
+            writer.writerow(['F1-Score Std', std_f1])
             writer.writerow(['MCC', np.mean(mcc_arr)])
             writer.writerow(['Balanced Accuracy', np.mean(bal_arr)])
+
+            
             
             warnings.filterwarnings('default')
 
