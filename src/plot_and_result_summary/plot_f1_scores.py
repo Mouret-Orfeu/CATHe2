@@ -235,8 +235,8 @@ models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', '
 
 # example usage function plot_all_f1_scores
 
-# list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-list_model_to_show = ['ProstT5_full']
+list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+
 
 plot_all_f1_scores(df, list_model_to_show)
 
