@@ -24,13 +24,13 @@
 
 
 # Introduction
-This project is based on the work of Vamsi Nallapareddy https://github.com/vam-sin/CATHe and the CATHe team [CATHe paper](https://watermark.silverchair.com/btad029.pdf?token=AQECAHi208BE49Ooan9kkhW_Ercy7Dm3ZL_9Cf3qfKAc485ysgAAA3EwggNtBgkqhkiG9w0BBwagggNeMIIDWgIBADCCA1MGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM-he7uvdTMzk1zDXOAgEQgIIDJGfpD_jUcvAY66ZNH4KdwDL1Fvj6SBj1iXcAvfKW-dgVyvwYBUK7CBP2chYewliixDX_ZqpjV41EDy9gziM5G4A23RFVZqbpTpCehzKi9s0KcNRvdnp2q44Buv9STjbzFzdFu-9fNQKOMnSZ9dR8Dz3Pi0oqEPyrVuO2VeEJwriSqVoHXoS9IrG-Kt1M0EwEe1pYe8rK_g1Di-U89JAfQOadpvN3TlzU0FJJUm39H2yjV7wzYXcVnaUDEIyylq4I0d3bRXe2pUj3eZ_kayClbd9uGCLMiL6d5eYAGikZluyr4Ih6SIWYrvI2ItLeR4s_GqQLVErq1Xe0CFkakeIvI4JdNWUFI0N6MuDKjQDe532qPndw9I6eTkYhMfJIUob6ABel1bxujvMJdhuNtf1M4RnBr_72KTeEvkHVZh20d-dSek9RqnPmiihqtKcHc_h0gh0aIuuU2zvrGxiEjQiyLdRut5R9T0Xk4_bKPEmvfD9czULAT3dQ-wOFA6JtjoKjM2mVhLcBmPDR4-sXYp9musfv1ISYsGZ4tOs7_ssjs0u-7wpG1xL5T_walXCQ_2GtM7vV2ZTrPTW2Jl3yAlRwYsXqQlhhiYWC3hMsCdf2La0b65u9Lqzl5pUQjGvAurYk07-Ykcn_4dH-KNJfCj7ZaVn5AVKOdDg6qZNZBGNtEB6IIxr3pCaN1_VuwIbMIITlyihoDBAUrvDL2J1V7p6VIHtjN2GgaBl07lJoI4iAMuw83M8qizVEBTZ0PvYfUOmJq3ZM7ZroFuvTyiyvhy5zJpqAE9p3F4sTdb1hi8Q_biLvYETS2hNjaremJ95aYIgmE3dev8z2jHTYRR-np8lfvi2LwfrDgf4h5l3zomU05GrSJUHztuTaFuBIN8aCqbNeRpi_X5rTc8P8btsqc1_dGgz_jNJXnQgQWEjnOQuhVBh9ij5lEQAw9_rtO6mLoKu-njqrYlnHjJ2Is4HqM6G9n5nk3xURVPp2wKTOvnEO8EbrL9-b8q-IvyJOudWlZTjB_sSnd1Cz5UX_qC2krgUMrYSJirv5iW7fslZRUaj_PD4cVALoVQ)
+This project is based on the work of Vamsi Nallapareddy https://github.com/vam-sin/CATHe and the CATHe team [CATHe paper](https://pubmed.ncbi.nlm.nih.gov/36648327/)
 
 CATHe (short for CATH embeddings) is a deep learning tool designed to detect remote homologues (up to 20% sequence similarity) for superfamilies in the CATH database. CATHe consists of an artificial neural network model which was trained on sequence embeddings from the ProtT5 protein Language Model (pLM). It was able to achieve an accuracy of 85.6% +- 0.4% (F1 score of 72%), and outperform the other baseline models derived from both, simple machine learning algorithms such as Logistic Regression, and homology-based inference using BLAST. 
 
-CATHe2 is an improved version of CATHe with a different architecture, using embeddings from the ProstT5 pLM. CATHe2 is also able to take secondary and tertiary structure information as input as well as protein primary sequences, via 3Di sequences derived from PDB files. This allows CATHe2 to reach an accuracy of 92.2% (F1 score of 82.3%).
+CATHe2 is an improved version of CATHe with a different architecture, using embeddings from the ProstT5 pLM. CATHe2 is also able to take 3D structure information as input as well as protein primary sequences, via 3Di sequences derived from PDB files. This allows CATHe2 to reach an accuracy of 92.2% (F1 score of 82.3%).
 
-To know more about CATHe2 and how it was built, see [CATHe2 paper](https://...)
+To know more about CATHe2 and how it was built, see (put CATHe2 link when published) [CATHe2 paper](https://...)
 
 # Project information
 This project was tested on Ubuntu 22.04
