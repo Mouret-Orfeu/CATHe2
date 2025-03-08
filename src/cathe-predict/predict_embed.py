@@ -71,7 +71,7 @@ def embed_sequence(model):
         i = 0
         length = 1000
         while i < num_seq:
-            print('Doing', i, num_seq)
+            #print('Doing', i, num_seq)
             start = i 
             end = i + length
 
@@ -168,6 +168,7 @@ def get_3di_sequences(pdb_folder_path):
     with open(combined_fasta_output, 'w') as combined_fasta:
 
         # Run Foldseek commands to create a sequence database and extract the sequence
+        
         try:
 
             subprocess.run(f'foldseek createdb {trimmed_pdb_folder} {query_db_path}', shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

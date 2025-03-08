@@ -112,7 +112,7 @@ Put the protein sequences for which you want to predict the CATH annotation into
 ## 3.2 Prepare PDB files for inference
 If you want to use both 3Di sequences and Amino Acid (AA) sequences to predict the CATH annotation, ensure that the corresponding PDB files for the sequences in `Sequences.fasta` are placed in the `PDB_folder` folder located in `./src/cathe-predict`. Each PDB file must be prefixed by the index of its respective sequence in `Sequences.fasta`, followed by an underscore. For example:
 
-If my `Sequences.fasta` has 3 sequences of protein domain in this order:  protein domain 3hhl, protein domain 4jkm, protein domain 3ddn, then the corresponding PDB files in `./src/cathe-predict/PDB_folder` should be renamed:
+If my `Sequences.fasta` has 3 sequences of protein domain in this order:  protein domain corresponding to the 3hhl.pdb file, protein domain corresponding to the 4jkm.pdb file and protein domain corresponding to the 3ddn.pdb file, then the corresponding PDB files in `./src/cathe-predict/PDB_folder` should be renamed:
 
 ```
 0_3hhl.pdb
@@ -131,7 +131,7 @@ python ./src/cathe-predict/cathe_predictions.py
 
 (venv_1 has to be activated)
 
-- To use the new version of CATHe (for input type AA only)
+- To use the new version of CATHe, i.e CATHe2  (for input type AA only)
 
 run
 
@@ -140,7 +140,7 @@ python ./src/cathe-predict/cathe_predictions.py --model ProstT5 --input_type AA
 ```
 (venv_2 has to be activated)
 
-- To use the new version of CATHe  (with 3Di input as well as AA).
+- To use the new version of CATHe, i.e CATHe2  (with 3Di input as well as AA).
 
 ```bash
 python ./src/cathe-predict/cathe_predictions.py --model ProstT5 --input_type AA+3Di

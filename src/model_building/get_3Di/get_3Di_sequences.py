@@ -10,6 +10,8 @@
 # Source: https://github.com/steineggerlab/foldseek
 # License: GNU GENERAL PUBLIC LICENSE
 
+# You need venv2 to run the code here, see README for more details
+
 # Adjust to your CPU capacity
 multi_threading_worker_nb = 100
 
@@ -19,10 +21,7 @@ green = '\033[92m'
 reset = '\033[0m'
 red = '\033[91m'
 
-print(f'{yellow}Please activate venv_2 to run this code if not already activated. See ReadMe for more details.{reset}')
 
-
-print(f'{green}3Di computing code running (get_3Di_sequences.py){reset}')
 
 import sys
 import os

@@ -48,21 +48,6 @@ if venv_name != 'venv_1' and venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, but it should be venv_1 or venv_2. See ReadMe for more details.{reset}')
 
 
-# Check and set up GPUs
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(f'{yellow}Num GPUs Available: {len(gpus)} Physical GPUs, {len(logical_gpus)} Logical GPUs{reset}')
-    except RuntimeError as e:
-        print(e)
-else:
-    print(f'{yellow}No GPUs available. Running on CPU.{reset}')
-
-
-
 # Validate the arguments
 if args.model == 'ProtT5' and args.input_type == 'AA+3Di':
     raise ValueError(f'{red}Error: Model ProtT5 does not support input type AA+3Di, please select ProstT5 for AA+3Di usage{reset}')

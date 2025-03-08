@@ -395,7 +395,7 @@ def embedding_set_up(seq_path, model_name, is_3Di, dataset):
         model = model.half()
     if model_name in ['ProstT5_full', 'ProstT5_half']:
         prefix = '<fold2AA>' if is_3Di else '<AA2fold>'
-        print(f'Input is 3Di: {is_3Di}')
+        #print(f'Input is 3Di: {is_3Di}')
     else:
         prefix = None
 

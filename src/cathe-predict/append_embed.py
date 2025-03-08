@@ -18,7 +18,7 @@ for i in range(1, 1000000):
         arr = np.load(filename)['arr_0']
         pb_arr = np.append(pb_arr, arr, axis=0)
     except FileNotFoundError:
-        print(f"File {filename} not found, stopping.")
+        #print(f"File {filename} not found, stopping.")
         break
 
 # Save the concatenated array
