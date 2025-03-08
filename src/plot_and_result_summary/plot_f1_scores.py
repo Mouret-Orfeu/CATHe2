@@ -137,15 +137,19 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **co
     plt.figure(figsize=(10, 6))
     sns.lineplot(data=df_filtered, x=x_param, y='F1_Score', hue='Model', marker='o', errorbar=None)
 
+
+    plot_filename = f'./results/f1_score_plots/f1_score_evolution_{x_param}_{models_str}{condition_str}.png'
+
     # If a title is provided, use it; otherwise, construct the title
     if title:
         plot_title = title
-    else:
+        plot_filename = f'./results/f1_score_plots/{title}.png'
         # Construct the title based on conditions
         plot_title = f'F1 Score Evolution along {x_param}: '
         condition_str = ', '.join(f'{param}={value}' for param, value in conditions.items() if value is not None)
         if condition_str:
             plot_title += condition_str  # Directly use the formatted condition_str
+        
 
     plt.title(plot_title)
     plt.xlabel(x_param)
@@ -154,8 +158,6 @@ def plot_f1_score_evolution(dataframe, x_param, models_to_plot, title=None, **co
     plt.grid(True)
     
     # Save the plot
-    plot_filename = f'./results/f1_score_plots/f1_score_evolution_{x_param}_{models_str}{condition_str}.png'
-
     # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(plot_filename), exist_ok=True)
 
@@ -231,18 +233,11 @@ def plot_f1_score_evolution_unique_model(dataframe, x_param, model, input_types,
 
 df_results_path = './results/perf_dataframe.csv'
 df = pd.read_csv(df_results_path)
-models_to_plot = ['ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
 
-# example usage function plot_all_f1_scores
+# #Example usage function plot_all_f1_scores
+# list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
+# plot_all_f1_scores(df, list_model_to_show)
 
-list_model_to_show = ['ProtT5_new', 'ProtT5', 'ESM2', 'Ankh_large', 'Ankh_base', 'ProstT5_full', 'ProstT5_half', 'TM_Vec']
-
-
-plot_all_f1_scores(df, list_model_to_show)
-
-
-
-# Plot the F1 score evolution along 'Dropout' for all models with the specified conditions
 
 # # Example usage function plot_f1_score_evolution:
 # models_to_plot = ['ProstT5']
@@ -268,13 +263,7 @@ plot_all_f1_scores(df, list_model_to_show)
 # )
 
 
-
-
-
-
-# Example usage function plot_f1_score_evolution_unique_model:
-
-
+# #Example usage function plot_f1_score_evolution_unique_model:
 # input_types = ['AA', '3Di', 'AA+3Di']
 # model = 'ProstT5_full'
 # x_param = 'Dropout'
@@ -296,99 +285,3 @@ plot_all_f1_scores(df, list_model_to_show)
 #     is_top_50_SF=is_top_50_SF,
 #     Support_threshold=support_threshold
 # )
-
-
-
-
-#end of work tests######################################################
-
-
-# input_types = ['AA', '3Di', 'AA+3Di']
-# model = 'ProstT5_full'
-# x_param = 'Layer_size'
-# plddt_threshold = 0
-# nb_layer_block = 2
-# dropout = 0.3
-# is_top_50_SF = False
-# support_threshold = 0
-
-# plot_f1_score_evolution_unique_model(
-#     dataframe=df, 
-#     x_param=x_param, 
-#     model=model, 
-#     input_types=input_types, 
-#     Dropout=dropout,
-#     pLDDT_threshold=plddt_threshold,  # Apply pLDDT_threshold=24 except for 'AA'
-#     Nb_Layer_Block=nb_layer_block,
-#     is_top_50_SF=is_top_50_SF,
-#     Support_threshold=support_threshold
-# )
-
-# Dropout
-# models_to_plot = ['ESM2']
-# input_types = 'AA'
-# x_param = 'Dropout'
-# pLDDT_threshold= 0.0
-# layer_size = 1024
-# nb_layer_block = 3
-# is_top_50_SF = False
-# Support_threshold = 0
-# plot_f1_score_evolution(
-#     dataframe=df, 
-#     x_param=x_param, 
-#     models_to_plot=models_to_plot, 
-#     title = 'F1 Score relatively to Dropout for based on best ESM2 model AA',
-#     Input_Type=input_types,
-#     is_top_50_SF = is_top_50_SF,
-#     Support_threshold=Support_threshold,
-#     Nb_Layer_Block=nb_layer_block,
-#     Layer_size=layer_size,
-#     pLDDT_threshold=pLDDT_threshold
-# )
-
-# Nb_Layer_Block
-# models_to_plot = ['ESM2']
-# input_types = 'AA'
-# x_param = 'Nb_Layer_Block'
-# dropout = 0.1
-# pLDDT_threshold= 0.0
-# layer_size = 1024
-# is_top_50_SF = False
-# Support_threshold = 0
-# plot_f1_score_evolution(
-#     dataframe=df, 
-#     x_param=x_param, 
-#     models_to_plot=models_to_plot, 
-#     title = 'F1 Score relatively to Nb_layer_block for based on best ESM2 model AA',
-#     Input_Type=input_types,
-#     is_top_50_SF = is_top_50_SF,
-#     Support_threshold=Support_threshold,
-#     Dropout=dropout,
-#     Layer_size=layer_size,
-#     pLDDT_threshold=pLDDT_threshold
-# )
-
-
-# Layer_size
-# models_to_plot = ['ESM2']
-# input_types = 'AA'
-# x_param = 'Layer_size'
-# dropout = 0.1
-# nb_layer_block = 3
-# pLDDT_threshold= 0.0
-# is_top_50_SF = False
-# Support_threshold = 0
-# plot_f1_score_evolution(
-#     dataframe=df, 
-#     x_param=x_param, 
-#     models_to_plot=models_to_plot, 
-#     title = 'F1 Score relatively to Layer_size for based on best ESM2 model AA',
-#     Input_Type=input_types,
-#     is_top_50_SF = is_top_50_SF,
-#     Support_threshold=Support_threshold,
-#     Nb_Layer_Block=nb_layer_block,
-#     Dropout=dropout,
-#     pLDDT_threshold=pLDDT_threshold
-# )
-
-
