@@ -157,7 +157,7 @@ The dataset used for training, optimizing, and testing CATHe2 was derived from t
 Or running the following code at the project root:
 
 ```bash
- wget https://zenodo.org/records/14568772/files/data.zip?download=1 -O data.zip
+ wget https://zenodo.org/records/14970431/files/data.zip?download=1 -O data.zip
  unzip ./data.zip
  rm -f data.zip
  ```

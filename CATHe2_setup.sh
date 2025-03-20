@@ -5,7 +5,7 @@ apt install wget
 apt install zip unzip
 
 # Dowloading saved models
-wget https://zenodo.org/records/14568772/files/saved_models.zip?download=1 -O saved_models.zip
+wget https://zenodo.org/records/14970431/files/saved_models.zip?download=1 -O saved_models.zip
 unzip ./saved_models.zip
 rm -f saved_models.zip
 
