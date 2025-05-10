@@ -253,8 +253,10 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
         df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
         df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
+
+        test_perf_AA_only_with_3D_structure_filters = False
         
-        if input_type == '3Di' or input_type == 'AA+3Di':
+        if input_type == '3Di' or input_type == 'AA+3Di' or test_perf_AA_only_with_3D_structure_filters:
             # Load the domain IDs corresponding to the filter criteria
 
             if only_50_largest_SF:

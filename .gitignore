@@ -1,5 +1,6 @@
 venv_1/
 venv_2/
+venv/
 ann_ProstT5_full_2_blocks_dropout_0.1_layer_size_1024_pLDDT_0_support_threshold_0/
 ann_ProstT5_full_2_blocks_dropout_0.3_layer_size_2048_pLDDT_24_support_threshold_0_AA+3Di/
 foldseek-linux-avx2.tar.gz
