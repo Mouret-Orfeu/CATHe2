@@ -198,6 +198,9 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         y_test (list): The test labels.
     '''
 
+    # This boolean serves to test the performance of the AA-only model with 3D structure filters (specifically with the loss of the 32 Sf due to 3Di usage). In all other cases, this must remain False.
+    test_perf_AA_only_with_3D_structure_filters = False
+
     if model_name == 'ProtT5':
         # For ProtT5, the former code and embeddings datasets are used here, see ./src/model_building/models/ProtT5/ann_ProtT5.py
 
@@ -253,8 +256,6 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         df_train = pd.read_csv('./data/Dataset/csv/Train.csv')
         df_val = pd.read_csv('./data/Dataset/csv/Val.csv')
         df_test = pd.read_csv('./data/Dataset/csv/Test.csv')
-
-        test_perf_AA_only_with_3D_structure_filters = False
         
         if input_type == '3Di' or input_type == 'AA+3Di' or test_perf_AA_only_with_3D_structure_filters:
             # Load the domain IDs corresponding to the filter criteria
@@ -286,7 +287,7 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
         y_train = df_train['SF'].tolist()
         y_val = df_val['SF'].tolist()
         y_test = df_test['SF'].tolist()
-        
+
         prot_sequence_embeddings_paths = {
             'ProtT5': ('Train_ProtT5_per_protein.npz', 'Val_ProtT5_per_protein.npz', 'Test_ProtT5_per_protein.npz'),
             'ProtT5_new' : ('Train_ProtT5_new_per_protein.npz', 'Val_ProtT5_new_per_protein.npz', 'Test_ProtT5_new_per_protein.npz'),
@@ -319,9 +320,49 @@ def load_data(model_name, input_type, pLDDT_threshold, only_50_largest_SF, suppo
             X_val_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Val_file_name_seq_embed}')
             X_test_seq_embeddings_df = np.load(f'./data/Dataset/embeddings/{Test_file_name_seq_embed}')
             
-            X_train = np.array(X_train_seq_embeddings_df['embeddings'])
-            X_val = np.array(X_val_seq_embeddings_df['embeddings'])
-            X_test = np.array(X_test_seq_embeddings_df['embeddings'])
+            if test_perf_AA_only_with_3D_structure_filters:
+                X_train_embedding_dict_AA = dict(zip(X_train_seq_embeddings_df['keys'], X_train_seq_embeddings_df['embeddings']))
+                X_val_embedding_dict_AA = dict(zip(X_val_seq_embeddings_df['keys'], X_val_seq_embeddings_df['embeddings']))
+                X_test_embedding_dict_AA = dict(zip(X_test_seq_embeddings_df['keys'], X_test_seq_embeddings_df['embeddings']))
+
+                # Load list of domain ids to keep
+                train_ids_to_keep, val_ids_to_keep, test_ids_to_keep = load_ids_to_keep(pLDDT_threshold, only_50_largest_SF, support_threshold)
+
+                # AA seq embedding filtering
+                # For train embeddings
+                train_embeddings_to_keep_AA = []
+                for domain_id in train_ids_to_keep:
+                    if domain_id not in X_train_embedding_dict_AA:
+                        raise KeyError(f'Train domain ID {domain_id} not found in the train embeddings dictionary!')
+                    train_embeddings_to_keep_AA.append(X_train_embedding_dict_AA[domain_id])
+
+                # For validation embeddings
+                val_embeddings_to_keep_AA = []
+                for domain_id in val_ids_to_keep:
+                    if domain_id not in X_val_embedding_dict_AA:
+                        raise KeyError(f'Validation domain ID {domain_id} not found in the validation embeddings dictionary!')
+                    val_embeddings_to_keep_AA.append(X_val_embedding_dict_AA[domain_id])
+
+                # For test embeddings
+                test_embeddings_to_keep_AA = []
+                for domain_id in test_ids_to_keep:
+                    if domain_id not in X_test_embedding_dict_AA:
+                        raise KeyError(f'Test domain ID {domain_id} not found in the test embeddings dictionary!')
+                    test_embeddings_to_keep_AA.append(X_test_embedding_dict_AA[domain_id])
+                
+                # Free memory by deleting the dictionaries
+                del X_train_embedding_dict_AA
+                del X_val_embedding_dict_AA
+                del X_test_embedding_dict_AA
+
+                X_train = train_embeddings_to_keep_AA
+                X_val = val_embeddings_to_keep_AA
+                X_test = test_embeddings_to_keep_AA
+
+            else:
+                X_train = np.array(X_train_seq_embeddings_df['embeddings'])
+                X_val = np.array(X_val_seq_embeddings_df['embeddings'])
+                X_test = np.array(X_test_seq_embeddings_df['embeddings'])
         
         if input_type == '3Di':
             # Load 3Di embeddings
@@ -431,7 +472,7 @@ def data_preparation(X_train, y_train, y_val, y_test):
 
     num_classes = len(np.unique(y_tot))
     print('number of classes: ',num_classes)
-    
+
     X_train, y_train = shuffle(X_train, y_train, random_state=42)
 
     print(f'{green}Data preparation done{reset}')
