@@ -165,19 +165,40 @@ Or running the following code at the project root:
 
  data.zip is 30 GB
 
+
+
+
+# CATHe2 Code Location Guide
+
+The main components extending the original CATHe project are located in the following files and directories:
+
+- **New ANN Classifiers:**  
+   `CATHe2/src/model_building/models/ann_all_new_models.py`  
+   Contains code for creating and training the new artificial neural network classifiers.
+
+- **Embedding with New Protein Language Models:**  
+   `CATHe2/src/model_building/models/ProstT5_Ankh_TMVec_ESM2_ProtT5new/embed_all_new_models.py`  
+   Implements embedding generation using updated protein language models.
+
+- **3Di Sequence Processing:**  
+   `CATHe2/src/model_building/get_3Di`  
+   Handles the processing related to 3Di structural information.
+
+
 # Pre-Print
 
 If you found this work useful, please consider citing the following article:
 
 ```
-@article {Name,
-	author = {},
-	title = {},
-	elocation-id = {},
-	year = {},
-	doi = {},
-	publisher = {},
-	URL = {},
-	journal = {}
+@article {Mouret2025.06.22.660903,
+	author = {Mouret, Orfe{\'u} and Abbass, Jad},
+	title = {CATHe2: Enhanced CATH Superfamily Detection Using ProstT5 and Structural Alphabets},
+	elocation-id = {2025.06.22.660903},
+	year = {2025},
+	doi = {10.1101/2025.06.22.660903},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2025/06/26/2025.06.22.660903},
+	eprint = {https://www.biorxiv.org/content/early/2025/06/26/2025.06.22.660903.full.pdf},
+	journal = {bioRxiv}
 }
 ```
