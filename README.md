@@ -147,6 +147,16 @@ python ./src/cathe-predict/cathe_predictions.py --model ProstT5 --input_type AA+
 ```
  (You need to fill `PDB_folder` accordingly to run this, see [paragraph 3.2](#32), make sure venv_2 is activated too)
 
+ If you encounter an error during sequence embedding indicating that the number of embeddings does not match the number of sequences, it is likely that you need to lower the values of the following variables, at the beginning of CATHe2/src/model_building/models ProstT5_Ankh_TMVec_ESM2_ProtT5new/embed_all_new_models.py file, in order to fit each batch of sequences to embed in your GPU memory:
+ 
+ ```
+ max_res_per_batch = 4096 
+ nb_seq_max_per_batch = 4096
+```
+
+ (These two variables control the maximum number of residues and sequences per batch, respectively. You can keep it simple by setting both to the same value, e.g 512 should work for an 8 GB GPU)
+
+
 ## 5 Look at the Result
 
 The Results will be in `./src/cathe-predict/Results.csv`
