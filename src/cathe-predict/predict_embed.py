@@ -1,4 +1,4 @@
-# This code computes and savec the embeddings
+# This code computes and saves the embeddings
 
 # This file includes foldseek commands found in the ProstT5 project ReadMe
 # Author: Michael Heinzinger
