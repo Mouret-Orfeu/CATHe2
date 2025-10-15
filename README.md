@@ -123,6 +123,8 @@ If my `Sequences.fasta` has 3 sequences of protein domain in this order:  protei
 ## 4 Run the inference
 Then you can launch the desired version of CATHe to predict CATH annotation.
 
+(In this section, the `python` command can be replaced by `python3` if necessary)
+
 - To use the old version (with model ProtT5 and input type AA only), run
 
 ```bash

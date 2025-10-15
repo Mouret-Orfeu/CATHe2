@@ -15,7 +15,7 @@ source venv_1/bin/activate
 pip install --upgrade pip
 pip install setuptools==69.5.1
 
-# # Install gensim and bio-embeddings
+# Install gensim and bio-embeddings
 pip install gensim==4.3.2
 pip install git+https://github.com/sacdallago/bio_embeddings.git@develop
 
@@ -70,7 +70,7 @@ source venv_1/bin/activate
 
 # Install Python requirements
 echo "Installing Python requirements for venv_1, this may take a while..."
-pip install --use-deprecated=legacy-resolver -r requirements.txt
+pip install -r requirements.txt
 
 # Install MMseqs2
 sudo apt install -y mmseqs2

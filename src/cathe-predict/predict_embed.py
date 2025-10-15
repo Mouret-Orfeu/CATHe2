@@ -44,6 +44,9 @@ if args.model == 'ProstT5' and venv_name != 'venv_2':
 if venv_name != 'venv_1' and venv_name != 'venv_2':
     raise EnvironmentError(f'{red}The activated virtual environment is {venv_name}, but it should be venv_1 or venv_2. See ReadMe for more details.{reset}')
 
+# Ensure Transformers does not attempt to import torchvision (avoids torch._custom_ops issues)
+os.environ.setdefault('TRANSFORMERS_NO_TORCHVISION', '1')
+
 # libraries
 import numpy as np
 import pandas as pd 
@@ -57,8 +60,10 @@ def embed_sequence(model):
 
     if model == 'ProtT5':
 
-        # bio_embeddings is actually the reason why there is 2 virtual environments, because it causes a lot of dependency issues with other libraries (namely numpy), but I made the choice to keep the ProtT5 process as it was.
+        # bio_embeddings is actually the reason why there is 2 virtual environments, because it causes a lot of dependency issues with other libraries (namely numpy), 
+        # but I made the choice to keep the ProtT5 process as it was.
         from bio_embeddings.embed import ProtTransT5BFDEmbedder
+        #from bio_embeddings.embed.prottrans_t5_bfd_embedder import ProtTransT5BFDEmbedder
 
         print(f'{yellow}Loading ProtT5 model. (can take a few minutes){reset}')
 
