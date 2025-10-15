@@ -67,7 +67,7 @@ source venv_2/bin/activate
 
 # Install requirements from requirements_2.txt
 echo "Installing Python requirements from requirements_2.txt, this may take a while..."
-pip install --use-deprecated=legacy-resolver -r requirements_2.txt
+pip install -r requirements_2.txt
 
 # Install MMseqs2
 sudo apt install -y mmseqs2
