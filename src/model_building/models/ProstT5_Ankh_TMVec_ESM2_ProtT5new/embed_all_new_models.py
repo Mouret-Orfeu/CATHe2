@@ -43,6 +43,15 @@ nb_seq_max_per_batch = 4096
 import sys
 import os
 
+# Disable HF fast download if hf_transfer is unavailable
+# Some environments export HF_HUB_ENABLE_HF_TRANSFER=1 globally, which causes
+# huggingface_hub to error if the optional 'hf_transfer' package isn't installed.
+if os.environ.get('HF_HUB_ENABLE_HF_TRANSFER', '0') not in ('0', 'false', 'False'):
+    try:
+        import hf_transfer  # noqa: F401
+    except Exception:
+        os.environ['HF_HUB_ENABLE_HF_TRANSFER'] = '0'
+
 # Check if a virtual environment is active
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
     raise EnvironmentError(f'{red}No virtual environment is activated. Please activate venv_2 to run this code. See ReadMe for more details.{reset_color}')
@@ -636,4 +645,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
