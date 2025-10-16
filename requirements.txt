@@ -55,4 +55,4 @@ urllib3==1.26.18
 Werkzeug==2.0.3
 wrapt==1.12.1
 ml-dtypes==0.2.0
-sstreamlit==1.50.0
+streamlit==1.50.0
