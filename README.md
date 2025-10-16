@@ -45,7 +45,7 @@ To be able to test the training process and check the CATHe2 data you need **70 
 
 ## GPU management
 
-When running this project code, if you see a message indicating that the GPU is not used it is probably because the version of CUDA, cuDNN and/or the nvidia driver is not compatible with the tensorflow version used (TensorFlow 2.14.0). Alternatively if the CUDA version is wrong the GPU might be recognised but the sequences to embedd will probably be skipped in the embeding process.
+When running this project code, if you see a message indicating that the GPU is not used, it is probably because the version of CUDA, cuDNN and/or the nvidia driver is not compatible with the tensorflow version used (TensorFlow 2.14.0).
 
 Note: For a small number of inferences, GPU usage is optional, in this case you might want to ensure that no GPU is being used.
 
@@ -162,9 +162,9 @@ python ./src/cathe-predict/cathe_predictions.py --model ProstT5 --input_type AA+
  (These two variables control the maximum number of residues and sequences per batch, respectively. You can keep it simple by setting both to the same value, e.g 512 should work for an 8 GB GPU)
 
 
-## 5 Look at the Result
+## 5 Look at the Results
 
-The Results will be in `./src/cathe-predict/Results.csv`
+The Results will be in `./src/cathe-predict/Results.csv` file and presented on a streamlit webpage, which link will be provided in the terminal used to run the program when inference is done.
 
 # Data
 
