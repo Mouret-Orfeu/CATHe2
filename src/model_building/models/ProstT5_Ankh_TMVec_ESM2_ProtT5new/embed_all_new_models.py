@@ -31,7 +31,7 @@ orange_color = '\033[33m'
 
 print(f'{green}embedding code running (embed_all_new_models.py){reset_color}')
 
-print(f'{green}library imports in progress, it may take a long time (~40 min if you start from a fresh system, depending on your connexion speed){reset_color}')
+#print(f'{green}library imports in progress, it may take a long time (~40 min if you start from a fresh system, depending on your connexion speed){reset_color}')
 
 # max_res_per_batch is the maximum number of residues per batch,
 # Adjust to the GPU memory you have, (for a 40 GB GPU, max_res_per_batch = 4096 is close to the max you can use for the heaviest model ESM2, 40000 for Ankh_large)

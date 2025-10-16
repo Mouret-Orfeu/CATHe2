@@ -13,7 +13,7 @@ import os
 if not hasattr(sys, 'base_prefix') or sys.base_prefix == sys.prefix:
     raise EnvironmentError(f'{red}No virtual environment is activated. Please activate venv_2 or venv_1 to run this code. See ReadMe for more details.{reset}')
 
-print(f'{green}cathe_prediction running, library imports in progress, may take a long time{reset}')
+print(f'{green}cathe_prediction running{reset}')
 
 import argparse
 import tensorflow as tf
@@ -55,23 +55,37 @@ if args.model == 'ProtT5' and args.input_type == 'AA+3Di':
 print(f'{yellow}Model: {args.model}')
 print(f'Input Type: {args.input_type}{reset}')
 
+# Minimal helper to run commands and stop on error
+def run_cmd(cmd):
+    status = os.system(cmd)
+    if status != 0:
+        print(f"{red}An error has occurred when running: {cmd}{reset}")
+        sys.exit(1)
+
 # Create Embeddings directory if not already present
 cmd = 'mkdir -p ./src/cathe-predict/Embeddings'
-os.system(cmd)
+run_cmd(cmd)
 
 # Converts a FASTA file containing protein sequences into a CSV dataset
 cmd = f'python3 ./src/cathe-predict/fasta_to_ds.py --model {args.model}'
-os.system(cmd)
+run_cmd(cmd)
 
 # Computes the embeddings used to make the CATH annotation prediction
 cmd = f'python3 ./src/cathe-predict/predict_embed.py --model {args.model} --input_type {args.input_type}'
-os.system(cmd)
+run_cmd(cmd)
 
 if args.model == 'ProtT5':
     # Concatenates all individual embedding files into a single file (only useful for ProtT5)
     cmd = f'python3 ./src/cathe-predict/append_embed.py'
-    os.system(cmd)
+    run_cmd(cmd)
 
 # Uses the selected model to make the prediction
 cmd = f'python3 ./src/cathe-predict/make_predictions.py --model {args.model} --input_type {args.input_type}'
-os.system(cmd)
+run_cmd(cmd)
+
+# Launch results web presentation with Streamlit
+print(f"{green}Launching results webpage with Streamlit on http://localhost:8501 ...{reset}")
+cmd = 'streamlit run ./src/cathe-predict/results_web_presentation.py --server.port=8501 --server.headless=false'
+run_cmd(cmd)
+
+

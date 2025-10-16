@@ -45,7 +45,9 @@ To be able to test the training process and check the CATHe2 data you need **70 
 
 ## GPU management
 
-When running this project code, if you see a message indicating that the GPU is not used it is probably because the version of CUDA, cuDNN and/or the nvidia driver is not compatible with the tensorflow version used (TensorFlow 2.14.0). Note: For a small number of inferences, GPU usage is optional.
+When running this project code, if you see a message indicating that the GPU is not used it is probably because the version of CUDA, cuDNN and/or the nvidia driver is not compatible with the tensorflow version used (TensorFlow 2.14.0). Alternatively if the CUDA version is wrong the GPU might be recognised but the sequences to embedd will probably be skipped in the embeding process.
+
+Note: For a small number of inferences, GPU usage is optional, in this case you might want to ensure that no GPU is being used.
 
 The versions recommended for this project are
 
@@ -56,6 +58,7 @@ nvidia-driver-460
 See the commented code in venv_1_setup.sh or venv_2_setup.sh to get some indications on how to install these.
 
 You can check your CUDA version with ```nvcc --version``` and your GPU availability as well as driver version with ```nvidia-smi```.
+
 # Setup
 
 ## 1.1 Prepare CATHe2 models

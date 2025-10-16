@@ -256,6 +256,17 @@ def main():
         
         embed_sequence(args.model)
 
+        # Post-checks: verify AA embeddings created and non-empty
+        if args.model == 'ProtT5':
+            prot_files = glob.glob('./src/cathe-predict/Embeddings/ProtT5_*.npz')
+            if not prot_files or all(os.path.getsize(p) == 0 for p in prot_files):
+                raise RuntimeError('AA embeddings (ProtT5) were not created or are empty.')
+        
+        elif args.model == 'ProstT5':
+            aa_embed_path = './src/cathe-predict/Embeddings/Embeddings_ProstT5_AA.npz'
+            if (not os.path.isfile(aa_embed_path)) or os.path.getsize(aa_embed_path) == 0:
+                raise RuntimeError(f'AA embeddings (ProstT5) were not created or are empty: {aa_embed_path}')
+
     elif args.input_type == 'AA+3Di':
 
         pdb_path = './src/cathe-predict/PDB_folder' 
@@ -267,7 +278,19 @@ def main():
             raise ValueError('ProtT5 model does not support 3Di embeddings. Please use ProstT5 if you want the input_type to be AA+3Di.')
 
         embed_sequence(args.model)
+
+        # Post-checks for AA embeddings (ProstT5)
+        aa_embed_path = './src/cathe-predict/Embeddings/Embeddings_ProstT5_AA.npz'
+        if (not os.path.isfile(aa_embed_path)) or os.path.getsize(aa_embed_path) == 0:
+            raise RuntimeError(f'AA embeddings (ProstT5) were not created or are empty: {aa_embed_path}')
+
         embed_3Di(pdb_path)
+
+        # Post-checks for 3Di embeddings
+        di3_embed_path = './src/cathe-predict/Embeddings/3Di_embeddings.npz'
+        if (not os.path.isfile(di3_embed_path)) or os.path.getsize(di3_embed_path) == 0:
+            raise RuntimeError(f'3Di embeddings were not created or are empty (could be a GPU setup issue that made the program skip the embedding computation, see ReadMe): {di3_embed_path}')
+        
     else:
         raise ValueError('Invalid input_type. Please choose AA or AA+3Di.')
 

@@ -127,3 +127,8 @@ df = pd.DataFrame(list(zip(record_thresh, sequence_thresh, sfam_thresh, pred_pro
 df.to_csv('./src/cathe-predict/Results.csv')
 # print(len(embeds_thresh), len(un_embeds_thresh))
 en = time.time()
+
+# failure check for the Results.csv file
+if df.empty or df.shape[0] == 0:
+    raise RuntimeError('The Results.csv file is empty or was not created properly.')
+

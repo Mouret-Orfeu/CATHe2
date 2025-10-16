@@ -23,3 +23,9 @@ for i in range(1, 1000000):
 
 # Save the concatenated array
 np.savez_compressed('./src/cathe-predict/Embeddings/Embeddings_ProtT5.npz', pb_arr)
+
+# failure check
+if pb_arr.shape[0] == 0:
+    raise RuntimeError('No embeddings were concatenated, the resulting array is empty.')
+
+

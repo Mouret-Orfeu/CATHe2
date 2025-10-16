@@ -11,6 +11,7 @@ parser.add_argument('--model', type=str, default='ProtT5', choices=['ProtT5', 'P
 args = parser.parse_args()
 
 fasta_file_path = './src/cathe-predict/Sequences.fasta'
+output_csv_path = './src/cathe-predict/Dataset.csv'
 
 if args.model == 'ProtT5':
     
@@ -26,11 +27,14 @@ if args.model == 'ProtT5':
                 columns =['Record', 'Sequence'])
 
     print(df)
-    df.to_csv('./src/cathe-predict/Dataset.csv')
+    df.to_csv(output_csv_path)
+
+    if df.empty or (not os.path.isfile(output_csv_path)) or os.path.getsize(output_csv_path) == 0:
+        raise RuntimeError(f"Dataset CSV was not created or is empty: {output_csv_path}")
+
+    print(f'Dataset saved to {output_csv_path}')
 
 elif args.model == 'ProstT5':
-
-    output_csv_path = './src/cathe-predict/Dataset.csv'
 
     # Initialize lists to store parsed data
     indices = []
@@ -64,12 +68,7 @@ elif args.model == 'ProstT5':
     # Save DataFrame to CSV
     df.to_csv(output_csv_path, index=False)
 
+    if df.empty or (not os.path.isfile(output_csv_path)) or os.path.getsize(output_csv_path) == 0:
+        raise RuntimeError(f"Dataset CSV was not created or is empty: {output_csv_path}")
+
     print(f'Dataset saved to {output_csv_path}')
-
-
-
-
-else:
-    raise ValueError('Invalid model. Please choose ProtT5 or ProstT5.')
-
-
