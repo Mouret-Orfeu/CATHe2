@@ -95,8 +95,8 @@ or
 chmod +x ./venv_2_setup.sh
 ./venv_2_setup.sh
 ```
-venv_1 takes ~6.3 GB
-venv_2 takes ~10.3 GB
+venv_1 takes ~4.3 GB
+venv_2 takes ~7.9 GB
 
 ## 2.2 Activate the Virtual Environment
 - And activate it
